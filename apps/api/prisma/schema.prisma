@@ -1,0 +1,547 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  active
+  deleting
+  deleted
+
+  @@map("user_status")
+}
+
+enum RecordStatus {
+  pending
+  active
+  completed
+  failed
+  suppressed
+  deleted
+
+  @@map("record_status")
+}
+
+enum ConfirmationStatus {
+  extracted
+  needs_confirmation
+  user_confirmed
+  reviewer_confirmed
+  usable
+  rejected
+
+  @@map("confirmation_status")
+}
+
+enum RecommendationReviewStatus {
+  draft
+  safety_checked
+  review_required
+  published
+  blocked
+
+  @@map("recommendation_review_status")
+}
+
+enum ActionStatus {
+  proposed
+  active
+  completed
+  skipped
+  rejected
+  replaced
+  expired
+
+  @@map("action_status")
+}
+
+enum ChannelStatus {
+  pending
+  linked
+  revoked
+  invalid
+
+  @@map("channel_status")
+}
+
+enum OutboxStatus {
+  pending
+  leased
+  sent
+  failed
+  suppressed
+  unknown_after_send
+
+  @@map("outbox_status")
+}
+
+model User {
+  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status             UserStatus                @default(active)
+  timezone           String                    @default("Asia/Shanghai")
+  locale             String                    @default("zh-CN")
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?                 @map("deleted_at") @db.Timestamptz(6)
+  identities         UserIdentity[]
+  devices            Device[]
+  consents           ConsentRecord[]
+  channelAccounts    ChannelAccount[]
+  healthSyncRuns     HealthSyncRun[]
+  dailyFacts         DailyHealthFactRevision[]
+  labDocuments       LabDocument[]
+  foodScans          FoodScan[]
+  profileEvents      ProfileEvent[]
+  profileSnapshots   ProfileSnapshot[]
+  recommendationRuns RecommendationRun[]
+  actions            ActionAssignment[]
+  signals            SignalSnapshot[]
+  weeklyReviews      WeeklyReviewSnapshot[]
+  coachThreads       CoachThread[]
+  channelOutbox      ChannelOutbox[]
+  safetyIncidents    SafetyIncident[]
+
+  @@map("users")
+}
+
+model UserIdentity {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @map("user_id") @db.Uuid
+  provider            String
+  providerSubjectHash String   @map("provider_subject_hash")
+  verifiedAt          DateTime @map("verified_at") @db.Timestamptz(6)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubjectHash])
+  @@index([userId])
+  @@map("user_identities")
+}
+
+model Device {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  deviceId              String    @map("device_id")
+  apnsTokenEncrypted    String?   @map("apns_token_encrypted")
+  lastSeenAt            DateTime? @map("last_seen_at") @db.Timestamptz(6)
+  appVersion            String?   @map("app_version")
+  isPrimaryHealthDevice Boolean   @default(false) @map("is_primary_health_device")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@map("devices")
+}
+
+model ConsentRecord {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  consentType     String   @map("consent_type")
+  documentVersion String   @map("document_version")
+  granted         Boolean
+  recordedAt      DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  source          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consentType, recordedAt])
+  @@map("consent_records")
+}
+
+model ChannelAccount {
+  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String        @map("user_id") @db.Uuid
+  channel              String
+  tenantId             String        @map("tenant_id")
+  externalIdLookupHmac String        @map("external_id_lookup_hmac")
+  externalIdEncrypted  String        @map("external_id_encrypted")
+  consentEpoch         Int           @default(1) @map("consent_epoch")
+  status               ChannelStatus @default(pending)
+  linkedAt             DateTime?     @map("linked_at") @db.Timestamptz(6)
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalIdLookupHmac])
+  @@index([userId, channel, status])
+  @@map("channel_accounts")
+}
+
+model HealthSyncRun {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  deviceId       String       @map("device_id")
+  anchorEpoch    Int          @map("anchor_epoch")
+  serverSequence BigInt?      @map("server_sequence")
+  startedAt      DateTime     @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt    DateTime?    @map("completed_at") @db.Timestamptz(6)
+  status         RecordStatus @default(pending)
+  correlationId  String       @map("correlation_id") @db.Uuid
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+  @@map("health_sync_runs")
+}
+
+model DailyHealthFactRevision {
+  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String                    @map("user_id") @db.Uuid
+  localDate          DateTime                  @map("local_date") @db.Date
+  metric             String
+  canonicalValueJson Json                      @map("canonical_value_json") @db.JsonB
+  coverage           Decimal?                  @db.Decimal(6, 5)
+  sourceVectorJson   Json                      @map("source_vector_json") @db.JsonB
+  inputHash          String                    @map("input_hash")
+  supersedesId       String?                   @map("supersedes_id") @db.Uuid
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supersedes         DailyHealthFactRevision?  @relation("FactSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy       DailyHealthFactRevision[] @relation("FactSupersession")
+
+  @@unique([userId, localDate, metric, inputHash])
+  @@index([userId, localDate, metric, createdAt])
+  @@map("daily_health_fact_revisions")
+}
+
+model LabDocument {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  objectKey    String           @map("object_key")
+  sha256       String
+  status       RecordStatus     @default(pending)
+  uploadedAt   DateTime         @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  deletedAt    DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  observations LabObservation[]
+
+  @@unique([userId, sha256])
+  @@index([userId, uploadedAt])
+  @@map("lab_documents")
+}
+
+model LabObservation {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId         String             @map("document_id") @db.Uuid
+  code               String
+  value              String
+  unit               String
+  normalizedValue    Decimal?           @map("normalized_value") @db.Decimal(18, 6)
+  referenceRange     String?            @map("reference_range")
+  page               Int?
+  evidenceBox        Json               @map("evidence_box") @db.JsonB
+  confidence         Decimal            @db.Decimal(6, 5)
+  confirmationStatus ConfirmationStatus @default(extracted) @map("confirmation_status")
+  document           LabDocument        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, code])
+  @@map("lab_observations")
+}
+
+model FoodScan {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String          @map("user_id") @db.Uuid
+  objectKey         String          @map("object_key")
+  capturedAt        DateTime        @map("captured_at") @db.Timestamptz(6)
+  modelVersion      String          @map("model_version")
+  overallConfidence Decimal         @map("overall_confidence") @db.Decimal(6, 5)
+  status            RecordStatus    @default(pending)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  labels            FoodRiskLabel[]
+
+  @@index([userId, capturedAt])
+  @@map("food_scans")
+}
+
+model FoodRiskLabel {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  foodScanId     String   @map("food_scan_id") @db.Uuid
+  label          String
+  level          String
+  confidence     Decimal  @db.Decimal(6, 5)
+  evidence       Json     @db.JsonB
+  userCorrection Json?    @map("user_correction") @db.JsonB
+  foodScan       FoodScan @relation(fields: [foodScanId], references: [id], onDelete: Cascade)
+
+  @@index([foodScanId])
+  @@map("food_risk_labels")
+}
+
+model ProfileEvent {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String            @map("user_id") @db.Uuid
+  eventType           String            @map("event_type")
+  source              String
+  payload             Json              @db.JsonB
+  correlationId       String            @map("correlation_id") @db.Uuid
+  occurredAt          DateTime          @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshotsEndingHere ProfileSnapshot[]
+
+  @@index([userId, occurredAt])
+  @@map("profile_events")
+}
+
+model ProfileSnapshot {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String              @map("user_id") @db.Uuid
+  version            Int
+  factsJson          Json                @map("facts_json") @db.JsonB
+  sourceEventUntil   String              @map("source_event_until") @db.Uuid
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceEvent        ProfileEvent        @relation(fields: [sourceEventUntil], references: [id], onDelete: Restrict)
+  recommendationRuns RecommendationRun[]
+
+  @@unique([userId, version])
+  @@index([userId, createdAt])
+  @@map("profile_snapshots")
+}
+
+model RuleBundle {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  version            String              @unique
+  status             String
+  contentHash        String              @unique @map("content_hash")
+  publishedBy        String?             @map("published_by")
+  publishedAt        DateTime?           @map("published_at") @db.Timestamptz(6)
+  recommendationRuns RecommendationRun[]
+
+  @@map("rule_bundles")
+}
+
+model RecommendationRun {
+  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String                   @map("user_id") @db.Uuid
+  localDate       DateTime                 @map("local_date") @db.Date
+  inputSnapshotId String                   @map("input_snapshot_id") @db.Uuid
+  ruleBundleId    String                   @map("rule_bundle_id") @db.Uuid
+  status          RecordStatus             @default(pending)
+  correlationId   String                   @map("correlation_id") @db.Uuid
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inputSnapshot   ProfileSnapshot          @relation(fields: [inputSnapshotId], references: [id], onDelete: Restrict)
+  ruleBundle      RuleBundle               @relation(fields: [ruleBundleId], references: [id], onDelete: Restrict)
+  snapshots       RecommendationSnapshot[]
+
+  @@unique([userId, localDate, inputSnapshotId, ruleBundleId])
+  @@index([userId, localDate])
+  @@map("recommendation_runs")
+}
+
+model RecommendationSnapshot {
+  id                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  runId                  String                     @map("run_id") @db.Uuid
+  revision               Int
+  riskArea               String                     @map("risk_area")
+  safetyClass            String                     @map("safety_class")
+  actionCode             String                     @map("action_code")
+  renderedPayloadJson    Json                       @map("rendered_payload_json") @db.JsonB
+  canonicalRuleInputJson Json                       @map("canonical_rule_input_json") @db.JsonB
+  provenanceJson         Json                       @map("provenance_json") @db.JsonB
+  reviewStatus           RecommendationReviewStatus @default(draft) @map("review_status")
+  supersedesId           String?                    @map("supersedes_id") @db.Uuid
+  createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  run                    RecommendationRun          @relation(fields: [runId], references: [id], onDelete: Cascade)
+  supersedes             RecommendationSnapshot?    @relation("RecommendationSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy           RecommendationSnapshot[]   @relation("RecommendationSupersession")
+  actions                ActionAssignment[]
+
+  @@unique([runId, revision])
+  @@index([runId, reviewStatus])
+  @@map("recommendation_snapshots")
+}
+
+model ActionAssignment {
+  id                       String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String                 @map("user_id") @db.Uuid
+  recommendationSnapshotId String                 @map("recommendation_snapshot_id") @db.Uuid
+  localDate                DateTime               @map("local_date") @db.Date
+  difficulty               String
+  status                   ActionStatus           @default(proposed)
+  isPrimary                Boolean                @default(true) @map("is_primary")
+  replacedById             String?                @map("replaced_by_id") @db.Uuid
+  createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendationSnapshot   RecommendationSnapshot @relation(fields: [recommendationSnapshotId], references: [id], onDelete: Restrict)
+  replacedBy               ActionAssignment?      @relation("ActionReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
+  replaces                 ActionAssignment[]     @relation("ActionReplacement")
+  feedback                 FeedbackEvent[]
+
+  @@index([userId, localDate, status])
+  @@map("action_assignments")
+}
+
+model FeedbackEvent {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actionAssignmentId String           @map("action_assignment_id") @db.Uuid
+  type               String
+  reasonCode         String?          @map("reason_code")
+  text               String?
+  source             String
+  occurredAt         DateTime         @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  actionAssignment   ActionAssignment @relation(fields: [actionAssignmentId], references: [id], onDelete: Cascade)
+
+  @@index([actionAssignmentId, occurredAt])
+  @@map("feedback_events")
+}
+
+model SignalSnapshot {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  localDate      DateTime @map("local_date") @db.Date
+  signalCode     String   @map("signal_code")
+  state          String
+  trend          String
+  confidence     Decimal  @db.Decimal(6, 5)
+  driversJson    Json     @map("drivers_json") @db.JsonB
+  provenanceJson Json     @map("provenance_json") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate, signalCode])
+  @@map("signal_snapshots")
+}
+
+model WeeklyReviewSnapshot {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  weekStart       DateTime @map("week_start") @db.Date
+  coverage        Decimal  @db.Decimal(6, 5)
+  conclusion      String
+  evidenceJson    Json     @map("evidence_json") @db.JsonB
+  nextActionsJson Json     @map("next_actions_json") @db.JsonB
+  provenanceJson  Json     @map("provenance_json") @db.JsonB
+  revision        Int
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart, revision])
+  @@map("weekly_review_snapshots")
+}
+
+model CoachThread {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  status         RecordStatus   @default(active)
+  summary        String?
+  summaryVersion Int            @default(0) @map("summary_version")
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       CoachMessage[]
+
+  @@index([userId, createdAt])
+  @@map("coach_threads")
+}
+
+model CoachMessage {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  threadId      String      @map("thread_id") @db.Uuid
+  role          String
+  intent        String
+  content       String
+  sourcesJson   Json        @map("sources_json") @db.JsonB
+  safetyClass   String      @map("safety_class")
+  modelMetadata Json?       @map("model_metadata") @db.JsonB
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  thread        CoachThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@map("coach_messages")
+}
+
+model ChannelOutbox {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String            @map("user_id") @db.Uuid
+  channel        String
+  template       String
+  payload        Json              @db.JsonB
+  idempotencyKey String            @unique @map("idempotency_key")
+  availableAt    DateTime          @default(now()) @map("available_at") @db.Timestamptz(6)
+  status         OutboxStatus      @default(pending)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts       DeliveryAttempt[]
+
+  @@index([status, availableAt])
+  @@map("channel_outbox")
+}
+
+model DeliveryAttempt {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  outboxId          String        @map("outbox_id") @db.Uuid
+  attempt           Int
+  providerMessageId String?       @map("provider_message_id")
+  status            OutboxStatus
+  errorCode         String?       @map("error_code")
+  sentAt            DateTime?     @map("sent_at") @db.Timestamptz(6)
+  outbox            ChannelOutbox @relation(fields: [outboxId], references: [id], onDelete: Cascade)
+
+  @@unique([outboxId, attempt])
+  @@map("delivery_attempts")
+}
+
+model DomainOutbox {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType      String       @map("event_type")
+  aggregateId    String       @map("aggregate_id") @db.Uuid
+  payload        Json         @db.JsonB
+  idempotencyKey String       @unique @map("idempotency_key")
+  availableAt    DateTime     @default(now()) @map("available_at") @db.Timestamptz(6)
+  leaseUntil     DateTime?    @map("lease_until") @db.Timestamptz(6)
+  status         OutboxStatus @default(pending)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status, availableAt, leaseUntil])
+  @@map("domain_outbox")
+}
+
+model ConsumerInbox {
+  consumer    String
+  messageId   String   @map("message_id")
+  processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz(6)
+  resultHash  String   @map("result_hash")
+
+  @@id([consumer, messageId])
+  @@map("consumer_inbox")
+}
+
+model ReviewTask {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taskType   String       @map("task_type")
+  subjectId  String       @map("subject_id") @db.Uuid
+  priority   String
+  status     RecordStatus @default(pending)
+  assigneeId String?      @map("assignee_id") @db.Uuid
+  slaAt      DateTime     @map("sla_at") @db.Timestamptz(6)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status, priority, slaAt])
+  @@map("review_tasks")
+}
+
+model AuditLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId      String?  @map("actor_id") @db.Uuid
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id") @db.Uuid
+  beforeHash   String?  @map("before_hash")
+  afterHash    String?  @map("after_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([resourceType, resourceId, createdAt])
+  @@map("audit_logs")
+}
+
+model SafetyIncident {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String?      @map("user_id") @db.Uuid
+  source           String
+  severity         String
+  status           RecordStatus @default(pending)
+  detailsEncrypted String       @map("details_encrypted")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, severity, createdAt])
+  @@map("safety_incidents")
+}
