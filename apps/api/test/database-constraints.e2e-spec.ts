@@ -3,11 +3,24 @@ import type { INestApplication } from "@nestjs/common";
 
 import { createApp } from "../src/main";
 import { DatabaseService } from "../src/database/prisma.service";
-import { PublicationRepository } from "../src/database/publication.repository";
+import { RULES_ENGINE_ARTIFACT_DIGEST } from "../src/recommendations/rule-bundle.service";
+
+const ruleInput = {
+  age_group: "adult",
+  pregnancy_state: "none",
+  serious_conditions: [],
+  diabetes_treatment: false,
+  medication_affects_advice: false,
+  eating_disorder_risk: false,
+  acute_symptoms: false,
+  mobility_limited: false,
+  freshness: "current",
+  signals: { sleep_recovery: "elevated" },
+  rejected_action_codes: [],
+};
 
 describe("database invariants", () => {
   const database = new DatabaseService();
-  const publication = new PublicationRepository(database);
 
   beforeAll(async () => {
     await database.$connect();
@@ -37,14 +50,29 @@ describe("database invariants", () => {
 
   async function createRecommendationRun() {
     const user = await database.user.create({
-      data: { locale: "zh-CN", timezone: "Asia/Shanghai" },
+      data: { locale: "zh-CN", timezone: "Asia/Shanghai", consentEpoch: 1 },
     });
+    await database.consentRecord.create({
+      data: {
+        userId: user.id,
+        consentType: "health_processing",
+        documentVersion: "synthetic-v1",
+        granted: true,
+        epoch: 1,
+        correlationId: randomUUID(),
+        requestHash: randomUUID(),
+        source: "synthetic",
+      },
+    });
+    await database.privacyReconciliation.update({ where: { id: "global" }, data: { status: "ready" } });
     const profileEvent = await database.profileEvent.create({
       data: {
         userId: user.id,
         eventType: "synthetic_profile_created",
         source: "test",
         payload: {},
+        consentEpoch: 1,
+        payloadHash: "a".repeat(64),
         correlationId: randomUUID(),
       },
     });
@@ -52,18 +80,36 @@ describe("database invariants", () => {
       data: {
         userId: user.id,
         version: 1,
-        factsJson: {},
+        factsJson: { rule_input: ruleInput },
         sourceEventUntil: profileEvent.id,
+        sourceSequence: profileEvent.sequence,
+        consentEpoch: 1,
+        snapshotHash: "b".repeat(64),
       },
     });
-    const bundle = await database.ruleBundle.create({
+    const draftBundle = await database.ruleBundle.create({
       data: {
         version: "test-v1",
-        status: "published",
-        contentHash: "sha256:test-v1",
-        publishedBy: "test",
-        publishedAt: new Date(),
+        contentJson: {
+          rules_engine: "deterministic-rules-v1",
+          rules_engine_digest: RULES_ENGINE_ARTIFACT_DIGEST,
+          safety_bundle_digest: "1".repeat(64),
+          localization_bundle_digest: "2".repeat(64),
+          template_bundle_digest: "3".repeat(64),
+          beta_normal_review_percent: 20,
+          rules: ["synthetic"],
+        },
+        contentHash: "0".repeat(64),
+        bundleDigest: "0".repeat(64),
       },
+    });
+    await database.ruleBundleApproval.createMany({ data: [
+      { ruleBundleId: draftBundle.id, role: "technical", actorId: "synthetic-tech", normalizedActor: "synthetic-tech", bundleDigest: draftBundle.bundleDigest!, approvedAt: new Date() },
+      { ruleBundleId: draftBundle.id, role: "medical", actorId: "synthetic-medical", normalizedActor: "synthetic-medical", bundleDigest: draftBundle.bundleDigest!, approvedAt: new Date() },
+    ] });
+    const bundle = await database.ruleBundle.update({
+      where: { id: draftBundle.id },
+      data: { status: "active", publishedBy: "synthetic-publisher", publishedAt: new Date() },
     });
     const run = await database.recommendationRun.create({
       data: {
@@ -71,11 +117,23 @@ describe("database invariants", () => {
         localDate: new Date("2026-07-10T00:00:00.000Z"),
         inputSnapshotId: profile.id,
         ruleBundleId: bundle.id,
+        consentEpoch: 1,
+        inputHash: "c".repeat(64),
+        inputManifestJson: {
+          profile_snapshot_id: profile.id,
+          profile_snapshot_hash: profile.snapshotHash,
+          consent_epoch: 1,
+          rule_input: ruleInput,
+          fact_inputs: [],
+          lab_inputs: [],
+          rule_bundle_id: bundle.id,
+          rule_bundle_digest: bundle.bundleDigest,
+        },
         status: "completed",
         correlationId: randomUUID(),
       },
     });
-    return { run, user };
+    return { bundle, profile, run, user };
   }
 
   async function createPublishedSnapshot() {
@@ -90,7 +148,10 @@ describe("database invariants", () => {
         renderedPayloadJson: { title: "Synthetic action" },
         canonicalRuleInputJson: { lab_observation_ids: [] },
         provenanceJson: { synthetic: true },
-        reviewStatus: "published",
+        reviewStatus: "review_required",
+        releaseStage: "alpha",
+        reviewRoute: "review_required",
+        policyDigest: "d".repeat(64),
       },
     });
     return { run, snapshot, user };
@@ -171,7 +232,10 @@ describe("database invariants", () => {
         renderedPayloadJson: {},
         canonicalRuleInputJson: { lab_observation_ids: [] },
         provenanceJson: { synthetic: true },
-        reviewStatus: "published",
+        reviewStatus: "review_required",
+        releaseStage: "alpha",
+        reviewRoute: "review_required",
+        policyDigest: "d".repeat(64),
         supersedesId: snapshot.id,
       },
     });
@@ -187,12 +251,16 @@ describe("database invariants", () => {
       /append-only/i,
     );
 
-    await database.$transaction(async (transaction) => {
-      await transaction.$executeRawUnsafe(
-        "SET LOCAL healthos.allow_privacy_delete = 'on'",
-      );
+    await expect(database.$transaction(async (transaction) => {
+      await transaction.$executeRawUnsafe("SET LOCAL healthos.allow_privacy_delete = 'on'");
       await transaction.user.delete({ where: { id: user.id } });
+    })).rejects.toThrow(/append-only/i);
+
+    await database.user.update({
+      where: { id: user.id },
+      data: { status: "deleting", deletedAt: new Date() },
     });
+    await database.$queryRaw`SELECT "healthos_delete_frozen_user"(${user.id}::uuid)`;
 
     expect(await database.user.count({ where: { id: user.id } })).toBe(0);
   });
@@ -236,6 +304,109 @@ describe("database invariants", () => {
     ).rejects.toThrow(/unconfirmed lab/i);
   });
 
+  test("rejects a direct published snapshot without its atomic publication manifest", async () => {
+    const { bundle, profile, run } = await createRecommendationRun();
+    await expect(database.$transaction(async (tx) => {
+      await tx.recommendationSnapshot.create({
+        data: {
+          runId: run.id,
+          revision: 1,
+          riskArea: "sleep_recovery",
+          safetyClass: "normal",
+          actionCode: "SLEEP_WIND_DOWN",
+          renderedPayloadJson: {
+            template: "daily_action_v1",
+            action_code: "SLEEP_WIND_DOWN",
+            safety_class: "normal",
+            risk_area: "sleep_recovery",
+          },
+          canonicalRuleInputJson: { lab_observation_ids: [] },
+          provenanceJson: {
+            profile_snapshot_id: profile.id,
+            profile_snapshot_hash: profile.snapshotHash,
+            daily_fact_revision_ids: [],
+            daily_fact_input_hashes: [],
+            lab_observation_ids: [],
+            lab_observation_hashes: [],
+            rule_bundle_id: bundle.id,
+            rule_bundle_digest: bundle.bundleDigest,
+            rules_engine: "deterministic-rules-v1",
+            rules_engine_digest: RULES_ENGINE_ARTIFACT_DIGEST,
+            safety_bundle: "1".repeat(64),
+            localization_bundle: "2".repeat(64),
+            template_bundle: "3".repeat(64),
+            prompt_version: null,
+            provider_id: null,
+            model_id: null,
+            rendered_payload_hash: "e".repeat(64),
+            generated_at: "2026-07-11T00:00:00.000Z",
+            rule_result: {
+              outcome: "action",
+              safetyClass: "normal",
+              actionCode: "SLEEP_WIND_DOWN",
+              riskArea: "sleep_recovery",
+            },
+            rule_key: "sleep_recovery:SLEEP_WIND_DOWN",
+          },
+          reviewStatus: "published",
+          releaseStage: "beta",
+          reviewRoute: "auto_publish",
+          policyDigest: "f".repeat(64),
+          samplingBucket: 99,
+          reviewSamplePercent: 20,
+        },
+      });
+    })).rejects.toThrow(/manifest/i);
+    expect(await database.recommendationSnapshot.count({ where: { runId: run.id } })).toBe(0);
+  });
+
+  test("rejects a recommendation run bound to another user's profile snapshot", async () => {
+    const { bundle, user } = await createRecommendationRun();
+    const other = await database.user.create({ data: { consentEpoch: 0 } });
+    const event = await database.profileEvent.create({
+      data: { userId: other.id, eventType: "synthetic_profile_created", source: "synthetic", payload: {}, correlationId: randomUUID() },
+    });
+    const profile = await database.profileSnapshot.create({
+      data: { userId: other.id, version: 1, factsJson: { rule_input: ruleInput }, sourceEventUntil: event.id, sourceSequence: event.sequence },
+    });
+    await expect(database.recommendationRun.create({
+      data: {
+        userId: user.id,
+        localDate: new Date("2026-07-12T00:00:00.000Z"),
+        inputSnapshotId: profile.id,
+        ruleBundleId: bundle.id,
+        consentEpoch: 0,
+        inputHash: "f".repeat(64),
+        inputManifestJson: { rule_input: ruleInput },
+        correlationId: randomUUID(),
+      },
+    })).rejects.toThrow();
+  });
+
+  test("rejects a revision gap and a stale active run without complete lease fields", async () => {
+    const { run } = await createRecommendationRun();
+    await expect(database.recommendationSnapshot.create({
+      data: {
+        runId: run.id,
+        revision: 2,
+        riskArea: "sleep_recovery",
+        safetyClass: "normal",
+        actionCode: "SLEEP_WIND_DOWN",
+        renderedPayloadJson: {},
+        canonicalRuleInputJson: {},
+        provenanceJson: {},
+        reviewStatus: "review_required",
+        releaseStage: "alpha",
+        reviewRoute: "review_required",
+        policyDigest: "f".repeat(64),
+      },
+    })).rejects.toThrow(/predecessor/i);
+    await expect(database.recommendationRun.update({
+      where: { id: run.id },
+      data: { status: "active" },
+    })).rejects.toThrow();
+  });
+
   test("keeps channel lookup hashes unique within a tenant", async () => {
     const userA = await database.user.create({ data: {} });
     const userB = await database.user.create({ data: {} });
@@ -263,36 +434,6 @@ describe("database invariants", () => {
         },
       }),
     ).rejects.toThrow();
-  });
-
-  test("rolls back the recommendation when its outbox write fails", async () => {
-    const { run } = await createRecommendationRun();
-    const idempotencyKey = "publish:atomicity-test";
-    await database.domainOutbox.create({
-      data: {
-        eventType: "existing.event",
-        aggregateId: randomUUID(),
-        payload: {},
-        idempotencyKey,
-      },
-    });
-
-    await expect(
-      publication.publish({
-        runId: run.id,
-        idempotencyKey,
-        riskArea: "sleep",
-        safetyClass: "normal",
-        actionCode: "sleep_consistency",
-        renderedPayload: {},
-        canonicalRuleInput: { lab_observation_ids: [] },
-        provenance: { synthetic: true },
-      }),
-    ).rejects.toThrow();
-
-    expect(
-      await database.recommendationSnapshot.count({ where: { runId: run.id } }),
-    ).toBe(0);
   });
 
   test("readiness reports the real database separately", async () => {

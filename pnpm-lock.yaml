@@ -65,6 +65,9 @@ importers:
       '@healthos/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@healthos/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
       '@nestjs/common':
         specifier: 11.1.28
         version: 11.1.28(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -126,6 +129,9 @@ importers:
       '@healthos/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@healthos/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
       '@nestjs/common':
         specifier: 11.1.28
         version: 11.1.28(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
