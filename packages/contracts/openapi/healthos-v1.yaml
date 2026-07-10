@@ -1,0 +1,105 @@
+openapi: 3.1.0
+info:
+  title: HealthOS API
+  version: 1.0.0
+  description: HealthOS V1 client and operations contract.
+servers:
+  - url: http://127.0.0.1:3000
+    description: Local synthetic development only
+paths:
+  /health/live:
+    get:
+      operationId: getLiveness
+      summary: Process liveness
+      responses:
+        "200":
+          description: The API process is alive.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LivenessResponse"
+  /health/ready:
+    get:
+      operationId: getReadiness
+      summary: Dependency readiness
+      responses:
+        "200":
+          description: Every required dependency is ready.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
+          description: One or more required dependencies are not ready.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+components:
+  headers:
+    CorrelationId:
+      description: Validated incoming identifier or a server-generated UUID.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+  schemas:
+    LivenessResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          const: ok
+    DependencyHealth:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [not_configured, ok, error]
+    ReadinessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, dependencies]
+      properties:
+        status:
+          type: string
+          enum: [not_ready, ready]
+        dependencies:
+          type: object
+          additionalProperties: false
+          required: [database, object_storage, worker_lease]
+          properties:
+            database:
+              $ref: "#/components/schemas/DependencyHealth"
+            object_storage:
+              $ref: "#/components/schemas/DependencyHealth"
+            worker_lease:
+              $ref: "#/components/schemas/DependencyHealth"
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, correlation_id]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            correlation_id:
+              type: string

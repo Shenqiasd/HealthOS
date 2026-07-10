@@ -12,6 +12,23 @@
     "check:workspace": "node scripts/check-workspace.mjs",
     "check:preflight:structure": "node scripts/check-preflight-gates.mjs --mode structure",
     "check:preflight:blocked": "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked",
-    "test:foundation": "node --test scripts/check-workspace.test.mjs scripts/check-preflight-gates.test.mjs"
+    "test:foundation": "node --test scripts/check-workspace.test.mjs scripts/check-preflight-gates.test.mjs",
+    "lint": "eslint apps packages --max-warnings=0",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm test:foundation && pnpm -r --if-present test"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "@types/node": "22.20.0",
+    "eslint": "9.39.4",
+    "globals": "17.3.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.63.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "0.28.1",
+      "postcss": "8.5.10"
+    }
   }
 }

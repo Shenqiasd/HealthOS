@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T102
+active_task: T103
 
 tasks:
   - id: T001
@@ -332,7 +332,7 @@ tasks:
   - id: T010
     type: pm
     assignee: PM
-    status: queued
+    status: done
     reasoning_hint: high
     objective: "Audit T102 service-contract evidence, then populate the next dependency-safe Worker package from implementation Task 3 or the iOS design-system lane."
     inputs:
@@ -345,8 +345,66 @@ tasks:
     expected_output:
       - "T102 evidence audit"
       - "Next executable Worker package with exact scope and verification"
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T010.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T102 as complete for its service-contract scope, added a narrow T011 secret-scan hygiene task, and populated T103 as the next full PostgreSQL/Prisma package with explicit database safety invariants, migration reset, integration tests, and runbook evidence. Production data and non-PostgreSQL substitutes remain forbidden."
+      evidence:
+        - "T102 commit 9b6acb3 passes all declared verification and a zero-known-vulnerability audit."
+        - "T011 removes only a scanner-shaped test literal without weakening runtime detection."
+        - "T103 now contains exact files, commands, stop conditions, and database-enforced acceptance criteria."
+      risks_remaining:
+        - "The host Docker engine previously could not start new containers; T103 must use real local PostgreSQL and may need a non-destructive host recovery path."
+        - "Remote CI remains blocked by T006 billing lock."
+      next: "Activate T011, then continue directly to T103."
+  - id: T011
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: medium
+    objective: "Remove the scanner-shaped fake API-key literal from the workspace security test while preserving the runtime secret-detection assertion."
+    inputs:
+      - "T102 remaining blocker"
+      - "scripts/check-workspace.test.mjs"
+    allowed_files:
+      - "scripts/check-workspace.test.mjs"
+    verify:
+      - "node --test scripts/check-workspace.test.mjs"
+      - "node -e \"const s=require('node:fs').readFileSync('scripts/check-workspace.test.mjs','utf8');if(s.includes('sk-proj-'))process.exit(1)\""
+      - "git diff --check"
+    stop_if:
+      - "The change weakens the runtime assertion that production-looking secrets are rejected."
+      - "The change needs files outside allowed_files."
+    expected_output:
+      - "The test still constructs a production-looking value at runtime and passes."
+      - "No scanner-shaped sk-proj- literal remains in the tracked test source."
+    receipt:
+      result: done
+      changed_files:
+        - scripts/check-workspace.test.mjs
+      commands:
+        - cmd: "node --test scripts/check-workspace.test.mjs"
+          status: pass
+        - cmd: "node -e static source assertion for absence of sk-proj-"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "scope-guard T011 for scripts/check-workspace.test.mjs"
+          status: pass
+      summary: "Rewrote the fake API-key fixture to assemble its scanner-shaped value at runtime. The secret detector still rejects the production-looking value, all four workspace tests pass, and the tracked source no longer contains the static sk-proj- pattern. Commit b2af78f is limited to the declared test file."
+      deviations:
+        - "The goal_worker produced the correct allowed-file edit but the dispatch process timed out before returning a receipt; PM fallback verified, committed, and recorded the work without repeating it."
+      remaining_blockers:
+        - "Remote secret-scan CI still cannot run until the T006 GitHub billing lock is cleared."
+      verification_attempts: 1
+      stopped_because: null
+      commit: b2af78f
   - id: T003
     type: worker
     assignee: Worker
@@ -668,7 +726,7 @@ tasks:
   - id: T102
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Execute implementation plan Task 2: build runnable NestJS/Fastify API and worker skeletons, a minimal Next.js admin readiness page, the HealthOS V1 OpenAPI health contract, and tested correlation/error/health behavior."
     inputs:
@@ -727,17 +785,126 @@ tasks:
       - "Worker boots without feature jobs."
       - "Admin renders only an environment badge and live API readiness state."
       - "OpenAPI defines the implemented health endpoints and error contract."
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - package.json
+        - pnpm-lock.yaml
+        - tsconfig.base.json
+        - eslint.config.mjs
+        - apps/api/package.json
+        - apps/api/tsconfig.json
+        - apps/api/jest.config.mjs
+        - apps/api/src/main.ts
+        - apps/api/src/app.module.ts
+        - apps/api/src/health.controller.ts
+        - apps/api/src/common/readiness.service.ts
+        - apps/api/src/common/redacted-exception.filter.ts
+        - apps/api/test/health.e2e-spec.ts
+        - apps/worker/package.json
+        - apps/worker/tsconfig.json
+        - apps/worker/src/main.ts
+        - apps/worker/src/main.spec.ts
+        - apps/worker/src/worker.module.ts
+        - apps/admin/package.json
+        - apps/admin/tsconfig.json
+        - apps/admin/next-env.d.ts
+        - apps/admin/next.config.ts
+        - apps/admin/app/layout.tsx
+        - apps/admin/app/page.tsx
+        - apps/admin/app/globals.css
+        - packages/contracts/package.json
+        - packages/contracts/tsconfig.json
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - packages/observability/package.json
+        - packages/observability/tsconfig.json
+        - packages/observability/jest.config.mjs
+        - packages/observability/src/correlation.ts
+        - packages/observability/src/correlation.spec.ts
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm --filter @healthos/api test:e2e -- health.e2e-spec.ts"
+          status: pass
+        - cmd: "pnpm --filter @healthos/observability test"
+          status: pass
+        - cmd: "pnpm --filter @healthos/admin build"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "curl /health/live and /health/ready against a real API process on port 3101"
+          status: pass
+        - cmd: "git diff --cached --check"
+          status: pass
+        - cmd: "scope-guard T102 with declared files plus ignored node_modules output"
+          status: pass
+      summary: "Built runnable NestJS/Fastify API and worker skeletons, a minimal Next.js operations page, OpenAPI and TypeScript contracts, validated correlation IDs, redacted error envelopes, graceful startup/shutdown, and fail-closed readiness. The final suite passes 21 tests, lint, typecheck, Admin production build, real API process smoke, and a zero-known-vulnerability audit. Commit 9b6acb3 contains only service-contract scope."
+      deviations:
+        - "The required goal_worker dispatch produced no allowed-file changes within one wait window and was terminated per GoalBuddy recovery policy; PM fallback completed the Worker scope."
+        - "Added explicit package/config files required to make the planned source files runnable and verifiable."
+        - "The scope guard hashes Git-ignored node_modules changes; final verification explicitly allowed only that generated directory in addition to the board source paths, after deleting .next and dist outputs."
+        - "Pinned PostCSS 8.5.10 and esbuild 0.28.1 overrides after audit found one moderate and one low transitive advisory; final audit reports no known vulnerabilities."
+      remaining_blockers:
+        - "Readiness correctly remains 503 until Task 3 and later object-storage/worker-lease checks exist."
+        - "Remote CI remains unavailable until T006 GitHub billing lock is cleared."
+        - "A pre-existing static fake API-key string in check-workspace.test.mjs should be rewritten before secret-scan CI is restored to avoid scanner false positives."
+      verification_attempts: 3
+      stopped_because: null
+      commit: 9b6acb3
   - id: T103
     type: worker
     assignee: Worker
-    status: queued
-    reasoning_hint: high
-    objective: "Execute implementation plan Task 3: create the production database schema and migration discipline."
-    allowed_files: []
-    verify: []
-    stop_if: []
+    status: active
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 3: implement the complete PostgreSQL/Prisma V1 schema, first reproducible migration, database module, restricted publication transaction, constraint tests, and migration runbook."
+    inputs:
+      - "T102 receipt and OpenAPI/service skeleton"
+      - "Implementation plan Task 3"
+      - "Technical design sections 7, 8, 16, 17, and 23"
+    allowed_files:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/tsconfig.json"
+      - "apps/api/jest.config.mjs"
+      - "apps/api/prisma/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/common/readiness.service.ts"
+      - "apps/api/src/database/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "infra/runbooks/database-migration.md"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "pnpm --filter @healthos/api prisma validate"
+      - "docker compose up -d postgres --wait --wait-timeout 60"
+      - "pnpm --filter @healthos/api prisma migrate reset --force"
+      - "pnpm --filter @healthos/api test:integration -- database-constraints.e2e-spec.ts"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "docker compose down --volumes --remove-orphans"
+      - "git diff --check"
+    stop_if:
+      - "A migration would use real data, production credentials, a production database, or a non-PostgreSQL substitute for constraint proof."
+      - "A cross-table safety invariant is represented only in application code when the plan requires a restricted transaction or database trigger."
+      - "Recommendation snapshots, events, audits, or fact revisions become mutable history."
+      - "Implementation needs files outside allowed_files."
+      - "Database verification fails twice without a confirmed root cause and no local PostgreSQL path is available."
+    expected_output:
+      - "All V1 entities from the technical design exist with explicit enums, timestamps, indexes, foreign keys, and minimum necessary payload fields."
+      - "One active primary action per user/local date and global outbox idempotency are database-enforced."
+      - "Recommendation snapshots are append-only; corrections use higher revision and supersedes_id."
+      - "Restricted publication rejects canonical inputs that reference unconfirmed lab observations."
+      - "Tenant-scoped channel lookup HMAC is unique while recoverable identifiers remain encrypted."
+      - "Business mutation and domain_outbox insertion are proven atomic."
+      - "Migration reset rebuilds the database from zero and the runbook records expand/contract, rollback, backup, and recovery rules."
     receipt: null
 
   - id: T104
