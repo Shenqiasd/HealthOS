@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T015
+active_task: T017
 
 tasks:
   - id: T001
@@ -604,7 +604,7 @@ tasks:
   - id: T015
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the complete server-side half of Task 5 with synthetic data: versioned consent and global consent epochs, independent notification/health-processing grants, queued-send suppression after withdrawal, authenticated settings, idempotent export, processing freeze and retryable deletion, minimal hashed tombstones, and fail-closed post-restore reconciliation."
     inputs:
@@ -659,12 +659,87 @@ tasks:
       - "Deletion follows requested -> frozen -> deleting -> completed or failed_retryable, with retry-safe jobs and a minimal keyed user hash tombstone outside ordinary restore scope."
       - "Post-restore reconciliation defaults to no-send until consent, deletion tombstones, and outbox suppression are reconciled."
       - "No unapproved retention duration or real external integration is claimed complete."
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/20260711014000_consent_privacy/migration.sql
+        - apps/api/src/app.module.ts
+        - apps/api/src/identity/identity.module.ts
+        - apps/api/src/consent/consent.controller.ts
+        - apps/api/src/consent/consent.integration.spec.ts
+        - apps/api/src/consent/consent.module.ts
+        - apps/api/src/consent/consent.service.ts
+        - apps/api/src/consent/dto/write-consent.dto.ts
+        - apps/api/src/privacy/dto/privacy-request.dto.ts
+        - apps/api/src/privacy/file-privacy-control.store.spec.ts
+        - apps/api/src/privacy/file-privacy-control.store.ts
+        - apps/api/src/privacy/privacy.controller.ts
+        - apps/api/src/privacy/privacy.integration.spec.ts
+        - apps/api/src/privacy/privacy.module.ts
+        - apps/api/src/privacy/privacy.service.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/privacy/file-privacy-control.store.ts
+        - apps/worker/src/jobs/privacy/privacy-job-runner.integration.spec.ts
+        - apps/worker/src/jobs/privacy/privacy-job-runner.ts
+        - infra/runbooks/privacy-lifecycle.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+          status: pass
+        - cmd: "fresh PostgreSQL 17 init plus three-migration reset"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:privacy"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/worker test:privacy"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "prisma migrate diff migrations to datamodel --exit-code"
+          status: pass
+        - cmd: "OpenAPI parse, local-ref resolution, ownership and object-key exposure assertions"
+          status: pass
+        - cmd: "scope-guard T015 verify"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Implemented the synthetic server-side Task 5 privacy slice: append-only purpose-specific consent with globally serialized epochs and request hashes; multi-purpose consent requirements on channel/domain work; provider/withdrawal linearization; authenticated settings and export/deletion APIs with no body user_id; atomic processing freeze, session revocation, and dual-outbox suppression; leased export/deletion state machines; deterministic scoped deletion-status tokens; append-only deletion fences and no-send gate on a restore-separated control volume; keyed-version restore reconciliation; shared contracts, third migration, and runbook."
+      evidence:
+        - "Commit c425bdc"
+        - "Fresh PostgreSQL 17 applied all three migrations from zero and Prisma migrate diff reported no difference"
+        - "API privacy suite: 12/12 passed; worker privacy suite: 3/3 passed"
+        - "Tests cover concurrent idempotent consent, changed-payload rejection, append-only records, independent and combined purposes, withdraw/regrant suppression, provider/withdraw ordering, cross-user export rejection, scoped deletion status, atomic channel/domain freeze, leased retry, hard delete, external tombstone, and old-backup reconciliation"
+        - "Full repository tests and type/lint checks passed; dependency audit reported no known vulnerabilities"
+        - "OpenAPI contains 12 paths, all local refs resolve, privacy bodies contain no user_id, and public export responses expose no internal object key"
+        - "Independent privacy review identified same-database tombstone, single-purpose outbox, DomainOutbox ownership, idempotency, lease, and TOCTOU risks; the final implementation and tests address them"
+        - "PostgreSQL stopped after verification and T015 scope guard reported zero violations"
+      deviations:
+        - "Before implementation, PM added apps/api/src/identity/identity.module.ts to allowed_files so privacy controllers could reuse the existing access guard rather than duplicate JWT verification; the board correction is commit 718518a."
+        - "The primary-database deletion tombstone design was rejected after independent review. The final authoritative fence and send gate use append-only journals under PRIVACY_CONTROL_PATH, which the runbook requires outside ordinary PostgreSQL restore scope."
+        - "A second read-only review agent did not return within bounded waits and was terminated; no evidence claim relies on that attempt."
+      risks_remaining:
+        - "Retention durations, legal hold behavior, production region, privacy owner approval, and deletion/re-registration policy remain pending named authority and are not hard-coded."
+        - "Production must provision an encrypted independent privacy-control volume, retain prior HMAC key versions for the approved restore horizon, and grant healthos_delete_frozen_user only to a dedicated privacy worker role."
+        - "Object-storage export writing and signed download URLs remain blocked on the planned object-storage adapter and approved retention policy; the public API currently exposes status/availability only."
+        - "PrivacyJobRunner is implemented and tested but production scheduling/lease orchestration is deferred to the worker orchestration task."
+        - "Native iOS consent/settings UI remains in T105, blocked behind full Xcode availability. Remote GitHub Actions remain blocked by billing."
+      next: "T016 audits T015, narrows T105 to native consent/settings, and selects the next safe backend package while Xcode remains unavailable."
+      harness: codex
   - id: T016
     type: pm
     assignee: PM
-    status: queued
+    status: done
     reasoning_hint: high
     objective: "Audit T015 privacy lifecycle evidence, update the remaining Task 5 iOS scope, and choose the next safe package while Xcode and Apple authority remain independently gated."
     inputs:
@@ -678,6 +753,111 @@ tasks:
     expected_output:
       - "T015 evidence audit"
       - "Updated T105 residual iOS scope"
+      - "Next executable Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "git show --check --oneline c425bdc"
+          status: pass
+        - cmd: "scope-guard T016 verify"
+          status: pass
+        - cmd: "goalbuddy resume --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T015 as complete for the synthetic server/worker privacy slice, narrowed T105 to native consent/settings and blocked it on the real Xcode dependency, blocked native HealthKit T107 without blocking the goal, and created T017 as the full synthetic server-side Task 8 ingestion package with T018 as its audit boundary."
+      evidence:
+        - "T015 commit c425bdc contains all declared product files and passes fresh three-migration PostgreSQL reset, 12 API privacy tests, 3 worker privacy tests, full repository checks, zero migration drift, clean audit, and scope guard."
+        - "T015 receipt preserves retention, object storage, worker scheduling, external privacy volume, dedicated DB role, native UX, and GitHub Actions as explicit residual risks."
+        - "T105 now names only native consent/settings work and cannot be mistaken for completed implementation Task 5."
+        - "T107 records the full-Xcode/HealthKit blocker; T017 accepts synthetic day aggregates only and explicitly excludes native or true-device claims."
+        - "T017 has exact source, migration, contract, worker, PostgreSQL verification, consent/primary-device/idempotency invariants, and stop conditions."
+      risks_remaining:
+        - "Full Xcode, simulator, Apple/HealthKit entitlement, and true-device evidence remain unavailable."
+        - "The synthetic backend contract may need generated-client adjustments after T107/T108 native work becomes executable."
+        - "Remote GitHub Actions remain blocked by billing; provider and named medical/privacy decisions remain pending."
+      next: "Activate T017 and implement synthetic server-side health ingestion, immutable daily facts, freshness, atomic domain outbox, and idempotent worker dispatch."
+      harness: codex
+  - id: T017
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the complete server-side half of Task 8 using synthetic day-level aggregates: authenticated health batch ingestion, current health-processing consent and primary-device enforcement, idempotent replay, server sequences, immutable fact revisions/current projection, source-vector conflict handling, freshness, atomic domain outbox, and idempotent worker consumer dispatch."
+    inputs:
+      - "T103 persistence constraints and publication patterns"
+      - "T013 authenticated device ownership"
+      - "T015 consent epochs, processing freeze, and domain-outbox requirements"
+      - "Implementation plan Task 8 backend cases"
+      - "Technical design HealthKit server contract and revision semantics"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711033000_health_ingestion/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/health/**"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/health/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/health-ingestion.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:health"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/worker test:health"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would accept raw HealthKit samples, real user data, production credentials, or unapproved metrics beyond the day-level V1 contract."
+      - "A missing or stale health-processing consent, deleting user, non-owned device, or non-primary device could upload facts."
+      - "A duplicate idempotency key with changed content could create a second run or mutate prior facts."
+      - "Daily facts would overwrite history rather than append revisions, or server sequence/source-vector conflict resolution would be nondeterministic."
+      - "Fact revisions and the profile-projection domain outbox would not commit atomically with consent requirements."
+      - "Worker retry could process one domain event more than once or bypass the consumer inbox."
+      - "Implementation needs files outside allowed_files."
+    expected_output:
+      - "OpenAPI rejects impossible values, unknown metrics, raw sample payloads, malformed dates/timezones, and batches without stable idempotency/device/anchor fields."
+      - "The API derives user ownership from the access token and verifies active user, current health-processing grant epoch, and the single primary health device."
+      - "One accepted batch receives a monotonic server sequence; exact replay returns the same result and changed-payload reuse conflicts."
+      - "Each changed day/metric creates an immutable revision; identical input is not duplicated and the current projection resolves deterministically from server sequence and source vector."
+      - "Accepted revisions and one profile-projection domain event with required consent epoch commit in one transaction."
+      - "The worker claims domain events with leases, records ConsumerInbox idempotency, and schedules bounded reconciliation without duplicate side effects."
+      - "Freshness reports distinguish current, stale, partial, and absent synthetic coverage without making medical interpretations."
+      - "No native HealthKit, generated Swift client, entitlement, or true-device behavior is claimed complete."
+    receipt: null
+
+  - id: T018
+    type: pm
+    assignee: PM
+    status: queued
+    reasoning_hint: high
+    objective: "Audit T017 health-ingestion evidence, update the remaining Task 8 iOS/generated-client scope, and select the next safe backend package while Xcode and provider gates remain pending."
+    inputs:
+      - "T017 receipt"
+      - "Implementation plan Tasks 7-10"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T108 done before generated Swift client and synthetic local-API sync evidence pass."
+      - "Do not infer HealthKit entitlement, true-device, object-storage, medical, or provider approval."
+      - "Continue the largest safe backend package if native or provider work remains blocked."
+    expected_output:
+      - "T017 evidence audit"
+      - "Updated T108 residual scope"
       - "Next executable Worker package"
     receipt: null
 
@@ -1277,13 +1457,26 @@ tasks:
   - id: T105
     type: worker
     assignee: Worker
-    status: queued
+    status: blocked
     reasoning_hint: high
-    objective: "Execute implementation plan Task 5: implement consent, settings, export, and deletion state machines."
+    objective: "Complete the remaining native iOS half of Task 5: consent onboarding, privacy settings, export/deletion status UX, secure deletion-status token persistence, and native tests. The server lifecycle is complete in T015."
     allowed_files: []
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: blocked
+      blocked_reason: "The server half is verified in T015, but native consent/settings implementation requires the Task 6 iOS shell plus full Xcode and simulator support, which are unavailable on this machine."
+      changed_files: []
+      commands:
+        - cmd: "xcodebuild -version"
+          status: fail
+      summary: "Preserved Task 5 as incomplete at the native UX boundary; no SwiftUI, Keychain, accessibility, or simulator evidence is claimed."
+      evidence:
+        - "T015 receipt proves only authenticated server APIs and backend/worker privacy state machines."
+        - "T106 records the missing full-Xcode and simulator blocker."
+      risks_remaining:
+        - "A user cannot yet grant/withdraw consent or monitor export/deletion from the native app."
+      next: "Reactivate after T106 and full Xcode are available."
 
   - id: T106
     type: worker
@@ -1314,13 +1507,28 @@ tasks:
   - id: T107
     type: worker
     assignee: Worker
-    status: queued
+    status: blocked
     reasoning_hint: high
     objective: "Execute implementation plan Task 7: implement HealthKit authorization, aggregation, and offline sync outbox."
     allowed_files: []
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: blocked
+      blocked_reason: "Task 7 is native HealthKit work and cannot be implemented or tested without full Xcode, simulator frameworks, entitlements, and later true-device evidence."
+      changed_files: []
+      commands:
+        - cmd: "xcodebuild -version"
+          status: fail
+        - cmd: "xcrun simctl list devices available"
+          status: fail
+      summary: "Deferred native HealthKit while allowing its synthetic day-aggregate server contract to proceed independently in T017."
+      evidence:
+        - "Active developer directory remains /Library/Developer/CommandLineTools."
+        - "No Xcode application or simulator runtime is installed."
+      risks_remaining:
+        - "HealthKit authorization, anchored queries, deletion handling, source precedence, offline outbox, background refresh, and true-device behavior remain unimplemented."
+      next: "Install/select full Xcode and satisfy Apple/HealthKit gates before reactivation."
 
   - id: T108
     type: worker
