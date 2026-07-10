@@ -1,0 +1,64 @@
+name: Baseline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  goal-control:
+    name: Goal control
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: healthos-v1-ios-prototype/package-lock.json
+      - name: Test HealthOS long-goal controls
+        run: node --test .agents/skills/healthos-long-goal/scripts/*.test.mjs
+      - name: Validate GoalBuddy board
+        run: npx --yes goalbuddy@0.4.0 resume docs/goals/healthos-v1 --json
+
+  prototype-build:
+    name: Prototype build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: healthos-v1-ios-prototype
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: healthos-v1-ios-prototype/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm audit --audit-level=high
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,561 @@
+# GoalBuddy v2 state.yaml
+# Board truth lives here. The implementation plan owns scope and dependencies.
+
+version: 2
+
+goal:
+  title: "HealthOS V1.0 Production Release"
+  slug: "healthos-v1"
+  kind: existing_plan
+  tranche: "Validate current readiness, close Task 0 gates truthfully, then execute Task 1-27 in dependency order through release evidence."
+  status: active
+  oracle:
+    signal: "The executable release-gate suite and final evidence audit prove Task 27, M6, and every Definition of Done item."
+    cadence: "after each Worker package, at every milestone/risk boundary, and at final audit"
+    final_proof: "Receipt-backed TestFlight, safety, privacy, security, performance, recovery, operations, rollback, migration, and SLO evidence."
+  intake:
+    original_request: "Build the complete HealthOS V1 product and preserve correct execution across long sessions and context compaction."
+    interpreted_outcome: "A production-grade native iOS health companion reaches the plan's Task 27 release gates with durable, independently auditable evidence."
+    input_shape: existing_plan
+    audience: "HealthOS product, engineering, medical-review, operations, and release owners"
+    authority: needs_approval
+    proof_type: review
+    completion_proof: "Task 27 and the Definition of Done pass against the implemented system, with a final Judge/PM audit recording full_outcome_complete: true."
+    likely_misfire: "Declare success after reproducing the visual prototype or completing only a partial vertical slice."
+    blind_spots_considered:
+      - "Legal, privacy, medical, Apple, provider, and channel decisions require real named authority."
+      - "Mainland China data, distribution, retention, and external-processing constraints."
+      - "Long-session drift between plan, board, Git, tests, and receipts."
+      - "Reviewer capacity, incident response, backup, rollback, and production evidence."
+    existing_plan_facts:
+      - "Use docs/plans/2026-07-10-healthos-v1-technical-design.md as the architecture and product contract."
+      - "Use docs/plans/2026-07-10-healthos-v1-implementation.md as scope, dependency, verification, and release truth."
+      - "Execute M0-M6 and Task 0-27; downstream tasks wait for applicable gates and listed dependencies."
+      - "The image-backed prototype is design reference only and must not be copied into the native product."
+      - "Product-owner approval to enter implementation Task 0 is still required by the technical design."
+
+rules:
+  pm_owns_state: true
+  one_active_task: true
+  max_write_workers: 1
+  no_implementation_without_worker_or_pm_task: true
+  no_completion_without_judge_or_pm_audit: true
+  planning_is_not_completion: true
+  queued_required_worker_blocks_completion: true
+  continuous_until_full_outcome: true
+  missing_input_or_credentials_do_not_stop_goal: true
+  exact_human_approval_can_terminal_wait: true
+  preserve_and_validate_existing_plan: true
+  intake_misfire_must_be_audited: true
+  goal_pressure_requires_oracle: true
+  no_completion_on_weak_proof: true
+  slice_policy:
+    max_consecutive_tiny_tasks: 2
+    prefer_vertical_slices: true
+    judge_picks_largest_safe_slice: true
+    worker_completes_whole_slice: true
+
+agents:
+  scout: installed
+  worker: installed
+  judge: installed
+
+visual_board:
+  selected: local
+  local:
+    status: generated
+    url: null
+    command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
+
+active_task: T003
+
+tasks:
+  - id: T001
+    type: judge
+    assignee: Judge
+    status: queued
+    reasoning_hint: high
+    objective: "Audit the existing technical and implementation plans against current repository reality, then turn Task 0 into the largest safe executable first package without changing product files."
+    inputs:
+      - "docs/goals/healthos-v1/goal.md"
+      - "docs/plans/2026-07-10-healthos-v1-technical-design.md"
+      - "docs/plans/2026-07-10-healthos-v1-implementation.md"
+      - "Current Git status and repository tree"
+    constraints:
+      - "Read-only outside GoalBuddy control files."
+      - "Do not implement Task 0."
+      - "Preserve the plan unless current evidence proves a correction is required."
+      - "Identify every decision that requires a named human authority; never infer approval."
+      - "Choose one coherent Task 0 Worker package with explicit allowed_files, verify, and stop_if."
+    expected_output:
+      - "Current repository and prerequisite audit"
+      - "Task 0 authority and evidence matrix"
+      - "Largest safe first Worker package"
+      - "Exact allowed_files, verify commands, and stop conditions"
+      - "Blocked or deferred work"
+    receipt: null
+
+  - id: T002
+    type: pm
+    assignee: PM
+    status: queued
+    reasoning_hint: high
+    objective: "Apply the T001 decision to the rolling board, request only mandatory owner inputs, and activate the first Task 0 Worker package when its authority is real."
+    inputs:
+      - "T001 receipt"
+      - "Task 0 from the implementation plan"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not fabricate sign-off or convert a missing decision into approval."
+      - "If an exact human decision is mandatory, record required_reply and waiting_for_user_approval."
+    expected_output:
+      - "Updated board"
+      - "Named missing inputs, if any"
+      - "Activated Worker task or truthful blocked receipt"
+    receipt: null
+
+  - id: T003
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: high
+    objective: "Create the private GitHub repository and production-ready source-control baseline without beginning HealthOS feature implementation."
+    allowed_files:
+      - ".gitignore"
+      - ".editorconfig"
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "SECURITY.md"
+      - ".github/**"
+      - "healthos-v1-ios-prototype/.npmrc"
+      - "healthos-v1-ios-prototype/.npm-cache/**"
+      - "healthos-v1-ios-prototype/dist/**"
+    verify:
+      - "node --test .agents/skills/healthos-long-goal/scripts/*.test.mjs"
+      - "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+      - "npm --prefix healthos-v1-ios-prototype ci"
+      - "npm --prefix healthos-v1-ios-prototype run build"
+      - "git diff --check"
+      - "gh auth status"
+      - "gh run list --limit 5"
+    stop_if:
+      - "GitHub authentication is unavailable or lacks repo/workflow scope."
+      - "Shenqiasd/HealthOS already exists with unrelated content."
+      - "A credential, real health-data file, or file larger than GitHub limits would be committed."
+      - "The baseline requires modifying files outside allowed_files."
+      - "Local verification or initial GitHub Actions remains red without a confirmed external cause."
+    receipt: null
+
+  - id: T004
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: high
+    objective: "Remove the known high-severity Vite vulnerability before the initial GitHub baseline commit."
+    allowed_files:
+      - "healthos-v1-ios-prototype/package.json"
+      - "healthos-v1-ios-prototype/package-lock.json"
+    verify:
+      - "npm --prefix healthos-v1-ios-prototype ci"
+      - "npm --prefix healthos-v1-ios-prototype run build"
+      - "npm --prefix healthos-v1-ios-prototype audit --audit-level=high"
+    stop_if:
+      - "The fix requires a major-version migration or product behavior change."
+      - "The fix requires files outside allowed_files."
+      - "Build or audit remains red after the minimum patch-level update."
+    receipt:
+      result: done
+      harness: codex
+      changed_files:
+        - healthos-v1-ios-prototype/package.json
+        - healthos-v1-ios-prototype/package-lock.json
+      commands:
+        - cmd: "npm --prefix healthos-v1-ios-prototype ci"
+          status: pass
+        - cmd: "npm --prefix healthos-v1-ios-prototype run build"
+          status: pass
+        - cmd: "npm --prefix healthos-v1-ios-prototype audit --audit-level=high"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T004.json --allow healthos-v1-ios-prototype/package.json --allow healthos-v1-ios-prototype/package-lock.json"
+          status: pass
+      summary: "Updated Vite from 6.4.2 to 6.4.3 before the initial GitHub baseline; the prototype builds and npm audit reports zero vulnerabilities."
+      evidence:
+        - "Vite production build completed with 33 modules transformed."
+        - "npm audit: found 0 vulnerabilities."
+        - "Hash scope guard reported only the two allowed dependency files."
+      risks_remaining: []
+      next: "Resume T003 and finish the private GitHub baseline."
+
+  - id: T005
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: medium
+    objective: "Configure Git whitespace rules so intentional Markdown hard breaks do not fail the baseline while code whitespace remains checked."
+    allowed_files:
+      - ".gitattributes"
+    verify:
+      - "git diff --cached --check"
+    stop_if:
+      - "The rule would disable whitespace checks for source code or non-Markdown files."
+      - "The fix requires editing existing plans or files outside allowed_files."
+    receipt:
+      result: done
+      harness: codex
+      changed_files:
+        - .gitattributes
+      commands:
+        - cmd: "git diff --cached --check"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T005.json --allow .gitattributes"
+          status: pass
+      summary: "Added Git attributes that preserve intentional Markdown hard breaks while retaining whitespace checks for source and configuration files."
+      evidence:
+        - "The fully staged baseline passes git diff --cached --check."
+      risks_remaining: []
+      next: "Resume T003 and commit the GitHub baseline."
+  - id: T100
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 0: close governance, platform, and feasibility gates."
+    allowed_files:
+      - "docs/product/**"
+      - "spikes/wecom-synthetic/**"
+      - "scripts/check-preflight-gates.mjs"
+    verify:
+      - "node scripts/check-preflight-gates.mjs"
+    stop_if:
+      - "The product owner has not explicitly approved entering implementation Task 0."
+      - "T001 or T002 has not established real authority for the package."
+      - "A required legal, medical, Apple, provider, security, or channel decision is missing."
+      - "The implementation needs files outside allowed_files."
+      - "Verification fails twice without a confirmed root cause."
+    receipt: null
+
+  - id: T101
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 1: establish the repository baseline."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T102
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 2: scaffold API, worker, admin, and shared contracts."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T103
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 3: create the production database schema and migration discipline."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T104
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 4: implement Sign in with Apple, sessions, and device registration."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T105
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 5: implement consent, settings, export, and deletion state machines."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T106
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 6: build the native iOS shell and formal design system."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T107
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 7: implement HealthKit authorization, aggregation, and offline sync outbox."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T108
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 8: implement health ingestion and daily fact projections."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T109
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 9: implement secure lab document upload and parsing."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T110
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 10: implement profile events and versioned profile snapshots."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T111
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 11: implement rules, action catalog, safety policy, and 50 golden cases."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T112
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 12: implement recommendation runs, immutable snapshots, and rule publishing."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T113
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 13: build the real Today feature."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T114
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 14: implement action feedback, lighter variants, swaps, and offline idempotency."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T115
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 15: implement safe Coach conversations and LLM evals."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T116
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 16: implement signal snapshots and Map."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T117
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 17: implement Food Risk Scan with correction, not macro estimates."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T118
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 18: implement weekly review snapshots and privacy-aware sharing."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T119
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 19: implement APNs, WeCom binding, outbox delivery, and Universal Links."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T120
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 20: complete the operations and reviewer console."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T121
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 21: add scheduling, cutoffs, reminders, and configurable notification intensity."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T122
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 22: add observability, feature flags, kill switches, and incident runbooks."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T123
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: high
+    objective: "Execute implementation plan Task 23: complete end-to-end, accessibility, and visual regression coverage."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T124
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 24: perform security and privacy hardening."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T125
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 25: validate performance, reliability, backup, and recovery."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T126
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 26: build staging and production infrastructure and deployment pipelines."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T127
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 27: run TestFlight Alpha/Beta and pass release gates."
+    allowed_files: []
+    verify: []
+    stop_if: []
+    receipt: null
+
+  - id: T999
+    type: judge
+    assignee: Judge
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Audit whether the implemented system satisfies the full HealthOS V1 outcome, Task 27 release gates, and every Definition of Done item."
+    inputs:
+      - "All done task receipts"
+      - "Release-gate, TestFlight, safety, security, privacy, performance, recovery, operations, migration, rollback, and SLO evidence"
+      - "Current Git and deployment state"
+    constraints:
+      - "Do not implement."
+      - "Reject completion while required plan work is queued, active, blocked without resolution, or unsupported by fresh evidence."
+      - "Reject visual-demo evidence as proof of functional completion."
+      - "Run node .agents/skills/healthos-long-goal/scripts/check-plan-coverage.mjs before deciding complete."
+    expected_output:
+      - "complete | not_complete"
+      - "full_outcome_complete: true | false"
+      - "Evidence map to the original outcome and Definition of Done"
+      - "Missing evidence and exact next task when incomplete"
+    receipt: null
+
+checks:
+  dirty_fingerprint: "Repository currently has no commits and contains user-authored untracked plans and prototype files; preserve them."
+  last_verification:
+    result: unknown
+    task: null
+    commands: []

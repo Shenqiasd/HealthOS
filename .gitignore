@@ -1,0 +1,37 @@
+# macOS and editor state
+.DS_Store
+*.swp
+*.swo
+*.log
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.mobileprovision
+
+# JavaScript dependencies and generated output
+**/node_modules/
+**/.npm-cache/
+**/dist/
+**/.next/
+**/coverage/
+
+# Apple build and user state
+**/DerivedData/
+**/.build/
+**/xcuserdata/
+*.xcuserstate
+
+# Local agent/runtime state
+.gstack/
+docs/goals/**/.goalbuddy-board/
+
+# Private or real health data must never enter source control
+private-data/
+uploads/
+fixtures/private/
+*.healthkit-export.zip

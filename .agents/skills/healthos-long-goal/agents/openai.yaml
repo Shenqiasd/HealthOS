@@ -1,0 +1,4 @@
+interface:
+  display_name: "HealthOS Long Goal"
+  short_description: "跨会话持续推进 HealthOS V1 长期开发目标"
+  default_prompt: "Use $healthos-long-goal to resume and advance the HealthOS V1 goal from durable board state."

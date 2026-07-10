@@ -1,0 +1,11 @@
+* @Shenqiasd
+
+# Safety-critical and release control surfaces
+/packages/rules/ @Shenqiasd
+/packages/evals/ @Shenqiasd
+/apps/api/ @Shenqiasd
+/apps/worker/ @Shenqiasd
+/apps/ios/ @Shenqiasd
+/infra/ @Shenqiasd
+/docs/goals/ @Shenqiasd
+/docs/product/ @Shenqiasd

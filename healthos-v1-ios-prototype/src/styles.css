@@ -1,0 +1,105 @@
+:root {
+  color: #321a13;
+  background: #f7efe4;
+  font-family:
+    "SF Pro Rounded",
+    "SF Pro Display",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+}
+
+.stage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 244, 197, 0.72), transparent 22%),
+    radial-gradient(circle at 86% 12%, rgba(197, 232, 224, 0.5), transparent 18%),
+    linear-gradient(135deg, #fff8ef 0%, #f2e0cc 54%, #eef8f5 100%);
+}
+
+.phone-shell {
+  position: relative;
+  width: min(100%, 390px);
+  aspect-ratio: 853 / 1844;
+  overflow: hidden;
+  border-radius: 42px;
+  background: #fff8ef;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 34px 82px rgba(82, 47, 29, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+}
+
+.screen-reference {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.nav-hotspots {
+  position: absolute;
+  z-index: 3;
+  left: 18px;
+  right: 18px;
+  bottom: 26px;
+  height: 88px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.nav-hotspot {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-hotspot:focus-visible {
+  outline: 3px solid rgba(255, 126, 50, 0.68);
+  outline-offset: -6px;
+}
+
+@media (max-width: 430px) {
+  .stage {
+    padding: 0;
+    background: #fff8ef;
+  }
+
+  .phone-shell {
+    width: 100vw;
+    height: 100vh;
+    max-height: calc(100vw * 1844 / 853);
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
+  }
+}
