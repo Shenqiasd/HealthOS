@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-07-10",
+  "synthetic_only": true,
+  "artifacts": [
+    { "id": "data_inventory", "path": "docs/product/data-inventory.md", "status": "pending", "evidence": [] },
+    { "id": "data_flow", "path": "docs/product/data-flow.md", "status": "pending", "evidence": [] },
+    { "id": "privacy_impact", "path": "docs/product/privacy-impact-assessment.md", "status": "pending", "evidence": [] },
+    { "id": "retention_schedule", "path": "docs/product/retention-schedule.md", "status": "pending", "evidence": [] },
+    { "id": "regulatory_positioning", "path": "docs/product/regulatory-positioning.md", "status": "pending", "evidence": [] },
+    { "id": "clinical_governance", "path": "docs/product/clinical-governance.md", "status": "pending", "evidence": [] },
+    { "id": "apple_platform", "path": "docs/product/apple-platform-readiness.md", "status": "pending", "evidence": [] },
+    { "id": "wecom_feasibility", "path": "docs/product/wecom-feasibility.md", "status": "pending", "evidence": [] },
+    { "id": "provider_register", "path": "docs/product/provider-register.md", "status": "pending", "evidence": [] },
+    { "id": "metrics_contract", "path": "docs/product/metrics-contract.md", "status": "pending", "evidence": [] },
+    { "id": "threat_model", "path": "docs/product/threat-model.md", "status": "pending", "evidence": [] },
+    { "id": "wecom_protocol", "path": "spikes/wecom-synthetic/protocol.json", "status": "pending", "evidence": [] }
+  ],
+  "gates": [
+    {
+      "id": "product_owner_authority",
+      "status": "approved",
+      "owner": "Product owner (user-authorized)",
+      "approver_role": "Product owner",
+      "decided_at": "2026-07-10",
+      "evidence": ["docs/goals/healthos-v1/state.yaml#goal.intake.authority_evidence"],
+      "required_evidence": ["Explicit product-owner permission to enter implementation Task 0"],
+      "blocks": ["implementation_task_0"]
+    },
+    {
+      "id": "production_data_region",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Legal/privacy owner",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Named owner", "Production region decision", "Cross-border assessment"],
+      "blocks": ["real_health_data", "production_deployment"]
+    },
+    {
+      "id": "privacy_legal_review",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Legal/privacy owner",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["PIA review", "Retention approval", "Consent and deletion review"],
+      "blocks": ["real_health_data", "external_beta"]
+    },
+    {
+      "id": "regulatory_positioning",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Legal/regulatory owner",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Health-service positioning", "Generative-AI obligations", "Mainland distribution assessment"],
+      "blocks": ["health_recommendation_release", "external_beta"]
+    },
+    {
+      "id": "clinical_governance",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Medical reviewer",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Named reviewer", "Named backup", "Escalation and review policy"],
+      "blocks": ["real_health_recommendations", "golden_case_acceptance"]
+    },
+    {
+      "id": "apple_platform_readiness",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Apple release owner",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Developer team", "HealthKit entitlements", "App Store Connect and Mainland distribution owner"],
+      "blocks": ["device_signing", "testflight", "app_store_release"]
+    },
+    {
+      "id": "enterprise_messaging",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "WeCom administrator",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Enterprise subject", "Target identity model", "Application and API administrator"],
+      "blocks": ["wecom_spike_execution", "wecom_beta"]
+    },
+    {
+      "id": "provider_governance",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Privacy/security owner",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Provider inventory", "Region and retention", "Training-use and subprocessor terms", "Kill switch"],
+      "blocks": ["external_provider_selection", "production_data_processing"]
+    },
+    {
+      "id": "metrics_contract",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Product and privacy owners",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Metric definitions", "Minimum sample sizes", "Privacy review"],
+      "blocks": ["alpha_metric_acceptance", "beta_release_decision"]
+    },
+    {
+      "id": "threat_model",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Security owner",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Threat review", "Security owner", "Mitigation acceptance"],
+      "blocks": ["real_health_data", "external_beta"]
+    },
+    {
+      "id": "incident_response",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Incident-response owner",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Primary owner", "Backup owner", "Escalation contacts", "Kill-switch authority"],
+      "blocks": ["external_beta", "production_release"]
+    },
+    {
+      "id": "backup_recovery",
+      "status": "pending",
+      "owner": null,
+      "approver_role": "Infrastructure owner",
+      "decided_at": null,
+      "evidence": [],
+      "required_evidence": ["Backup owner", "RPO 24h", "RTO 4h", "Restore-drill evidence"],
+      "blocks": ["external_beta", "production_release"]
+    }
+  ],
+  "wecom": {
+    "status": "pending",
+    "result": "pending",
+    "evidence": []
+  }
+}

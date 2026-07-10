@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "decision_rule": "all_required_scenarios_must_pass",
+  "message_policy": {
+    "generic_content_only": true,
+    "health_payload_allowed": false,
+    "authenticated_deep_link_required": true
+  },
+  "scenarios": [
+    { "id": "consumer_binding", "required": true, "pass_condition": "The target synthetic consumer can be bound with a stable tenant-scoped identity through an official capability." },
+    { "id": "proactive_message", "required": true, "pass_condition": "The application can send the allowed generic message and obtain a documented outcome." },
+    { "id": "callback_verification", "required": true, "pass_condition": "Callbacks are authenticated, replay-protected, tenant-scoped, and correlated." },
+    { "id": "opt_out", "required": true, "pass_condition": "A synthetic user can opt out and all queued messages are suppressed." },
+    { "id": "tenant_employee_change", "required": true, "pass_condition": "Employee departure, admin rotation, and tenant change invalidate stale access without cross-user delivery." },
+    { "id": "authenticated_deep_link", "required": true, "pass_condition": "The generic message opens a Universal Link that requires login and resource authorization." },
+    { "id": "wrong_recipient_isolation", "required": true, "pass_condition": "Ambiguous, stale, and mismatched bindings fail closed with no delivery." },
+    { "id": "send_time_consent", "required": true, "pass_condition": "Consent and binding state are rechecked immediately before provider submission." }
+  ]
+}
