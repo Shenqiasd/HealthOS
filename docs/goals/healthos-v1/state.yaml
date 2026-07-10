@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T007
+active_task: T101
 
 tasks:
   - id: T001
@@ -184,7 +184,7 @@ tasks:
   - id: T007
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Build the executable Task 0 governance foundation without fabricating approvals: evidence templates, structured decision states, a tested preflight checker, and a synthetic-only WeCom feasibility protocol."
     inputs:
@@ -211,12 +211,55 @@ tasks:
       - "The checker distinguishes structural completeness from production readiness."
       - "Structure mode passes while readiness remains truthfully blocked on named missing authority."
       - "The WeCom protocol can be executed later with synthetic identities and records a binary PASS/FAIL decision."
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - docs/product/apple-platform-readiness.md
+        - docs/product/clinical-governance.md
+        - docs/product/data-flow.md
+        - docs/product/data-inventory.md
+        - docs/product/metrics-contract.md
+        - docs/product/preflight-gates.json
+        - docs/product/privacy-impact-assessment.md
+        - docs/product/provider-register.md
+        - docs/product/regulatory-positioning.md
+        - docs/product/retention-schedule.md
+        - docs/product/threat-model.md
+        - docs/product/wecom-feasibility.md
+        - scripts/check-preflight-gates.mjs
+        - scripts/check-preflight-gates.test.mjs
+        - spikes/wecom-synthetic/README.md
+        - spikes/wecom-synthetic/protocol.json
+        - spikes/wecom-synthetic/result-template.json
+      commands:
+        - cmd: "node --test scripts/check-preflight-gates.test.mjs"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode structure"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked"
+          status: pass
+        - cmd: "git diff --cached --check"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T007.json --allow docs/product/** --allow spikes/wecom-synthetic/** --allow scripts/check-preflight-gates.mjs --allow scripts/check-preflight-gates.test.mjs"
+          status: pass
+      summary: "Created the complete Task 0 governance evidence structure, a JSON-backed gate manifest, a tested structure/readiness checker, and a synthetic-only official WeCom feasibility protocol. Structure mode passes. Production readiness remains intentionally blocked on 11 professional decisions plus the binary WeCom result. The only approved gate is the product owner's evidenced authority to begin Task 0."
+      deviations:
+        - "The required goal_worker dispatch produced no allowed-file changes within one wait window and was terminated per GoalBuddy recovery policy; PM fallback completed the same declared Worker scope."
+        - "Added preflight-gates.json and a checker test file inside the approved docs/product and scripts scopes to avoid parsing Markdown as machine state."
+      remaining_blockers:
+        - "Named legal/privacy owner and production region decision"
+        - "Named medical reviewer and backup"
+        - "Named Apple release owner and account readiness"
+        - "Named WeCom administrator and sandbox identity model"
+        - "Named provider, security, incident-response, backup, metrics, and infrastructure owners"
+        - "GitHub Actions billing lock in T006"
+      verification_attempts: 2
+      stopped_because: null
+      commit: f252e8b
   - id: T008
     type: pm
     assignee: PM
-    status: queued
+    status: done
     reasoning_hint: high
     objective: "Review T007 evidence, keep unresolved professional decisions blocked, and prepare the next largest synthetic-only M0 engineering package permitted by the implementation plan."
     inputs:
@@ -230,8 +273,24 @@ tasks:
       - "T007 receipt audit"
       - "Exact remaining named authority requests"
       - "Populated and activated next Worker package"
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T008.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T007 as structurally complete and truthfully blocked for production readiness. Populated T101 as the next largest synthetic-only M0 package: workspace boundaries, local services, CI, provider-neutral Terraform controls, and two ADRs. The package explicitly forbids selecting or provisioning a production region."
+      evidence:
+        - "T007 commit f252e8b passes five checker tests, structure mode, expected-blocked readiness mode, and scope guard."
+        - "preflight-gates.json preserves 11 pending professional gates and one pending WeCom decision."
+        - "T101 now has explicit inputs, allowed_files, verify, stop_if, and expected_output."
+      risks_remaining:
+        - "Terraform CLI is not currently installed and must be made available before T101 verification."
+        - "GitHub Actions remains blocked by T006 billing lock; local verification remains authoritative for this package."
+      next: "Activate T101 and implement the synthetic repository foundation."
   - id: T003
     type: worker
     assignee: Worker
@@ -446,12 +505,51 @@ tasks:
   - id: T101
     type: worker
     assignee: Worker
-    status: queued
-    reasoning_hint: high
-    objective: "Execute implementation plan Task 1: establish the repository baseline."
-    allowed_files: []
-    verify: []
-    stop_if: []
+    status: active
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 1 for synthetic development: establish the modular-monolith workspace, local PostgreSQL/object storage, CI contract, and provider-neutral Terraform foundation without selecting or provisioning a production region."
+    inputs:
+      - "T007 receipt and docs/product/preflight-gates.json"
+      - "Implementation plan Task 1"
+      - "Technical design sections 5.1-5.3 and 22"
+    allowed_files:
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "pnpm-lock.yaml"
+      - ".gitignore"
+      - ".editorconfig"
+      - ".env.example"
+      - "docker-compose.yml"
+      - "apps/**/README.md"
+      - "packages/**/README.md"
+      - "infra/docker/**"
+      - "infra/terraform/**"
+      - ".github/workflows/ci.yml"
+      - "docs/adr/0001-modular-monolith.md"
+      - "docs/adr/0002-production-data-region.md"
+      - "scripts/check-workspace.mjs"
+      - "scripts/check-workspace.test.mjs"
+    verify:
+      - "node --test scripts/check-workspace.test.mjs"
+      - "node scripts/check-workspace.mjs"
+      - "pnpm install --lockfile-only --frozen-lockfile=false"
+      - "docker compose config --quiet"
+      - "terraform fmt -check -recursive infra/terraform"
+      - "terraform -chdir=infra/terraform/environments/staging-synthetic init -backend=false -input=false"
+      - "terraform -chdir=infra/terraform/environments/staging-synthetic validate"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would select or provision a production data region before the production_data_region gate is approved."
+      - "Implementation would use real health data, production credentials, or a real provider account."
+      - "Implementation needs files outside allowed_files."
+      - "A required local verifier is unavailable and cannot be installed without unrelated repository or user configuration changes."
+      - "Verification fails twice without a confirmed root cause."
+    expected_output:
+      - "The planned apps and packages exist as explicit module boundaries."
+      - "Local PostgreSQL and S3-compatible storage configuration validates without secrets."
+      - "Synthetic Terraform foundation enforces encryption, private database networking, secret-manager placeholders, and backup policy inputs without choosing a production cloud."
+      - "CI can run workspace, preflight, long-goal, and prototype checks once GitHub billing is restored."
+      - "ADRs record modular-monolith acceptance and a deliberately pending production-region decision."
     receipt: null
 
   - id: T102
