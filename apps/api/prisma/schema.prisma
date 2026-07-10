@@ -104,6 +104,8 @@ model User {
   coachThreads       CoachThread[]
   channelOutbox      ChannelOutbox[]
   safetyIncidents    SafetyIncident[]
+  refreshSessions    RefreshSession[]
+  securityEvents     SecurityEvent[]
 
   @@map("users")
 }
@@ -126,14 +128,61 @@ model Device {
   userId                String    @map("user_id") @db.Uuid
   deviceId              String    @map("device_id")
   apnsTokenEncrypted    String?   @map("apns_token_encrypted")
+  apnsTokenFingerprint  String?   @map("apns_token_fingerprint")
   lastSeenAt            DateTime? @map("last_seen_at") @db.Timestamptz(6)
   appVersion            String?   @map("app_version")
+  platform              String    @default("ios")
   isPrimaryHealthDevice Boolean   @default(false) @map("is_primary_health_device")
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, deviceId])
   @@index([userId])
   @@map("devices")
+}
+
+model AppleAuthNonce {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nonceHash String    @unique @map("nonce_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([expiresAt, usedAt])
+  @@map("apple_auth_nonces")
+}
+
+model RefreshSession {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  familyId     String           @map("family_id") @db.Uuid
+  tokenHash    String           @unique @map("token_hash")
+  expiresAt    DateTime         @map("expires_at") @db.Timestamptz(6)
+  rotatedAt    DateTime?        @map("rotated_at") @db.Timestamptz(6)
+  revokedAt    DateTime?        @map("revoked_at") @db.Timestamptz(6)
+  replacedById String?          @map("replaced_by_id") @db.Uuid
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy   RefreshSession?  @relation("RefreshRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces     RefreshSession[] @relation("RefreshRotation")
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([familyId, revokedAt])
+  @@map("refresh_sessions")
+}
+
+model SecurityEvent {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String?  @map("user_id") @db.Uuid
+  eventType     String   @map("event_type")
+  severity      String
+  correlationId String   @map("correlation_id")
+  metadata      Json     @db.JsonB
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, eventType, createdAt])
+  @@map("security_events")
 }
 
 model ConsentRecord {
@@ -176,7 +225,7 @@ model HealthSyncRun {
   startedAt      DateTime     @default(now()) @map("started_at") @db.Timestamptz(6)
   completedAt    DateTime?    @map("completed_at") @db.Timestamptz(6)
   status         RecordStatus @default(pending)
-  correlationId  String       @map("correlation_id") @db.Uuid
+  correlationId  String       @map("correlation_id")
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, startedAt])
@@ -272,7 +321,7 @@ model ProfileEvent {
   eventType           String            @map("event_type")
   source              String
   payload             Json              @db.JsonB
-  correlationId       String            @map("correlation_id") @db.Uuid
+  correlationId       String            @map("correlation_id")
   occurredAt          DateTime          @default(now()) @map("occurred_at") @db.Timestamptz(6)
   user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   snapshotsEndingHere ProfileSnapshot[]
@@ -316,7 +365,7 @@ model RecommendationRun {
   inputSnapshotId String                   @map("input_snapshot_id") @db.Uuid
   ruleBundleId    String                   @map("rule_bundle_id") @db.Uuid
   status          RecordStatus             @default(pending)
-  correlationId   String                   @map("correlation_id") @db.Uuid
+  correlationId   String                   @map("correlation_id")
   createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
   user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   inputSnapshot   ProfileSnapshot          @relation(fields: [inputSnapshotId], references: [id], onDelete: Restrict)
