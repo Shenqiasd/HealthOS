@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T011
+active_task: T103
 
 tasks:
   - id: T001
@@ -366,7 +366,7 @@ tasks:
   - id: T011
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: medium
     objective: "Remove the scanner-shaped fake API-key literal from the workspace security test while preserving the runtime secret-detection assertion."
     inputs:
@@ -384,8 +384,27 @@ tasks:
     expected_output:
       - "The test still constructs a production-looking value at runtime and passes."
       - "No scanner-shaped sk-proj- literal remains in the tracked test source."
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - scripts/check-workspace.test.mjs
+      commands:
+        - cmd: "node --test scripts/check-workspace.test.mjs"
+          status: pass
+        - cmd: "node -e static source assertion for absence of sk-proj-"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "scope-guard T011 for scripts/check-workspace.test.mjs"
+          status: pass
+      summary: "Rewrote the fake API-key fixture to assemble its scanner-shaped value at runtime. The secret detector still rejects the production-looking value, all four workspace tests pass, and the tracked source no longer contains the static sk-proj- pattern. Commit b2af78f is limited to the declared test file."
+      deviations:
+        - "The goal_worker produced the correct allowed-file edit but the dispatch process timed out before returning a receipt; PM fallback verified, committed, and recorded the work without repeating it."
+      remaining_blockers:
+        - "Remote secret-scan CI still cannot run until the T006 GitHub billing lock is cleared."
+      verification_attempts: 1
+      stopped_because: null
+      commit: b2af78f
   - id: T003
     type: worker
     assignee: Worker
@@ -842,7 +861,7 @@ tasks:
   - id: T103
     type: worker
     assignee: Worker
-    status: queued
+    status: active
     reasoning_hint: xhigh
     objective: "Execute implementation plan Task 3: implement the complete PostgreSQL/Prisma V1 schema, first reproducible migration, database module, restricted publication transaction, constraint tests, and migration runbook."
     inputs:
