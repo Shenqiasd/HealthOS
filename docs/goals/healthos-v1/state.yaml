@@ -67,13 +67,13 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T003
+active_task: T001
 
 tasks:
   - id: T001
     type: judge
     assignee: Judge
-    status: queued
+    status: active
     reasoning_hint: high
     objective: "Audit the existing technical and implementation plans against current repository reality, then turn Task 0 into the largest safe executable first package without changing product files."
     inputs:
@@ -117,7 +117,7 @@ tasks:
   - id: T003
     type: worker
     assignee: Worker
-    status: active
+    status: blocked
     reasoning_hint: high
     objective: "Create the private GitHub repository and production-ready source-control baseline without beginning HealthOS feature implementation."
     allowed_files:
@@ -144,8 +144,57 @@ tasks:
       - "A credential, real health-data file, or file larger than GitHub limits would be committed."
       - "The baseline requires modifying files outside allowed_files."
       - "Local verification or initial GitHub Actions remains red without a confirmed external cause."
-    receipt: null
-
+    receipt:
+      result: blocked
+      harness: codex
+      blocked_reason: "GitHub accepted the private repository and main push, but every private-repository runner allocation ends immediately with startup_failure, including a manual Baseline dispatch and both Dependabot update jobs. Repository Actions permissions are enabled, actionlint passes, and GitHub Status reports Actions operational, so the remaining blocker is the Shenqiasd account's private Actions usage, quota, or billing state."
+      changed_files:
+        - .gitignore
+        - .editorconfig
+        - README.md
+        - CONTRIBUTING.md
+        - SECURITY.md
+        - .github/CODEOWNERS
+        - .github/PULL_REQUEST_TEMPLATE.md
+        - .github/dependabot.yml
+        - .github/workflows/baseline.yml
+        - healthos-v1-ios-prototype/.npmrc
+      commands:
+        - cmd: "node --test .agents/skills/healthos-long-goal/scripts/*.test.mjs"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "npm --prefix healthos-v1-ios-prototype ci"
+          status: pass
+        - cmd: "npm --prefix healthos-v1-ios-prototype run build"
+          status: pass
+        - cmd: "npm --prefix healthos-v1-ios-prototype audit --audit-level=high"
+          status: pass
+        - cmd: "git diff --cached --check"
+          status: pass
+        - cmd: "actionlint .github/workflows/baseline.yml"
+          status: pass
+        - cmd: "gh repo create Shenqiasd/HealthOS --private --source=. --remote=origin --push"
+          status: pass
+        - cmd: "gh workflow run baseline.yml --repo Shenqiasd/HealthOS --ref main"
+          status: fail
+      summary: "Created and pushed the private HealthOS repository with collaboration, security, dependency, CI, and long-goal controls. Local verification is green; remote Actions cannot allocate a runner because of an account-level private Actions constraint."
+      evidence:
+        - "Repository: https://github.com/Shenqiasd/HealthOS"
+        - "Baseline commit: 4d02218d2262b0795c8f56102ee8e29de7e62be9"
+        - "Initial startup failure: https://github.com/Shenqiasd/HealthOS/actions/runs/29080745748"
+        - "Manual dispatch startup failure: https://github.com/Shenqiasd/HealthOS/actions/runs/29081382736"
+        - "Dependabot startup failure: https://github.com/Shenqiasd/HealthOS/actions/runs/29080749911"
+        - "GitHub Actions permissions API: enabled with allowed_actions=all"
+        - "GitHub Status: Actions operational"
+        - "Independent actionlint v1.7.12 validation exited 0"
+      spawned_tasks:
+        - T004
+        - T005
+      risks_remaining:
+        - "Required GitHub checks and Dependabot execution remain unavailable until private Actions runner allocation is restored."
+        - "GitHub Secret Scanning is unavailable on the current private-repository plan; Gitleaks is configured but cannot run until Actions is restored."
+      next: "In GitHub Settings > Billing and licensing, restore private Actions minutes or spending, then rerun Baseline and Dependabot. T001 may continue as read-only work in parallel."
   - id: T004
     type: worker
     assignee: Worker
