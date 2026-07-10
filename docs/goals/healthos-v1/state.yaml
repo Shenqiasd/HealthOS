@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T012
+active_task: T013
 
 tasks:
   - id: T001
@@ -409,7 +409,7 @@ tasks:
   - id: T012
     type: pm
     assignee: PM
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Audit T103 persistence evidence and select the next dependency-safe M0 package, separating synthetic identity implementation from Apple account, entitlement, and distribution authority."
     inputs:
@@ -425,6 +425,93 @@ tasks:
       - "T103 evidence audit"
       - "Identity/consent/iOS dependency decision"
       - "Next executable Worker package or exact mandatory owner request"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T012.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T103 as complete and split Task 4 at the real authority boundary. T013 can implement and verify the complete backend identity/session/device slice with synthetic keys and PostgreSQL. Apple accounts, bundle IDs, entitlements, signing, APNs, Keychain, and iOS Auth remain explicitly gated and cannot be inferred from backend success."
+      evidence:
+        - "T103 commit 1da634c passes fresh PostgreSQL migration reset, nine integration tests, full tests, and zero-vulnerability audit."
+        - "T013 has exact source, migration, contract, test, and secret-handling boundaries."
+        - "T014 is queued to preserve and schedule the remaining iOS/Apple half of Task 4."
+      risks_remaining:
+        - "Apple release owner and account/entitlement evidence remain missing."
+        - "Remote CI remains blocked by T006 billing lock."
+      next: "Activate T013 and implement synthetic backend identity and secure sessions."
+  - id: T013
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the backend half of Task 4 with synthetic cryptographic fixtures: Apple JWT verification, nonce replay defense, subject hashing, rotating refresh sessions, logout/revocation, device registration, security events, API contracts, and a second migration."
+    inputs:
+      - "T103 persistence receipt and migration discipline"
+      - "Implementation plan Task 4 backend cases"
+      - "Apple platform gate remains pending for real accounts, entitlements, signing, and distribution"
+    allowed_files:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260710210000_identity/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/identity/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/session-key-rotation.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test -- identity"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires a real Apple token, Apple Developer account, bundle ID, entitlement, signing certificate, APNs token, or production credential."
+      - "Raw Apple subject, refresh token, nonce, APNs token, or session secret would be stored or logged without hashing/encryption."
+      - "Refresh rotation is not atomic or token reuse does not revoke the session family."
+      - "A deleted/frozen user can obtain a session."
+      - "Implementation needs files outside allowed_files."
+    expected_output:
+      - "Synthetic signed Apple JWTs prove issuer, audience, expiry, signature, and nonce behavior offline."
+      - "Provider subjects and refresh tokens are stored only as keyed/one-way hashes."
+      - "Refresh tokens rotate atomically; replay/revocation/deleted-user cases fail closed and create security events."
+      - "Device registration is idempotent by user/device and never trusts a body user_id."
+      - "OpenAPI and TypeScript contracts describe the implemented identity endpoints."
+      - "No iOS entitlement, signing, Keychain, or real Apple account is claimed complete."
+    receipt: null
+
+  - id: T014
+    type: pm
+    assignee: PM
+    status: queued
+    reasoning_hint: high
+    objective: "Audit T013 backend identity evidence and choose the next safe package across consent/privacy backend and the unsigned native iOS shell, while preserving the remaining Task 4 Apple/iOS gate."
+    inputs:
+      - "T013 receipt"
+      - "Implementation plan Tasks 4-6"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T104 done until iOS Keychain/Auth tests and applicable Apple evidence pass."
+      - "Do not block synthetic backend work on signing credentials that it does not use."
+    expected_output:
+      - "T013 audit"
+      - "Updated T104 residual scope"
+      - "Next executable Worker package"
     receipt: null
 
   - id: T003
