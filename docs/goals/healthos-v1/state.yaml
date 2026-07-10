@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T013
+active_task: T015
 
 tasks:
   - id: T001
@@ -446,7 +446,7 @@ tasks:
   - id: T013
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the backend half of Task 4 with synthetic cryptographic fixtures: Apple JWT verification, nonce replay defense, subject hashing, rotating refresh sessions, logout/revocation, device registration, security events, API contracts, and a second migration."
     inputs:
@@ -493,12 +493,72 @@ tasks:
       - "Device registration is idempotent by user/device and never trusts a body user_id."
       - "OpenAPI and TypeScript contracts describe the implemented identity endpoints."
       - "No iOS entitlement, signing, Keychain, or real Apple account is claimed complete."
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/20260710210000_identity/migration.sql
+        - apps/api/src/app.module.ts
+        - apps/api/src/identity/access-token.guard.ts
+        - apps/api/src/identity/apple-token-verifier.spec.ts
+        - apps/api/src/identity/apple-token-verifier.ts
+        - apps/api/src/identity/crypto.ts
+        - apps/api/src/identity/device.service.ts
+        - apps/api/src/identity/dto/apple-login.dto.ts
+        - apps/api/src/identity/dto/refresh-token.dto.ts
+        - apps/api/src/identity/dto/register-device.dto.ts
+        - apps/api/src/identity/identity.controller.ts
+        - apps/api/src/identity/identity.integration.spec.ts
+        - apps/api/src/identity/identity.module.ts
+        - apps/api/src/identity/identity.service.ts
+        - apps/api/src/identity/session.service.ts
+        - infra/runbooks/session-key-rotation.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+          status: pass
+        - cmd: "fresh PostgreSQL 17 init plus prisma migrate reset --force"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test -- identity"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:identity"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "OpenAPI YAML parse and five identity-path assertion"
+          status: pass
+        - cmd: "scope-guard T013 verify"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Implemented the complete synthetic backend identity slice: offline Apple JWT verification, one-time nonce consumption, keyed subject hashing, short access tokens, atomically rotating refresh families with row locking and reuse revocation, inactive-user rejection, logout, authenticated idempotent device registration with purpose-separated APNs encryption/fingerprinting keys, append-only security events, dual-key access-token rotation, API contracts, migration, and runbook."
+      evidence:
+        - "Commit d44991f"
+        - "Fresh PostgreSQL 17 applied initial and 20260710210000_identity migrations from zero"
+        - "Identity suite: 12/12 tests passed, including concurrency, replay, inactive user, key rotation, encrypted APNs, and family revocation"
+        - "Full repository tests passed; pnpm audit reported no known vulnerabilities"
+        - "OpenAPI parses with five identity endpoints and device request has no user_id"
+        - "PostgreSQL stopped after verification and T013 scope guard reported zero violations"
+      risks_remaining:
+        - "Real Apple Developer account, client ID, entitlement, signing, Keychain, APNs, and App Store evidence remain gated and are not claimed complete."
+        - "Remote GitHub Actions remain blocked by the existing billing lock; all evidence in this receipt is local and synthetic."
+      next: "T014 PM audits T013, preserves the unsigned iOS/Apple residual gate, and activates the next largest safe Task 5 or native-shell package."
+      harness: codex
   - id: T014
     type: pm
     assignee: PM
-    status: queued
+    status: done
     reasoning_hint: high
     objective: "Audit T013 backend identity evidence and choose the next safe package across consent/privacy backend and the unsigned native iOS shell, while preserving the remaining Task 4 Apple/iOS gate."
     inputs:
@@ -511,6 +571,112 @@ tasks:
     expected_output:
       - "T013 audit"
       - "Updated T104 residual scope"
+      - "Next executable Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "git show --check --oneline d44991f"
+          status: pass
+        - cmd: "test \"$(xcode-select -p)\" = /Library/Developer/CommandLineTools"
+          status: pass
+        - cmd: "test ! -d /Applications/Xcode.app && test ! -d /Applications/Xcode-beta.app"
+          status: pass
+        - cmd: "scope-guard T014 verify"
+          status: pass
+        - cmd: "goalbuddy resume --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T013 as complete for backend identity only, preserved the remaining Task 4 native Apple/Keychain scope as blocked, recorded the full-Xcode blocker on the native shell, and created T015 as the largest safe PostgreSQL-verifiable Task 5 backend privacy package with T016 as its audit boundary."
+      evidence:
+        - "T013 commit d44991f and receipt contain fresh migration, 12/12 identity tests, full repository tests, clean dependency audit, and scope proof."
+        - "T104 now names only the unimplemented native Apple/Auth/Keychain/APNs scope and cannot be mistaken for completed Task 4."
+        - "xcodebuild and simctl are unavailable because only /Library/Developer/CommandLineTools is active and no Xcode app is installed."
+        - "T015 has exact file scope, fresh PostgreSQL verification, privacy invariants, and stop conditions; it needs no real health data or production provider."
+      risks_remaining:
+        - "Task 4 and Task 6 native work remain blocked until full Xcode is installed and selected."
+        - "Real Apple platform evidence and named privacy/retention authority remain pending."
+        - "Remote GitHub Actions remain unavailable under the existing billing lock."
+      next: "Activate T015 and implement the complete synthetic server-side consent, export, deletion, tombstone, and no-send reconciliation lifecycle."
+      harness: codex
+  - id: T015
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the complete server-side half of Task 5 with synthetic data: versioned consent and global consent epochs, independent notification/health-processing grants, queued-send suppression after withdrawal, authenticated settings, idempotent export, processing freeze and retryable deletion, minimal hashed tombstones, and fail-closed post-restore reconciliation."
+    inputs:
+      - "T013 authenticated-user and session ownership contract"
+      - "T103 append-only persistence and transactional outbox foundation"
+      - "Implementation plan Task 5 backend cases"
+      - "Technical design privacy and no-send invariants"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711014000_consent_privacy/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/consent/**"
+      - "apps/api/src/privacy/**"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/privacy/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/privacy-lifecycle.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:privacy"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/worker test:privacy"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would use real health data, real provider calls, production credentials, or unapproved retention values."
+      - "Consent would be inferred from data presence, combined across independent purposes, mutated in place, or checked only when a message is queued."
+      - "A delete request would not atomically freeze processing, revoke sessions, and suppress pending external sends."
+      - "A deletion tombstone would contain a raw user/provider identifier, health content, or other data beyond the minimum reconciliation proof."
+      - "Restore reconciliation could permit external sends before consent, deletion, and outbox state is proven consistent."
+      - "Implementation needs files outside allowed_files."
+    expected_output:
+      - "Append-only consent records advance a per-user epoch for every grant or withdrawal and keep notification consent independent from health processing."
+      - "Authenticated APIs never trust body user_id and expose current settings, versioned consent writes, export status, and deletion status through shared contracts."
+      - "Withdrawal immediately suppresses queued messages whose required epoch or purpose is no longer valid; provider invocation has a second fail-closed eligibility check."
+      - "Export follows requested -> generating -> ready -> expired and duplicate idempotency keys resolve to one job."
+      - "Deletion follows requested -> frozen -> deleting -> completed or failed_retryable, with retry-safe jobs and a minimal keyed user hash tombstone outside ordinary restore scope."
+      - "Post-restore reconciliation defaults to no-send until consent, deletion tombstones, and outbox suppression are reconciled."
+      - "No unapproved retention duration or real external integration is claimed complete."
+    receipt: null
+
+  - id: T016
+    type: pm
+    assignee: PM
+    status: queued
+    reasoning_hint: high
+    objective: "Audit T015 privacy lifecycle evidence, update the remaining Task 5 iOS scope, and choose the next safe package while Xcode and Apple authority remain independently gated."
+    inputs:
+      - "T015 receipt"
+      - "Implementation plan Tasks 5-8"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T105 done before native consent/settings tests pass."
+      - "Do not claim a retention, legal, Apple, or release decision that lacks named authority."
+      - "Continue safe backend work if Xcode remains unavailable."
+    expected_output:
+      - "T015 evidence audit"
+      - "Updated T105 residual iOS scope"
       - "Next executable Worker package"
     receipt: null
 
@@ -1082,13 +1248,30 @@ tasks:
   - id: T104
     type: worker
     assignee: Worker
-    status: queued
+    status: blocked
     reasoning_hint: high
-    objective: "Execute implementation plan Task 4: implement Sign in with Apple, sessions, and device registration."
+    objective: "Complete the remaining native iOS half of implementation Task 4: Sign in with Apple client flow, Keychain-only refresh-token storage, logout cache clearing, onboarding retry persistence, entitlement/signing evidence, and APNs-capable device registration. Backend identity is complete in T013."
     allowed_files: []
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: blocked
+      blocked_reason: "The backend half is verified in T013, but this machine has only Command Line Tools selected and no available Xcode/simctl. Real Apple account, client ID, entitlement, signing, Keychain, APNs, and distribution evidence also remains pending."
+      changed_files: []
+      commands:
+        - cmd: "xcodebuild -version"
+          status: fail
+        - cmd: "xcrun simctl list devices available"
+          status: fail
+      summary: "Preserved Task 4 as incomplete at the real native-platform boundary; no Apple or iOS evidence was fabricated."
+      evidence:
+        - "xcode-select reports /Library/Developer/CommandLineTools and rejects xcodebuild because it is not a full Xcode developer directory."
+        - "No /Applications/Xcode.app or /Applications/Xcode-beta.app is present."
+        - "T013 receipt proves only the synthetic backend identity/session/device slice."
+      risks_remaining:
+        - "Native authentication and secure local token lifecycle are untested."
+        - "Apple release authority and account readiness are pending."
+      next: "Install/select full Xcode and provide the applicable Apple platform evidence before reactivating T104."
 
   - id: T105
     type: worker
@@ -1104,13 +1287,28 @@ tasks:
   - id: T106
     type: worker
     assignee: Worker
-    status: queued
+    status: blocked
     reasoning_hint: high
     objective: "Execute implementation plan Task 6: build the native iOS shell and formal design system."
     allowed_files: []
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: blocked
+      blocked_reason: "Task 6 requires simulator navigation, accessibility, and snapshot verification, but full Xcode and simctl are unavailable on this machine."
+      changed_files: []
+      commands:
+        - cmd: "xcodebuild -version"
+          status: fail
+        - cmd: "xcrun simctl list devices available"
+          status: fail
+      summary: "Deferred the native shell without generating untestable SwiftUI or claiming visual fidelity from the web prototype."
+      evidence:
+        - "Active developer directory is /Library/Developer/CommandLineTools."
+        - "No Xcode application is installed under /Applications."
+      risks_remaining:
+        - "Four-tab native navigation, Dynamic Type, Reduce Motion, and 390x844 visual baselines remain unimplemented."
+      next: "Reactivate after full Xcode and an iPhone simulator runtime are available."
 
   - id: T107
     type: worker
