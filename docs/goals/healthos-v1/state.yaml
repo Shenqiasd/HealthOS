@@ -147,7 +147,7 @@ tasks:
     receipt:
       result: blocked
       harness: codex
-      blocked_reason: "GitHub accepted the private repository and main push, but every private-repository runner allocation ends immediately with startup_failure, including a manual Baseline dispatch and both Dependabot update jobs. Repository Actions permissions are enabled, actionlint passes, and GitHub Status reports Actions operational, so the remaining blocker is the Shenqiasd account's private Actions usage, quota, or billing state."
+      blocked_reason: "GitHub accepted the private repository and main push, but every private-repository runner allocation ends immediately with startup_failure, including a manual Baseline dispatch and both Dependabot update jobs. Repository Actions permissions are enabled, actionlint passes, and GitHub Status reports Actions operational, so runner allocation is blocked by the Shenqiasd account's private Actions usage, quota, or billing state. GitHub also returned 403 for private-repository branch protection and requires GitHub Pro, while private Secret Scanning returned 422 as unavailable on the current plan."
       changed_files:
         - .gitignore
         - .editorconfig
@@ -188,13 +188,16 @@ tasks:
         - "GitHub Actions permissions API: enabled with allowed_actions=all"
         - "GitHub Status: Actions operational"
         - "Independent actionlint v1.7.12 validation exited 0"
+        - "Branch protection API: HTTP 403, upgrade to GitHub Pro or make the repository public"
+        - "Secret Scanning API: HTTP 422, unavailable for this private repository plan"
       spawned_tasks:
         - T004
         - T005
       risks_remaining:
         - "Required GitHub checks and Dependabot execution remain unavailable until private Actions runner allocation is restored."
         - "GitHub Secret Scanning is unavailable on the current private-repository plan; Gitleaks is configured but cannot run until Actions is restored."
-      next: "In GitHub Settings > Billing and licensing, restore private Actions minutes or spending, then rerun Baseline and Dependabot. T001 may continue as read-only work in parallel."
+        - "Private main-branch protection cannot be enabled until the Shenqiasd account upgrades to GitHub Pro."
+      next: "Keep HealthOS private, upgrade Shenqiasd to GitHub Pro, restore private Actions minutes or spending, then rerun Baseline and Dependabot and enable the prepared main protection policy. T001 may continue as read-only work in parallel."
   - id: T004
     type: worker
     assignee: Worker
