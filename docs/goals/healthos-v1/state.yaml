@@ -266,6 +266,45 @@ tasks:
         - "The fully staged baseline passes git diff --cached --check."
       risks_remaining: []
       next: "Resume T003 and commit the GitHub baseline."
+
+  - id: T006
+    type: pm
+    assignee: PM
+    status: blocked
+    reasoning_hint: high
+    objective: "Apply the user's decision to make HealthOS public, restore GitHub automation, and enforce the prepared main-branch protections."
+    inputs:
+      - "T003 blocked receipt"
+      - "User authorization to make Shenqiasd/HealthOS public"
+      - "/tmp/healthos-main-protection.json"
+    constraints:
+      - "Re-scan tracked content before changing visibility."
+      - "Do not expose credentials, real health data, provider payloads, or signing material."
+      - "Require Baseline checks to pass before enabling required status checks."
+      - "Keep squash-only merges and prevent force pushes and branch deletion."
+    expected_output:
+      - "Public repository with GitHub Actions running"
+      - "Secret Scanning and push protection enabled"
+      - "Protected main requiring Goal control, Prototype build, and Secret scan"
+      - "Receipt resolving T003 external blockers"
+    receipt:
+      result: blocked
+      harness: codex
+      decision: public_repository_configured_billing_lock_remains
+      blocked_reason: "GitHub Actions can now create Goal control, Prototype build, and Secret scan jobs, but every job is rejected before its first step with the GitHub annotation: The job was not started because your account is locked due to a billing issue."
+      summary: "Made Shenqiasd/HealthOS public, enabled Secret Scanning and push protection, and protected main with strict required checks and pull-request controls. GitHub automation is correctly configured but cannot execute until the Shenqiasd billing lock is cleared."
+      evidence:
+        - "Public repository: https://github.com/Shenqiasd/HealthOS"
+        - "Baseline run: https://github.com/Shenqiasd/HealthOS/actions/runs/29082759905"
+        - "All three check annotations report the same account billing lock."
+        - "Secret Scanning status: enabled"
+        - "Secret Scanning push protection status: enabled"
+        - "main required checks: Goal control, Prototype build, Secret scan"
+        - "main protection: strict, PR required, linear history, conversation resolution, admins enforced, force pushes disabled, deletion disabled"
+      risks_remaining:
+        - "No GitHub-hosted job or Dependabot update can run while the account billing lock remains."
+      required_reply: "GitHub billing lock 已解除，可以重跑 Actions"
+      next: "Clear the billing lock in GitHub Settings > Billing and licensing, then rerun Baseline 29082759905 and the blocked Dependabot jobs. T001 may continue read-only in parallel."
   - id: T100
     type: worker
     assignee: Worker
