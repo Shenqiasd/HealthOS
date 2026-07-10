@@ -618,6 +618,7 @@ tasks:
       - "apps/api/prisma/schema.prisma"
       - "apps/api/prisma/migrations/20260711014000_consent_privacy/**"
       - "apps/api/src/app.module.ts"
+      - "apps/api/src/identity/identity.module.ts"
       - "apps/api/src/consent/**"
       - "apps/api/src/privacy/**"
       - "apps/worker/package.json"
