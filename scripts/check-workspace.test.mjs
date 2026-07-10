@@ -46,9 +46,10 @@ test("reports a missing module boundary", async () => {
 
 test("rejects production-looking secrets from the example environment", async () => {
   const rootDir = await createWorkspace();
+  const productionLookingApiKey = ["sk", "proj", "this-must-never-be-committed"].join("-");
   await writeFile(
     path.join(rootDir, ".env.example"),
-    "OPENAI_API_KEY=sk-proj-this-must-never-be-committed\n",
+    `OPENAI_API_KEY=${productionLookingApiKey}\n`,
     "utf8",
   );
   const result = await checkWorkspace({ rootDir });
