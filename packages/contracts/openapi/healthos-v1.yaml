@@ -156,6 +156,132 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "503":
           $ref: "#/components/responses/IdentityUnavailable"
+  /consents:
+    get:
+      operationId: getConsentSettings
+      summary: Read current consent state by independent purpose
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current consent settings derived from append-only records.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentSettingsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: writeConsent
+      summary: Append a versioned consent grant or withdrawal
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentWriteRequest"
+      responses:
+        "200":
+          description: The idempotent consent record and global epoch.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentRecordResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /privacy/exports:
+    post:
+      operationId: requestPrivacyExport
+      summary: Idempotently request a machine-readable export
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivacyRequestBody"
+      responses:
+        "200":
+          description: The existing or newly requested export job.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/PrivacyUnavailable"
+  /privacy/exports/{id}:
+    get:
+      operationId: getPrivacyExport
+      summary: Read an export job owned by the authenticated user
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Current export status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /privacy/deletions:
+    post:
+      operationId: requestPrivacyDeletion
+      summary: Freeze processing and request deletion
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivacyRequestBody"
+      responses:
+        "200":
+          description: Processing is frozen and a scoped status token is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletionRequestResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/PrivacyUnavailable"
+  /privacy/deletions/{id}:
+    get:
+      operationId: getPrivacyDeletion
+      summary: Read deletion progress using the scoped status token
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - name: x-deletion-status-token
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 64
+            maxLength: 128
+      responses:
+        "200":
+          description: Current deletion status without restoring ordinary access.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletionStatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
   securitySchemes:
     BearerAuth:
@@ -169,6 +295,14 @@ components:
         type: string
         minLength: 8
         maxLength: 128
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     Unauthorized:
       description: Authentication failed or the session is no longer active.
@@ -184,6 +318,24 @@ components:
       headers:
         x-correlation-id:
           $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    PrivacyUnavailable:
+      description: Privacy control storage or required key configuration is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Conflict:
+      description: The requested transition or idempotency key conflicts with current state.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFound:
+      description: The resource is absent or not owned by the caller.
       content:
         application/json:
           schema:
@@ -330,3 +482,118 @@ components:
           type: string
         app_version:
           type: [string, "null"]
+    ConsentPurpose:
+      type: string
+      enum: [privacy_terms, health_processing, notifications, external_ai]
+    ConsentWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [purpose, document_version, granted]
+      properties:
+        purpose:
+          $ref: "#/components/schemas/ConsentPurpose"
+        document_version:
+          type: string
+          minLength: 1
+          maxLength: 64
+        granted:
+          type: boolean
+    ConsentRecordResponse:
+      type: object
+      additionalProperties: false
+      required: [id, purpose, document_version, granted, epoch, recorded_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        purpose:
+          $ref: "#/components/schemas/ConsentPurpose"
+        document_version:
+          type: string
+        granted:
+          type: boolean
+        epoch:
+          type: integer
+          minimum: 1
+        recorded_at:
+          type: string
+          format: date-time
+    ConsentPurposeState:
+      type: object
+      additionalProperties: false
+      required: [granted, document_version, epoch, recorded_at]
+      properties:
+        granted:
+          type: boolean
+        document_version:
+          type: string
+        epoch:
+          type: integer
+          minimum: 1
+        recorded_at:
+          type: string
+          format: date-time
+    ConsentSettingsResponse:
+      type: object
+      additionalProperties: false
+      required: [consent_epoch, purposes]
+      properties:
+        consent_epoch:
+          type: integer
+          minimum: 0
+        purposes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ConsentPurposeState"
+    PrivacyRequestBody:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key]
+      properties:
+        idempotency_key:
+          type: string
+          format: uuid
+    ExportJobResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status, artifact_available, expires_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [requested, generating, ready, expired, failed_retryable]
+        artifact_available:
+          type: boolean
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+    DeletionRequestResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status, status_token]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [requested, frozen, deleting, completed, failed_retryable]
+        status_token:
+          type: string
+          minLength: 64
+    DeletionStatusResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status, completed_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [requested, frozen, deleting, completed, failed_retryable]
+        completed_at:
+          type: [string, "null"]
+          format: date-time

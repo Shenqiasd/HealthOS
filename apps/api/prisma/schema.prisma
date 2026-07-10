@@ -79,11 +79,41 @@ enum OutboxStatus {
   @@map("outbox_status")
 }
 
+enum ExportJobStatus {
+  requested
+  generating
+  ready
+  expired
+  failed_retryable
+
+  @@map("export_job_status")
+}
+
+enum DeletionJobStatus {
+  requested
+  frozen
+  deleting
+  completed
+  failed_retryable
+
+  @@map("deletion_job_status")
+}
+
+enum PrivacyReconciliationStatus {
+  required
+  running
+  ready
+  failed
+
+  @@map("privacy_reconciliation_status")
+}
+
 model User {
   id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   status             UserStatus                @default(active)
   timezone           String                    @default("Asia/Shanghai")
   locale             String                    @default("zh-CN")
+  consentEpoch       Int                       @default(0) @map("consent_epoch")
   createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt          DateTime?                 @map("deleted_at") @db.Timestamptz(6)
@@ -103,9 +133,11 @@ model User {
   weeklyReviews      WeeklyReviewSnapshot[]
   coachThreads       CoachThread[]
   channelOutbox      ChannelOutbox[]
+  domainOutbox       DomainOutbox[]
   safetyIncidents    SafetyIncident[]
   refreshSessions    RefreshSession[]
   securityEvents     SecurityEvent[]
+  exportJobs         ExportJob[]
 
   @@map("users")
 }
@@ -133,11 +165,12 @@ model Device {
   appVersion            String?   @map("app_version")
   platform              String    @default("ios")
   isPrimaryHealthDevice Boolean   @default(false) @map("is_primary_health_device")
-  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, deviceId])
   @@index([userId])
+  @@index([apnsTokenFingerprint])
   @@map("devices")
 }
 
@@ -191,12 +224,73 @@ model ConsentRecord {
   consentType     String   @map("consent_type")
   documentVersion String   @map("document_version")
   granted         Boolean
+  epoch           Int
+  correlationId   String   @map("correlation_id")
+  requestHash     String   @map("request_hash")
   recordedAt      DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
   source          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, epoch])
+  @@unique([userId, correlationId])
   @@index([userId, consentType, recordedAt])
   @@map("consent_records")
+}
+
+model ExportJob {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
+  idempotencyKey String          @map("idempotency_key")
+  status         ExportJobStatus @default(requested)
+  attempt        Int             @default(0)
+  requestHash    String          @map("request_hash")
+  objectKey      String?         @map("object_key")
+  artifactSha256 String?         @map("artifact_sha256")
+  expiresAt      DateTime?       @map("expires_at") @db.Timestamptz(6)
+  leaseToken     String?         @map("lease_token")
+  leaseUntil     DateTime?       @map("lease_until") @db.Timestamptz(6)
+  errorCode      String?         @map("error_code")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, idempotencyKey])
+  @@index([status, createdAt])
+  @@map("export_jobs")
+}
+
+model DeletionJob {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String?           @map("user_id") @db.Uuid
+  userLookupHash  String            @map("user_lookup_hash")
+  hashKeyVersion  String            @map("hash_key_version")
+  idempotencyKey  String            @map("idempotency_key")
+  statusTokenHash String            @map("status_token_hash")
+  status          DeletionJobStatus @default(requested)
+  attempt         Int               @default(0)
+  leaseToken      String?           @map("lease_token")
+  leaseUntil      DateTime?         @map("lease_until") @db.Timestamptz(6)
+  errorCode       String?           @map("error_code")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt     DateTime?         @map("completed_at") @db.Timestamptz(6)
+
+  @@unique([userLookupHash])
+  @@index([status, updatedAt])
+  @@map("deletion_jobs")
+}
+
+model PrivacyReconciliation {
+  id           String                      @id
+  status       PrivacyReconciliationStatus @default(required)
+  startedAt    DateTime?                   @map("started_at") @db.Timestamptz(6)
+  completedAt  DateTime?                   @map("completed_at") @db.Timestamptz(6)
+  errorCode    String?                     @map("error_code")
+  restoreRunId String?                     @map("restore_run_id")
+  backupId     String?                     @map("backup_id")
+  updatedAt    DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("privacy_reconciliation")
 }
 
 model ChannelAccount {
@@ -499,19 +593,33 @@ model CoachMessage {
 }
 
 model ChannelOutbox {
-  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String            @map("user_id") @db.Uuid
-  channel        String
-  template       String
-  payload        Json              @db.JsonB
-  idempotencyKey String            @unique @map("idempotency_key")
-  availableAt    DateTime          @default(now()) @map("available_at") @db.Timestamptz(6)
-  status         OutboxStatus      @default(pending)
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attempts       DeliveryAttempt[]
+  id                  String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String                            @map("user_id") @db.Uuid
+  channel             String
+  template            String
+  payload             Json                              @db.JsonB
+  idempotencyKey      String                            @unique @map("idempotency_key")
+  availableAt         DateTime                          @default(now()) @map("available_at") @db.Timestamptz(6)
+  status              OutboxStatus                      @default(pending)
+  leaseToken          String?                           @map("lease_token")
+  leaseUntil          DateTime?                         @map("lease_until") @db.Timestamptz(6)
+  user                User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts            DeliveryAttempt[]
+  consentRequirements ChannelOutboxConsentRequirement[]
 
   @@index([status, availableAt])
   @@map("channel_outbox")
+}
+
+model ChannelOutboxConsentRequirement {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  outboxId   String        @map("outbox_id") @db.Uuid
+  purpose    String
+  grantEpoch Int           @map("grant_epoch")
+  outbox     ChannelOutbox @relation(fields: [outboxId], references: [id], onDelete: Cascade)
+
+  @@unique([outboxId, purpose])
+  @@map("channel_outbox_consent_requirements")
 }
 
 model DeliveryAttempt {
@@ -529,18 +637,33 @@ model DeliveryAttempt {
 }
 
 model DomainOutbox {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  eventType      String       @map("event_type")
-  aggregateId    String       @map("aggregate_id") @db.Uuid
-  payload        Json         @db.JsonB
-  idempotencyKey String       @unique @map("idempotency_key")
-  availableAt    DateTime     @default(now()) @map("available_at") @db.Timestamptz(6)
-  leaseUntil     DateTime?    @map("lease_until") @db.Timestamptz(6)
-  status         OutboxStatus @default(pending)
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                  String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType           String                           @map("event_type")
+  aggregateId         String                           @map("aggregate_id") @db.Uuid
+  userId              String?                          @map("user_id") @db.Uuid
+  payload             Json                             @db.JsonB
+  idempotencyKey      String                           @unique @map("idempotency_key")
+  availableAt         DateTime                         @default(now()) @map("available_at") @db.Timestamptz(6)
+  leaseUntil          DateTime?                        @map("lease_until") @db.Timestamptz(6)
+  status              OutboxStatus                     @default(pending)
+  createdAt           DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consentRequirements DomainOutboxConsentRequirement[]
 
   @@index([status, availableAt, leaseUntil])
+  @@index([userId, status])
   @@map("domain_outbox")
+}
+
+model DomainOutboxConsentRequirement {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  outboxId   String       @map("outbox_id") @db.Uuid
+  purpose    String
+  grantEpoch Int          @map("grant_epoch")
+  outbox     DomainOutbox @relation(fields: [outboxId], references: [id], onDelete: Cascade)
+
+  @@unique([outboxId, purpose])
+  @@map("domain_outbox_consent_requirements")
 }
 
 model ConsumerInbox {
