@@ -311,17 +311,24 @@ model ChannelAccount {
 }
 
 model HealthSyncRun {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String       @map("user_id") @db.Uuid
-  deviceId       String       @map("device_id")
-  anchorEpoch    Int          @map("anchor_epoch")
-  serverSequence BigInt?      @map("server_sequence")
-  startedAt      DateTime     @default(now()) @map("started_at") @db.Timestamptz(6)
-  completedAt    DateTime?    @map("completed_at") @db.Timestamptz(6)
-  status         RecordStatus @default(pending)
-  correlationId  String       @map("correlation_id")
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String                    @map("user_id") @db.Uuid
+  deviceId       String                    @map("device_id")
+  anchorEpoch    Int                       @map("anchor_epoch")
+  idempotencyKey String                    @map("idempotency_key")
+  requestHash    String                    @map("request_hash")
+  timezone       String
+  consentEpoch   Int                       @map("consent_epoch")
+  serverSequence BigInt                    @default(autoincrement()) @map("server_sequence")
+  startedAt      DateTime                  @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt    DateTime?                 @map("completed_at") @db.Timestamptz(6)
+  status         RecordStatus              @default(pending)
+  correlationId  String                    @map("correlation_id")
+  user           User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  factRevisions  DailyHealthFactRevision[]
 
+  @@unique([userId, idempotencyKey])
+  @@unique([serverSequence])
   @@index([userId, startedAt])
   @@map("health_sync_runs")
 }
@@ -336,13 +343,17 @@ model DailyHealthFactRevision {
   sourceVectorJson   Json                      @map("source_vector_json") @db.JsonB
   inputHash          String                    @map("input_hash")
   supersedesId       String?                   @map("supersedes_id") @db.Uuid
+  healthSyncRunId    String?                   @map("health_sync_run_id") @db.Uuid
+  serverSequence     BigInt?                   @map("server_sequence")
   createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   supersedes         DailyHealthFactRevision?  @relation("FactSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
   supersededBy       DailyHealthFactRevision[] @relation("FactSupersession")
+  healthSyncRun      HealthSyncRun?            @relation(fields: [healthSyncRunId], references: [id], onDelete: Restrict)
 
   @@unique([userId, localDate, metric, inputHash])
   @@index([userId, localDate, metric, createdAt])
+  @@index([userId, localDate, metric, serverSequence], map: "daily_fact_current_sequence_idx")
   @@map("daily_health_fact_revisions")
 }
 
@@ -645,6 +656,7 @@ model DomainOutbox {
   idempotencyKey      String                           @unique @map("idempotency_key")
   availableAt         DateTime                         @default(now()) @map("available_at") @db.Timestamptz(6)
   leaseUntil          DateTime?                        @map("lease_until") @db.Timestamptz(6)
+  leaseToken          String?                          @map("lease_token")
   status              OutboxStatus                     @default(pending)
   createdAt           DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
   user                User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
