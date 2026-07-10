@@ -15,7 +15,7 @@ export class HealthController {
 
   @Get("ready")
   @HttpCode(HttpStatus.SERVICE_UNAVAILABLE)
-  ready(): ReadinessResponse {
+  async ready(): Promise<ReadinessResponse> {
     return this.readiness.getStatus();
   }
 }

@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T103
+active_task: T013
 
 tasks:
   - id: T001
@@ -405,6 +405,115 @@ tasks:
       verification_attempts: 1
       stopped_because: null
       commit: b2af78f
+
+  - id: T012
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: xhigh
+    objective: "Audit T103 persistence evidence and select the next dependency-safe M0 package, separating synthetic identity implementation from Apple account, entitlement, and distribution authority."
+    inputs:
+      - "T103 receipt and commit"
+      - "Implementation plan Tasks 4-6 and dependency map"
+      - "Apple platform and governance gate state"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not fabricate Apple team, bundle, entitlement, signing, or App Store approval."
+      - "Continue synthetic/offline implementation if the plan permits it without those approvals."
+      - "Populate exact allowed_files, verification, and stop conditions before activating the next Worker."
+    expected_output:
+      - "T103 evidence audit"
+      - "Identity/consent/iOS dependency decision"
+      - "Next executable Worker package or exact mandatory owner request"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T012.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T103 as complete and split Task 4 at the real authority boundary. T013 can implement and verify the complete backend identity/session/device slice with synthetic keys and PostgreSQL. Apple accounts, bundle IDs, entitlements, signing, APNs, Keychain, and iOS Auth remain explicitly gated and cannot be inferred from backend success."
+      evidence:
+        - "T103 commit 1da634c passes fresh PostgreSQL migration reset, nine integration tests, full tests, and zero-vulnerability audit."
+        - "T013 has exact source, migration, contract, test, and secret-handling boundaries."
+        - "T014 is queued to preserve and schedule the remaining iOS/Apple half of Task 4."
+      risks_remaining:
+        - "Apple release owner and account/entitlement evidence remain missing."
+        - "Remote CI remains blocked by T006 billing lock."
+      next: "Activate T013 and implement synthetic backend identity and secure sessions."
+  - id: T013
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the backend half of Task 4 with synthetic cryptographic fixtures: Apple JWT verification, nonce replay defense, subject hashing, rotating refresh sessions, logout/revocation, device registration, security events, API contracts, and a second migration."
+    inputs:
+      - "T103 persistence receipt and migration discipline"
+      - "Implementation plan Task 4 backend cases"
+      - "Apple platform gate remains pending for real accounts, entitlements, signing, and distribution"
+    allowed_files:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260710210000_identity/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/identity/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/session-key-rotation.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test -- identity"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires a real Apple token, Apple Developer account, bundle ID, entitlement, signing certificate, APNs token, or production credential."
+      - "Raw Apple subject, refresh token, nonce, APNs token, or session secret would be stored or logged without hashing/encryption."
+      - "Refresh rotation is not atomic or token reuse does not revoke the session family."
+      - "A deleted/frozen user can obtain a session."
+      - "Implementation needs files outside allowed_files."
+    expected_output:
+      - "Synthetic signed Apple JWTs prove issuer, audience, expiry, signature, and nonce behavior offline."
+      - "Provider subjects and refresh tokens are stored only as keyed/one-way hashes."
+      - "Refresh tokens rotate atomically; replay/revocation/deleted-user cases fail closed and create security events."
+      - "Device registration is idempotent by user/device and never trusts a body user_id."
+      - "OpenAPI and TypeScript contracts describe the implemented identity endpoints."
+      - "No iOS entitlement, signing, Keychain, or real Apple account is claimed complete."
+    receipt: null
+
+  - id: T014
+    type: pm
+    assignee: PM
+    status: queued
+    reasoning_hint: high
+    objective: "Audit T013 backend identity evidence and choose the next safe package across consent/privacy backend and the unsigned native iOS shell, while preserving the remaining Task 4 Apple/iOS gate."
+    inputs:
+      - "T013 receipt"
+      - "Implementation plan Tasks 4-6"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T104 done until iOS Keychain/Auth tests and applicable Apple evidence pass."
+      - "Do not block synthetic backend work on signing credentials that it does not use."
+    expected_output:
+      - "T013 audit"
+      - "Updated T104 residual scope"
+      - "Next executable Worker package"
+    receipt: null
+
   - id: T003
     type: worker
     assignee: Worker
@@ -861,7 +970,7 @@ tasks:
   - id: T103
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Execute implementation plan Task 3: implement the complete PostgreSQL/Prisma V1 schema, first reproducible migration, database module, restricted publication transaction, constraint tests, and migration runbook."
     inputs:
@@ -877,19 +986,25 @@ tasks:
       - "apps/api/prisma/**"
       - "apps/api/src/app.module.ts"
       - "apps/api/src/common/readiness.service.ts"
+      - "apps/api/src/health.controller.ts"
       - "apps/api/src/database/**"
       - "apps/api/test/database-constraints.e2e-spec.ts"
       - "infra/runbooks/database-migration.md"
+      - "**/node_modules/**"
     verify:
       - "pnpm install --frozen-lockfile"
-      - "pnpm --filter @healthos/api prisma validate"
-      - "docker compose up -d postgres --wait --wait-timeout 60"
-      - "pnpm --filter @healthos/api prisma migrate reset --force"
-      - "pnpm --filter @healthos/api test:integration -- database-constraints.e2e-spec.ts"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:integration -- database-constraints.e2e-spec.ts"
       - "pnpm lint"
       - "pnpm typecheck"
       - "pnpm test"
-      - "docker compose down --volumes --remove-orphans"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
       - "git diff --check"
     stop_if:
       - "A migration would use real data, production credentials, a production database, or a non-PostgreSQL substitute for constraint proof."
@@ -905,8 +1020,65 @@ tasks:
       - "Tenant-scoped channel lookup HMAC is unique while recoverable identifiers remain encrypted."
       - "Business mutation and domain_outbox insertion are proven atomic."
       - "Migration reset rebuilds the database from zero and the runbook records expand/contract, rollback, backup, and recovery rules."
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - package.json
+        - pnpm-lock.yaml
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/migration_lock.toml
+        - apps/api/prisma/migrations/20260710192000_initial/migration.sql
+        - apps/api/src/app.module.ts
+        - apps/api/src/common/readiness.service.ts
+        - apps/api/src/health.controller.ts
+        - apps/api/src/database/database.module.ts
+        - apps/api/src/database/prisma.service.ts
+        - apps/api/src/database/publication.repository.ts
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - infra/runbooks/database-migration.md
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+          status: pass
+        - cmd: "test -x $(brew --prefix postgresql@17)/bin/pg_ctl"
+          status: pass
+        - cmd: "fresh initdb in /tmp/healthos-pg17"
+          status: pass
+        - cmd: "start isolated PostgreSQL 17.10 on port 55432 and create synthetic role/database"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:integration -- database-constraints.e2e-spec.ts"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "stop isolated PostgreSQL cluster"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "scope-guard T103 for declared files plus ignored node_modules"
+          status: pass
+      summary: "Implemented the complete V1 PostgreSQL/Prisma model, first replayable migration, real database readiness, restricted publication transaction, and migration runbook. Nine PostgreSQL integration tests prove active-action uniqueness, global idempotency, append-only revisions, controlled privacy deletion, confirmed-lab publication, tenant HMAC uniqueness, atomic outbox writes, and real readiness. The final dependency audit reports no known vulnerabilities. Commit 1da634c contains the product-file scope."
+      deviations:
+        - "The required goal_worker produced no changes within one wait window; PM fallback completed the declared Worker scope."
+        - "Docker Desktop could inspect and pull images but repeatedly could not start any new container, including hello-world. The PM replaced that non-executable verifier with a fresh isolated Homebrew PostgreSQL 17.10 cluster; no SQLite or in-memory substitute was used."
+        - "The schema-generated migration was extended with PostgreSQL partial indexes, append-only and privacy-delete triggers, revision checks, current-fact view, and confirmed-lab publication trigger that Prisma cannot express."
+        - "Prisma CLI introduced a high-severity vulnerable effect transitive dependency; effect 3.21.4 is pinned by root override and the final audit is clean."
+      remaining_blockers:
+        - "Object-storage and worker-lease readiness remain not_configured until their planned implementations land."
+        - "Remote CI remains unavailable until T006 GitHub billing lock is cleared."
+        - "Host Docker Desktop runtime smoke remains an external machine issue, but it does not weaken the real PostgreSQL evidence."
+      verification_attempts: 4
+      stopped_because: null
+      commit: 1da634c
   - id: T104
     type: worker
     assignee: Worker
