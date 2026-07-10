@@ -1,6 +1,8 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 import type { Prisma, PrismaClient } from "@prisma/client";
+
+import { canonicalSha256 } from "../profile/canonical-json";
 
 export interface HealthProjectionDispatcherConfig {
   leaseSeconds: number;
@@ -21,6 +23,7 @@ export class HealthProjectionDispatcher {
       where: {
         id: outboxId,
         eventType: "health.facts.accepted",
+        availableAt: { lte: now },
         OR: [
           { status: { in: ["pending", "failed"] } },
           { status: "leased", leaseUntil: { lt: now } },
@@ -47,7 +50,11 @@ export class HealthProjectionDispatcher {
       });
       if (processed) return;
     }
-    if (observed.status !== "leased" || observed.leaseToken !== leaseToken) {
+    if (
+      observed.status !== "leased" ||
+      observed.leaseToken !== leaseToken ||
+      !observed.leaseUntil || observed.leaseUntil <= new Date()
+    ) {
       throw new Error("Health projection lease is stale");
     }
 
@@ -88,7 +95,11 @@ export class HealthProjectionDispatcher {
         });
         return;
       }
-      if (message.status !== "leased" || message.leaseToken !== leaseToken) {
+      if (
+        message.status !== "leased" ||
+        message.leaseToken !== leaseToken ||
+        !message.leaseUntil || message.leaseUntil <= new Date()
+      ) {
         throw new Error("Health projection lease is stale");
       }
       if (!message.user || !this.isAuthorized(
@@ -103,18 +114,96 @@ export class HealthProjectionDispatcher {
         return;
       }
       if (message.payload === null) throw new Error("Health projection payload is missing");
-      await tx.profileEvent.create({
+      const sourcePayload = message.payload as Prisma.JsonObject;
+      const revisionIds = sourcePayload.revision_ids;
+      if (
+        typeof sourcePayload.sync_run_id !== "string" ||
+        typeof sourcePayload.server_sequence !== "string" ||
+        !/^\d+$/.test(sourcePayload.server_sequence) ||
+        !Array.isArray(revisionIds) ||
+        revisionIds.some((id) => typeof id !== "string")
+      ) {
+        throw new Error("Health projection revision IDs are invalid");
+      }
+      const revisions = await tx.dailyHealthFactRevision.findMany({
+        where: { userId: message.user.id, id: { in: revisionIds as string[] } },
+        orderBy: [
+          { serverSequence: { sort: "asc", nulls: "last" } },
+          { localDate: "asc" },
+          { metric: "asc" },
+          { id: "asc" },
+        ],
+      });
+      if (revisions.length !== revisionIds.length) {
+        throw new Error("Health projection revisions are incomplete");
+      }
+      const profilePayload = {
+        sync_run_id: sourcePayload.sync_run_id,
+        server_sequence: sourcePayload.server_sequence,
+        facts: revisions.map((revision) => ({
+          revision_id: revision.id,
+          local_date: revision.localDate.toISOString().slice(0, 10),
+          metric: revision.metric,
+          value: (revision.canonicalValueJson as Prisma.JsonObject).value,
+          coverage: revision.coverage === null ? null : Number(revision.coverage),
+          server_sequence: revision.serverSequence?.toString() ?? null,
+        })),
+      };
+      const payloadHash = canonicalSha256({
+        event_type: "daily_health_facts_accepted",
+        source: "health_ingestion",
+        payload: profilePayload,
+        occurred_at: null,
+      });
+      const consentEpoch = message.consentRequirements.find(
+        (requirement) => requirement.purpose === "health_processing",
+      )?.grantEpoch;
+      if (consentEpoch === undefined) {
+        throw new Error("Health projection consent epoch is missing");
+      }
+      const existingEvent = await tx.profileEvent.findUnique({
+        where: {
+          userId_correlationId: {
+            userId: message.user.id,
+            correlationId: message.id,
+          },
+        },
+      });
+      if (existingEvent && existingEvent.payloadHash !== payloadHash) {
+        throw new Error("Health profile event correlation conflict");
+      }
+      const profileEvent = existingEvent ?? await tx.profileEvent.create({
         data: {
           userId: message.user.id,
+          consentEpoch,
           eventType: "daily_health_facts_accepted",
           source: "health_ingestion",
-          payload: message.payload as Prisma.InputJsonValue,
+          payload: profilePayload as Prisma.InputJsonValue,
+          payloadHash,
           correlationId: message.id,
         },
       });
-      const resultHash = createHash("sha256")
-        .update(JSON.stringify(message.payload))
-        .digest("hex");
+      await tx.domainOutbox.upsert({
+        where: { idempotencyKey: `profile.event.appended:${profileEvent.id}` },
+        create: {
+          userId: message.user.id,
+          aggregateId: profileEvent.id,
+          eventType: "profile.event.appended",
+          idempotencyKey: `profile.event.appended:${profileEvent.id}`,
+          payload: {
+            profile_event_id: profileEvent.id,
+            event_sequence: profileEvent.sequence.toString(),
+          },
+          consentRequirements: {
+            create: message.consentRequirements.map((requirement) => ({
+              purpose: requirement.purpose,
+              grantEpoch: requirement.grantEpoch,
+            })),
+          },
+        },
+        update: {},
+      });
+      const resultHash = canonicalSha256(profilePayload);
       await tx.consumerInbox.create({
         data: {
           consumer: this.consumer,

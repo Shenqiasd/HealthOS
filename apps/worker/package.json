@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test src/main.spec.ts",
     "test:privacy": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/privacy/privacy-job-runner.integration.spec.ts",
-    "test:health": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/health/health-projection-dispatcher.integration.spec.ts"
+    "test:health": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/health/health-projection-dispatcher.integration.spec.ts",
+    "test:profile": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/profile/profile-projection-worker.integration.spec.ts"
   },
   "dependencies": {
     "@healthos/contracts": "workspace:*",

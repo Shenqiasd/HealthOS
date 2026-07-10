@@ -94,6 +94,85 @@ paths:
                 $ref: "#/components/schemas/HealthFreshnessResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /profile/candidates:
+    post:
+      operationId: proposeProfileCandidate
+      summary: Store a typed pending candidate without retaining source free text
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileCandidateRequest"
+      responses:
+        "200":
+          description: A pending typed candidate; source free text is never returned or persisted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileCandidateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current health-processing consent is absent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /profile/candidates/{id}/confirm:
+    post:
+      operationId: confirmProfileCandidate
+      summary: Confirm an immutable typed candidate into the append-only profile ledger
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: The confirmed candidate and its unique profile event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileCandidateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current health-processing consent is absent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /profile/snapshot:
+    get:
+      operationId: getCurrentProfileSnapshot
+      summary: Read the latest immutable snapshot authorized by the current consent epoch
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: The current deterministic profile projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileSnapshotResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current health-processing consent is absent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /identity/apple/nonce:
     post:
       operationId: issueAppleNonce
@@ -749,3 +828,65 @@ components:
         latest_local_date:
           type: [string, "null"]
           format: date
+    MobilityLimitationValue:
+      type: object
+      additionalProperties: false
+      required: [code, active]
+      properties:
+        code:
+          type: string
+          pattern: "^[a-z][a-z0-9_]{1,63}$"
+        active:
+          type: boolean
+    ProfileCandidateRequest:
+      type: object
+      additionalProperties: false
+      required: [candidate_type, structured_value, source_text, idempotency_key]
+      properties:
+        candidate_type:
+          const: mobility_limitation
+        structured_value:
+          $ref: "#/components/schemas/MobilityLimitationValue"
+        source_text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: Used only to compute a one-way hash; never retained in the profile ledger.
+        idempotency_key:
+          type: string
+          format: uuid
+    ProfileCandidateResponse:
+      type: object
+      additionalProperties: false
+      required: [id, candidate_type, structured_value, status, confirmed_event_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        candidate_type:
+          const: mobility_limitation
+        structured_value:
+          $ref: "#/components/schemas/MobilityLimitationValue"
+        status:
+          type: string
+          enum: [pending, confirmed, rejected]
+        confirmed_event_id:
+          type: [string, "null"]
+          format: uuid
+    ProfileSnapshotResponse:
+      type: object
+      additionalProperties: false
+      required: [version, facts, source_sequence, snapshot_hash]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        facts:
+          type: object
+          description: Canonically projected typed facts; unsupported free text is excluded.
+        source_sequence:
+          type: string
+          pattern: "^[1-9][0-9]*$"
+        snapshot_hash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"

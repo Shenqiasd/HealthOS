@@ -108,6 +108,14 @@ enum PrivacyReconciliationStatus {
   @@map("privacy_reconciliation_status")
 }
 
+enum ProfileCandidateStatus {
+  pending
+  confirmed
+  rejected
+
+  @@map("profile_candidate_status")
+}
+
 model User {
   id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   status             UserStatus                @default(active)
@@ -127,6 +135,7 @@ model User {
   foodScans          FoodScan[]
   profileEvents      ProfileEvent[]
   profileSnapshots   ProfileSnapshot[]
+  profileCandidates  ProfileCandidate[]
   recommendationRuns RecommendationRun[]
   actions            ActionAssignment[]
   signals            SignalSnapshot[]
@@ -423,14 +432,24 @@ model FoodRiskLabel {
 model ProfileEvent {
   id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId              String            @map("user_id") @db.Uuid
+  sequence            BigInt            @default(autoincrement())
+  consentEpoch        Int               @default(0) @map("consent_epoch")
   eventType           String            @map("event_type")
   source              String
   payload             Json              @db.JsonB
+  payloadHash         String            @default("0000000000000000000000000000000000000000000000000000000000000000") @map("payload_hash")
   correlationId       String            @map("correlation_id")
   occurredAt          DateTime          @default(now()) @map("occurred_at") @db.Timestamptz(6)
   user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   snapshotsEndingHere ProfileSnapshot[]
+  confirmedCandidate  ProfileCandidate? @relation("CandidateConfirmation")
 
+  @@unique([userId, correlationId])
+  @@unique([sequence])
+  @@unique([id, userId])
+  @@unique([id, userId, sequence])
+  @@index([userId, sequence])
+  @@index([userId, occurredAt, sequence])
   @@index([userId, occurredAt])
   @@map("profile_events")
 }
@@ -441,14 +460,39 @@ model ProfileSnapshot {
   version            Int
   factsJson          Json                @map("facts_json") @db.JsonB
   sourceEventUntil   String              @map("source_event_until") @db.Uuid
+  sourceSequence     BigInt              @default(0) @map("source_sequence")
+  consentEpoch       Int                 @default(0) @map("consent_epoch")
+  snapshotHash       String              @default("0000000000000000000000000000000000000000000000000000000000000000") @map("snapshot_hash")
   createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceEvent        ProfileEvent        @relation(fields: [sourceEventUntil], references: [id], onDelete: Restrict)
+  sourceEvent        ProfileEvent        @relation(fields: [sourceEventUntil, userId, sourceSequence], references: [id, userId, sequence], onDelete: Cascade, map: "profile_snapshots_source_provenance_fkey")
   recommendationRuns RecommendationRun[]
 
   @@unique([userId, version])
+  @@unique([userId, sourceSequence])
   @@index([userId, createdAt])
   @@map("profile_snapshots")
+}
+
+model ProfileCandidate {
+  id                  String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String                 @map("user_id") @db.Uuid
+  candidateType       String                 @map("candidate_type")
+  structuredValueJson Json                   @map("structured_value_json") @db.JsonB
+  sourceTextHash      String                 @map("source_text_hash")
+  idempotencyKey      String                 @map("idempotency_key")
+  requestHash         String                 @map("request_hash")
+  status              ProfileCandidateStatus @default(pending)
+  confirmedEventId    String?                @unique @map("confirmed_event_id") @db.Uuid
+  createdAt           DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  confirmedAt         DateTime?              @map("confirmed_at") @db.Timestamptz(6)
+  user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  confirmedEvent      ProfileEvent?          @relation("CandidateConfirmation", fields: [confirmedEventId, userId], references: [id, userId], onDelete: Cascade, map: "profile_candidates_confirmed_event_id_fkey")
+
+  @@unique([userId, idempotencyKey])
+  @@unique([confirmedEventId, userId])
+  @@index([userId, status, createdAt])
+  @@map("profile_candidates")
 }
 
 model RuleBundle {
