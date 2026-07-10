@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "executed_at": null,
+  "sandbox_label": null,
+  "reviewer": null,
+  "scenarios": [],
+  "result": "pending",
+  "evidence": [],
+  "notes": "Do not store credentials, tokens, real external IDs, or health content."
+}
