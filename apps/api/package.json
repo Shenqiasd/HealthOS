@@ -13,10 +13,11 @@
     "pretest:integration": "pnpm prisma:generate",
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest --config jest.config.mjs --testPathIgnorePatterns=database-constraints identity.integration",
+    "test": "jest --config jest.config.mjs --testPathIgnorePatterns=database-constraints identity.integration consent.integration privacy.integration",
     "test:e2e": "jest --config jest.config.mjs",
     "test:integration": "jest --config jest.config.mjs database-constraints.e2e-spec.ts --runInBand",
-    "test:identity": "jest --config jest.config.mjs identity --runInBand"
+    "test:identity": "jest --config jest.config.mjs identity --runInBand",
+    "test:privacy": "jest --config jest.config.mjs consent privacy --runInBand"
   },
   "dependencies": {
     "@healthos/contracts": "workspace:*",

@@ -7,11 +7,14 @@
     "build": "tsc -p tsconfig.json",
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test src/main.spec.ts"
+    "test": "node --import tsx --test src/main.spec.ts",
+    "test:privacy": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/privacy/privacy-job-runner.integration.spec.ts"
   },
   "dependencies": {
+    "@healthos/contracts": "workspace:*",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
+    "@prisma/client": "6.19.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   },

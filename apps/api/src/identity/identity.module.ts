@@ -96,5 +96,6 @@ function deviceKey(enabled: boolean): Buffer {
     },
     AccessTokenGuard,
   ],
+  exports: [AccessTokenGuard, SessionService],
 })
 export class IdentityModule {}
