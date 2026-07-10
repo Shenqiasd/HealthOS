@@ -44,7 +44,124 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReadinessResponse"
+  /identity/apple/nonce:
+    post:
+      operationId: issueAppleNonce
+      summary: Issue a single-use nonce for Sign in with Apple
+      responses:
+        "200":
+          description: A short-lived nonce was issued.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NonceResponse"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /identity/apple:
+    post:
+      operationId: authenticateWithApple
+      summary: Exchange a verified Apple identity token and nonce for a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppleAuthenticationRequest"
+      responses:
+        "200":
+          description: The Apple identity was authenticated.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /identity/refresh:
+    post:
+      operationId: rotateRefreshToken
+      summary: Atomically rotate a refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: A new access and refresh token pair was issued.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionTokensResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /identity/logout:
+    post:
+      operationId: logoutSessionFamily
+      summary: Revoke the refresh-token family
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: The operation is complete, including for an unknown token.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutResponse"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /identity/devices:
+    post:
+      operationId: registerDevice
+      summary: Idempotently register a device owned by the authenticated user
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceRegistrationRequest"
+      responses:
+        "200":
+          description: The device was registered or updated.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceRegistrationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   headers:
     CorrelationId:
       description: Validated incoming identifier or a server-generated UUID.
@@ -52,6 +169,25 @@ components:
         type: string
         minLength: 8
         maxLength: 128
+  responses:
+    Unauthorized:
+      description: Authentication failed or the session is no longer active.
+      headers:
+        x-correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    IdentityUnavailable:
+      description: Identity configuration is unavailable or incomplete.
+      headers:
+        x-correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
   schemas:
     LivenessResponse:
       type: object
@@ -103,3 +239,94 @@ components:
               type: string
             correlation_id:
               type: string
+    NonceResponse:
+      type: object
+      additionalProperties: false
+      required: [nonce, expires_at]
+      properties:
+        nonce:
+          type: string
+          minLength: 32
+        expires_at:
+          type: string
+          format: date-time
+    AppleAuthenticationRequest:
+      type: object
+      additionalProperties: false
+      required: [identity_token, nonce]
+      properties:
+        identity_token:
+          type: string
+          minLength: 32
+        nonce:
+          type: string
+          minLength: 32
+    RefreshTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          minLength: 32
+    SessionTokensResponse:
+      type: object
+      additionalProperties: false
+      required: [access_token, refresh_token]
+      properties:
+        access_token:
+          type: string
+          minLength: 32
+        refresh_token:
+          type: string
+          minLength: 32
+    AuthenticationResponse:
+      type: object
+      additionalProperties: false
+      required: [user_id, access_token, refresh_token]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        access_token:
+          type: string
+          minLength: 32
+        refresh_token:
+          type: string
+          minLength: 32
+    LogoutResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          const: revoked
+    DeviceRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [device_id, app_version]
+      properties:
+        device_id:
+          type: string
+          minLength: 8
+          maxLength: 128
+        app_version:
+          type: string
+          minLength: 1
+          maxLength: 32
+        apns_token:
+          type: string
+          minLength: 16
+          maxLength: 512
+    DeviceRegistrationResponse:
+      type: object
+      additionalProperties: false
+      required: [id, device_id, app_version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+        app_version:
+          type: [string, "null"]
