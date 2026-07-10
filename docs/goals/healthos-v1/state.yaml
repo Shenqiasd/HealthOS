@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T111
+active_task: T112
 
 tasks:
   - id: T001
@@ -1120,6 +1120,51 @@ tasks:
         - "Clinical thresholds beyond already authorized product-plan constraints cannot be invented by engineering."
         - "GitHub-hosted CI remains externally blocked by the account billing state."
       next: "T111 implements the deterministic draft rule engine, action catalog, executable safety policy, dual-approval bundle state machine, and 80 synthetic evaluation cases."
+  - id: T021
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: xhigh
+    objective: "Audit T111 rules/safety evidence, reconcile implementation plan Task 11/T111, and define the largest safe Task 12 recommendation-run, immutable-snapshot, and rule-publishing Worker package while keeping all unapproved bundles unpublished."
+    inputs:
+      - "T111 receipt and commit"
+      - "Implementation plan Tasks 11-13"
+      - "Technical design sections 7, 8, 11, 14, 15, and 18"
+      - "Current profile ledger, privacy controls, API, worker, and migration contracts"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T111 done without 100 percent safety-critical branch coverage, exactly 50 golden and 30 adversarial unique cases, scope proof, and independent no-P0/P1 review."
+      - "Do not infer medical approval or make a draft bundle publishable in product state."
+      - "Task 12 must preserve exact canonical rule inputs, immutable outputs, transactional outbox publication, consent/deletion fencing, and distinct technical/medical approval requirements."
+    expected_output:
+      - "T111 evidence audit and implementation-plan Task 11 reconciliation"
+      - "Explicit T112 database, API, worker, rule-bundle, and test scope"
+      - "Publishing and rollback state-machine invariants"
+      - "Next active Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T021.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T111 as complete implementation-plan Task 11 evidence and converted the T112 shell into a production-grade synthetic recommendation pipeline package with explicit database, API, worker, admin-read-view, migration, safety, privacy, replay, approval, rollback, and verification boundaries."
+      evidence:
+        - "T111 commit e578826 and receipt prove strict fail-closed inputs, deeply immutable catalog metadata, substitute revalidation, exact-content dual approvals, 36 tests, and 100 percent safety-critical branch coverage."
+        - "The checked-in eval runner proves exactly 50 golden and 30 adversarial unique scenarios with schema, fallback, provenance, forbidden-output, and result-shape validation."
+        - "Independent final review concluded no P0/P1 and made no worktree changes."
+        - "T112 now includes current Prisma recommendation placeholders, the existing publication repository, profile/consent/privacy/outbox contracts, worker lease fencing, a new migration, database constraints, and safe read-only admin views in one bounded scope."
+        - "T112 explicitly covers every Task 12 plan case: duplicate daily runs, no data, conflict, Alpha/Beta routing, deterministic sampling, caution/doctor/blocked handling, review edits, supersession, SLA, approvals, rollback, outbox reconciliation, kill switch, and exact replay."
+        - "T112 forbids real medical-approval claims and forbids exposing admin mutation endpoints before Task 20 MFA/RBAC."
+      risks_remaining:
+        - "Named medical and technical authorities have not approved a production rule bundle; all real bundle publication must remain blocked."
+        - "Task 12 must replace or harden the existing permissive PublicationRepository rather than preserve its current incomplete checks."
+        - "GitHub-hosted CI remains externally blocked by account billing; local fresh-database and migration evidence remains mandatory."
+      next: "T112 implements the complete synthetic recommendation-run, immutable-snapshot, review-routing, gated publication, rollback, reconciliation, and worker pipeline with safe read-only admin views."
   - id: T003
     type: worker
     assignee: Worker
@@ -1881,7 +1926,7 @@ tasks:
   - id: T111
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Execute implementation plan Task 11 as a synthetic, draft-only deterministic policy package: typed profile inputs, eligibility gates, one-risk/one-action selection, action catalog with contraindications and lighter/swap variants, executable safety policy, dual-approval bundle state machine, 50 golden cases, and 30 adversarial cases. No rule bundle may be published or described as medically approved."
     inputs:
@@ -1923,17 +1968,137 @@ tasks:
       - "50 golden and 30 adversarial synthetic cases with a deterministic runner"
       - "100 percent branch coverage for safety-critical rule code"
       - "Safety taxonomy documenting normal, caution, doctor, and blocked behavior"
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - pnpm-lock.yaml
+        - docs/product/safety-taxonomy.md
+        - packages/rules/package.json
+        - packages/rules/tsconfig.json
+        - packages/rules/jest.config.mjs
+        - packages/rules/src/action-catalog.ts
+        - packages/rules/src/index.ts
+        - packages/rules/src/input-validator.ts
+        - packages/rules/src/risk-engine.ts
+        - packages/rules/src/rule-bundle.ts
+        - packages/rules/src/rules.spec.ts
+        - packages/rules/src/safety-policy.ts
+        - packages/rules/src/types.ts
+        - packages/evals/package.json
+        - packages/evals/tsconfig.json
+        - packages/evals/src/generate-rule-fixtures.ts
+        - packages/evals/src/run-rule-cases.ts
+        - packages/evals/cases/golden/cases.json
+        - packages/evals/cases/adversarial/cases.json
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules test --coverage"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules typecheck"
+          status: pass
+        - cmd: "pnpm --filter @healthos/evals typecheck"
+          status: pass
+        - cmd: "pnpm --filter @healthos/evals eval:rules"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T111.json --allow pnpm-lock.yaml --allow packages/rules/** --allow packages/evals/** --allow docs/product/safety-taxonomy.md --allow **/node_modules/**"
+          status: pass
+      summary: "Implemented the synthetic draft-only deterministic advisor policy package: strict fail-closed runtime input validation, eligibility and fixed safety fallbacks, one-risk/one-action selection, deeply immutable action catalog with revalidated substitutes, bundle-content-bound dual approvals, and a schema-enforced corpus of 50 golden plus 30 adversarial unique cases. No published state or medical-approval claim was added."
+      evidence:
+        - "Commit e578826 (feat: add deterministic advisor rules and safety cases)."
+        - "Jest reports 36 passing tests and 100 percent statements, branches, functions, and lines across all safety-critical rule modules."
+        - "The eval runner reports PASS 50 golden and 30 adversarial unique rule cases and validates exact fixture/result schema, fallback, provenance, forbidden output, unique IDs, and unique scenarios."
+        - "Malformed, incomplete, extra, and unsupported runtime fields fail closed as blocked / INVALID_INPUT."
+        - "Rule bundles and approvals are frozen trusted instances; each approval digest binds the exact version and content hash; forged or altered plain objects are not publishable."
+        - "All action substitutes are rechecked against user rejection and contraindications; the public catalog and nested safety metadata are runtime-frozen."
+        - "Independent read-only re-review concluded no P0/P1 after all findings were fixed."
+        - "Full workspace lint, typecheck, tests, dependency audit, diff check, and T111 scope guard pass."
+      risks_remaining:
+        - "The rule package remains draft_unapproved; a named medical reviewer and a distinct technical approver have not approved a production bundle."
+        - "Task 12 must authenticate and RBAC-check normalized approver identities and persist approval evidence transactionally."
+        - "GitHub-hosted CI remains unavailable until the external account billing lock is cleared."
+      next: "T021 PM audits T111 against implementation Task 11 and defines an executable T112 package for recommendation runs, immutable snapshots, and gated publishing."
   - id: T112
     type: worker
     assignee: Worker
-    status: queued
+    status: active
     reasoning_hint: xhigh
-    objective: "Execute implementation plan Task 12: implement recommendation runs, immutable snapshots, and rule publishing."
-    allowed_files: []
-    verify: []
-    stop_if: []
+    objective: "Execute implementation plan Task 12 as a synthetic production-grade recommendation pipeline: one run per user/local date, deterministic rule replay, immutable provenance-complete snapshot revisions, Alpha/Beta review routing, fixed doctor/blocked handling, consent- and deletion-fenced transactional publication/outboxes, authenticated-identity-ready dual bundle approvals and rollback, leased idempotent worker execution, and safe read-only admin queue/rule views. All real bundles remain draft/unpublished until named medical and technical authority exists."
+    inputs:
+      - "T111 deterministic rules, safety taxonomy, and 80-case eval corpus"
+      - "T019/T110 immutable profile snapshots and replay contract"
+      - "T015 privacy consent epochs, processing freeze, no-send reconciliation, and outbox suppression contract"
+      - "Implementation plan Task 12"
+      - "Technical design sections 7.3, 7.4, 8.3, 11, 14, 15, and 18"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711070000_recommendation_pipeline/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/database/database.module.ts"
+      - "apps/api/src/database/publication.repository.ts"
+      - "apps/api/src/recommendations/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/recommendations/**"
+      - "apps/admin/package.json"
+      - "apps/admin/app/rules/**"
+      - "apps/admin/app/recommendations/**"
+      - "packages/contracts/src/index.ts"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/api prisma validate"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/api prisma migrate deploy"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/api test:recommendations"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/worker test:recommendations"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/api test:integration"
+      - "Assert migration diff is empty after applying every migration to a fresh database"
+      - "Assert a non-superuser, non-CREATEROLE, non-CREATEDB migrator can apply the complete migration history"
+      - "Assert one run per user/local date, duplicate-job idempotency, immutable revisions, exact replay, and no duplicate active action or outbox"
+      - "Assert Alpha always reviews; Beta only auto-publishes explicitly allowlisted normal rules after policy gates and deterministic sampling; caution reviews; doctor uses fixed fallback plus review; blocked never publishes"
+      - "Assert snapshot provenance includes canonical rule input, exact profile snapshot and daily fact revision identities/hashes, bundle identities, prompt/provider metadata or explicit deterministic-null markers, exact rendered payload, review history, and generation timestamp"
+      - "Assert publication, action assignment, domain/channel outboxes, consent requirements, and audit evidence commit atomically or all roll back"
+      - "Assert withdrawn consent, deleting/deleted user state, no-send reconciliation, stale worker lease, missed SLA, global LLM kill switch, and rolled-back bundle cannot publish"
+      - "Assert bundle approval requires two distinct normalized actor IDs in medical and technical roles, exact content digest binding, append-only approval evidence, and audited rollback"
+      - "pnpm --filter @healthos/rules test --coverage"
+      - "pnpm --filter @healthos/evals eval:rules"
+      - "pnpm --filter @healthos/admin typecheck"
+      - "pnpm --filter @healthos/admin build"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires inventing medical approval, clinical thresholds, real reviewer identities, or a production-published rule bundle."
+      - "A real health record, production credential, external LLM/provider, or identifying fixture is required."
+      - "Any user-facing recommendation can publish without a current usable profile snapshot, deterministic safety result, current consent epoch, active user state, and ready privacy reconciliation."
+      - "Alpha can auto-publish, or Beta can auto-publish caution/doctor/blocked output, a non-allowlisted rule, an unsampled ineligible normal result, or a bundle without distinct bound medical and technical approvals."
+      - "A mutable snapshot, overwritten review edit, duplicate daily run/active action/outbox, stale lease commit, or non-atomic publication path remains possible."
+      - "Rendered payload or provenance can omit exact source identities/hashes, rule and safety bundle identity, review action/edit history, or deterministic replay evidence."
+      - "A public/admin mutation endpoint would be exposed before Task 20 administrator identity, MFA, and RBAC controls exist."
+      - "Migration requires superuser, CREATEROLE, CREATEDB, disabling privacy fences, destructive history rewrite, or files outside allowed_files."
+    expected_output:
+      - "Recommendation-run and immutable revision schema with executable database invariants"
+      - "Deterministic run/replay, review-routing, publication, rollback, and reconciliation services"
+      - "Fenced idempotent recommendation worker with duplicate and stale-lease protection"
+      - "Exact stored rendered payload and provenance sufficient to retrieve and replay what was shown"
+      - "Synthetic dual-approval and rollback evidence without any claim of real medical approval"
+      - "Safe read-only operations views for rules and recommendation queues pending Task 20 authenticated mutations"
+      - "Fresh-database, historical-migration, non-superuser migrator, API, worker, database-invariant, admin-build, eval, and full-workspace evidence"
     receipt: null
 
   - id: T113
