@@ -44,6 +44,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReadinessResponse"
+  /health/sync:
+    post:
+      operationId: ingestHealthSyncBatch
+      summary: Ingest consented day-level health aggregates from the primary device
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthSyncRequest"
+      responses:
+        "200":
+          description: The accepted run or its idempotent replay result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthSyncResponse"
+        "400":
+          description: Batch schema or metric bounds are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Consent, active-user, device ownership, or primary-device check failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /health/freshness:
+    get:
+      operationId: getHealthFreshness
+      summary: Read aggregate availability and freshness without interpretation
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current aggregate freshness state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthFreshnessResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /identity/apple/nonce:
     post:
       operationId: issueAppleNonce
@@ -597,3 +647,105 @@ components:
         completed_at:
           type: [string, "null"]
           format: date-time
+    HealthMetric:
+      type: string
+      enum:
+        - steps
+        - active_energy_kcal
+        - exercise_minutes
+        - sleep_minutes
+        - resting_heart_rate_bpm
+        - hrv_ms
+        - workout_minutes
+        - weight_kg
+        - vo2_max
+    HealthSourceContributionRequest:
+      type: object
+      additionalProperties: false
+      required: [source_id, kind, contribution]
+      properties:
+        source_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        kind:
+          type: string
+          enum: [phone, watch, third_party, user]
+        contribution:
+          type: number
+          minimum: 0
+          maximum: 1
+    DailyHealthFactRequest:
+      type: object
+      additionalProperties: false
+      required: [local_date, metric, value, coverage, source_vector]
+      properties:
+        local_date:
+          type: string
+          format: date
+        metric:
+          $ref: "#/components/schemas/HealthMetric"
+        value:
+          type: number
+        coverage:
+          type: number
+          minimum: 0
+          maximum: 1
+        source_vector:
+          type: array
+          minItems: 1
+          maxItems: 16
+          items:
+            $ref: "#/components/schemas/HealthSourceContributionRequest"
+    HealthSyncRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, device_id, anchor_epoch, timezone, facts]
+      properties:
+        idempotency_key:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        anchor_epoch:
+          type: integer
+          minimum: 0
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        facts:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/DailyHealthFactRequest"
+    HealthSyncResponse:
+      type: object
+      additionalProperties: false
+      required: [sync_run_id, server_sequence, created_revision_ids]
+      properties:
+        sync_run_id:
+          type: string
+          format: uuid
+        server_sequence:
+          type: string
+          pattern: "^[1-9][0-9]*$"
+        created_revision_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    HealthFreshnessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, latest_local_date]
+      properties:
+        status:
+          type: string
+          enum: [absent, partial, current, stale]
+        latest_local_date:
+          type: [string, "null"]
+          format: date

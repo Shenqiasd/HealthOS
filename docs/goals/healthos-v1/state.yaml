@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T017
+active_task: T019
 
 tasks:
   - id: T001
@@ -783,7 +783,7 @@ tasks:
   - id: T017
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the complete server-side half of Task 8 using synthetic day-level aggregates: authenticated health batch ingestion, current health-processing consent and primary-device enforcement, idempotent replay, server sequences, immutable fact revisions/current projection, source-vector conflict handling, freshness, atomic domain outbox, and idempotent worker consumer dispatch."
     inputs:
@@ -839,12 +839,73 @@ tasks:
       - "The worker claims domain events with leases, records ConsumerInbox idempotency, and schedules bounded reconciliation without duplicate side effects."
       - "Freshness reports distinguish current, stale, partial, and absent synthetic coverage without making medical interpretations."
       - "No native HealthKit, generated Swift client, entitlement, or true-device behavior is claimed complete."
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711033000_health_ingestion/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/health/daily-fact-projector.ts
+        - apps/api/src/health/dto/health-sync-batch.dto.ts
+        - apps/api/src/health/freshness.service.ts
+        - apps/api/src/health/health-ingestion.integration.spec.ts
+        - apps/api/src/health/health-ingestion.service.ts
+        - apps/api/src/health/health-types.ts
+        - apps/api/src/health/health.controller.ts
+        - apps/api/src/health/health.module.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/health/health-projection-dispatcher.integration.spec.ts
+        - apps/worker/src/jobs/health/health-projection-dispatcher.ts
+        - infra/runbooks/health-ingestion.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "fresh PostgreSQL 17 cluster on 127.0.0.1:55432; prisma migrate deploy"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api exec prisma validate --schema prisma/schema.prisma"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api exec prisma migrate status --schema prisma/schema.prisma"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url <ephemeral-shadow> --exit-code"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T017.json <T017 allowlist>"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Implemented the server-side HealthKit aggregate ingestion boundary: authenticated and consent-gated idempotent batches, primary-device enforcement, monotonic server sequences, immutable fact revisions and current projection, timezone-aware freshness, reconciliation events, atomic consent-aware domain outbox, and fenced idempotent worker dispatch."
+      evidence:
+        - "Commit 48bd1cc (feat: add health ingestion and fact projections)"
+        - "Initial API and worker integration invocations lacked DATABASE_URL and failed before exercising behavior; both were superseded by the passing fresh-PostgreSQL runs recorded above."
+        - "Initial migrate diff used unsupported Prisma option --to-schema and failed without changing the database; the corrected --to-schema-datamodel command passed."
+        - "Fresh PostgreSQL 17 database applied all four migrations from zero"
+        - "API health ingestion integration suite passed 9/9"
+        - "Worker health projection dispatcher suite passed 3/3"
+        - "Migration history and Prisma schema reported: No difference detected"
+        - "OpenAPI contract exposes authenticated /health/sync and /health/freshness without a caller-supplied user_id"
+        - "Synthetic day-level aggregate fixtures only; no real health data or provider credentials used"
+      risks_remaining:
+        - "Native HealthKit authorization, encrypted local queue, BGTask scheduling, and true-device verification remain blocked until full Xcode is installed and belong to T107/T108."
+        - "The dispatcher domain class is integration-tested; production polling/scheduler composition remains a later worker/runtime task."
+        - "Real Apple Developer, HealthKit entitlement, APNs, and TestFlight evidence remains an external readiness gate."
+        - "GitHub-hosted CI execution remains externally blocked by the repository billing state."
+      next: "T018 PM audit: reconcile Task 8 server-side evidence, leave native subtasks blocked truthfully, and activate the next largest dependency-safe backend package."
   - id: T018
     type: pm
     assignee: PM
-    status: queued
+    status: done
     reasoning_hint: high
     objective: "Audit T017 health-ingestion evidence, update the remaining Task 8 iOS/generated-client scope, and select the next safe backend package while Xcode and provider gates remain pending."
     inputs:
@@ -859,6 +920,83 @@ tasks:
       - "T017 evidence audit"
       - "Updated T108 residual scope"
       - "Next executable Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T018.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T017 as a complete server-side Task 8 package, narrowed T108 to generated Swift client and native synthetic-sync proof, deferred provider-dependent Task 9, and defined T019 as the complete synthetic server-side Task 10 profile-ledger package."
+      evidence:
+        - "T017 receipt proves fresh-database migration, API 9/9, worker 3/3, deterministic idempotency, consent checks, and migration/schema parity."
+        - "T108 now explicitly retains only generated Swift client, local native batch/replay, and visible freshness evidence; it is not marked done."
+        - "Task 9 requires object storage, approved OCR/parsing provider ports, a medically reviewed corpus, and iOS confirmation evidence that are not currently available."
+        - "Task 10 can execute with synthetic typed events on the existing PostgreSQL, DomainOutbox, ConsumerInbox, consent, and identity foundations."
+        - "T019 includes database immutability, deterministic replay, canonical hashes, late-event/correction/withdrawal behavior, free-text confirmation boundaries, and worker fencing."
+      risks_remaining:
+        - "T107 and T108 remain blocked in practice by missing full Xcode, simulator frameworks, entitlements, and later true-device evidence."
+        - "T109 remains queued until object storage, provider, medical-corpus, and confirmation-UI gates become real."
+        - "GitHub-hosted CI remains externally blocked by the repository billing state."
+      next: "T019 implements the complete server-side profile event ledger and deterministic versioned snapshot pipeline with synthetic data."
+  - id: T019
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the complete server-side Task 10 profile ledger and deterministic snapshot pipeline using synthetic data: append-only allowlisted events, pending free-text candidates with explicit confirmation, monotonic ordered projection, immutable versioned snapshots and canonical hashes, consent-aware outbox/inbox delivery, correction and withdrawal semantics, replay from zero, and fenced idempotent worker execution."
+    inputs:
+      - "T015 consent/privacy lifecycle"
+      - "T017 health ingestion and health.facts.accepted dispatch"
+      - "Implementation plan Task 10"
+      - "Technical design sections 7, 8, 10, 14, and 17"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711052000_profile_projection/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/profile/**"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/health/**"
+      - "apps/worker/src/jobs/profile/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/profile-projection.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "pnpm --filter @healthos/api prisma:generate"
+      - "pnpm --filter @healthos/api exec prisma validate --schema prisma/schema.prisma"
+      - "Apply every Prisma migration to a fresh ephemeral PostgreSQL 17 database"
+      - "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:profile"
+      - "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:profile"
+      - "Replay the same ordered synthetic event ledger twice and assert identical snapshot hashes and version sequence"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "Prisma migrate diff from all migrations to schema returns no difference"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires real health data, production credentials, an OCR/LLM provider, or medical interpretation."
+      - "An unsupported or unconfirmed free-text value would enter profile_events or a usable snapshot."
+      - "Events or snapshots can be mutated or deleted through the ordinary application role."
+      - "Projection order or snapshot hashing depends on wall-clock timing, database row order, or nondeterministic JSON serialization."
+      - "Consent withdrawal can race a worker into publishing a newly usable snapshot."
+      - "Implementation requires files outside allowed_files."
+    expected_output:
+      - "Database-enforced append-only profile event and immutable snapshot ledger"
+      - "Allowlisted typed-event ingestion and explicit candidate confirmation boundary"
+      - "Monotonic snapshot versions with canonical content hashes"
+      - "Fenced, consent-aware, idempotent profile projection worker"
+      - "Deterministic replay, late-event, correction, withdrawal, duplicate-delivery, and unsupported-free-text tests"
+      - "Operational replay and failure-recovery runbook"
     receipt: null
 
   - id: T003
@@ -1535,10 +1673,16 @@ tasks:
     assignee: Worker
     status: queued
     reasoning_hint: high
-    objective: "Execute implementation plan Task 8: implement health ingestion and daily fact projections."
+    objective: "Complete the residual client-side scope of implementation plan Task 8: generate and check in the Swift API client from OpenAPI, sync one synthetic day-level batch from the native app to the local API, prove idempotent replay, and expose a visible last-sync/freshness state. The server ingestion, immutable fact projection, outbox, and worker dispatch are complete in T017."
+    inputs:
+      - "T017 receipt and commit 48bd1cc"
+      - "T106 native app shell"
+      - "T107 HealthKit/offline outbox"
     allowed_files: []
     verify: []
-    stop_if: []
+    stop_if:
+      - "Full Xcode, an iPhone simulator runtime, or generated-client compilation is unavailable."
+      - "The test would require real HealthKit data or Apple production credentials."
     receipt: null
 
   - id: T109

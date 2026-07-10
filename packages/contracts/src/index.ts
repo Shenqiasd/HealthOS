@@ -120,3 +120,37 @@ export interface DeletionStatusResponse {
   status: "requested" | "frozen" | "deleting" | "completed" | "failed_retryable";
   completed_at: string | null;
 }
+
+export interface HealthSourceContributionRequest {
+  source_id: string;
+  kind: "phone" | "watch" | "third_party" | "user";
+  contribution: number;
+}
+
+export interface DailyHealthFactRequest {
+  local_date: string;
+  metric: "steps" | "active_energy_kcal" | "exercise_minutes" | "sleep_minutes" |
+    "resting_heart_rate_bpm" | "hrv_ms" | "workout_minutes" | "weight_kg" | "vo2_max";
+  value: number;
+  coverage: number;
+  source_vector: HealthSourceContributionRequest[];
+}
+
+export interface HealthSyncRequest {
+  idempotency_key: string;
+  device_id: string;
+  anchor_epoch: number;
+  timezone: string;
+  facts: DailyHealthFactRequest[];
+}
+
+export interface HealthSyncResponse {
+  sync_run_id: string;
+  server_sequence: string;
+  created_revision_ids: string[];
+}
+
+export interface HealthFreshnessResponse {
+  status: "absent" | "partial" | "current" | "stale";
+  latest_local_date: string | null;
+}
