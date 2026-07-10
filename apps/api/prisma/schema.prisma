@@ -116,6 +116,29 @@ enum ProfileCandidateStatus {
   @@map("profile_candidate_status")
 }
 
+enum RuleBundleStatus {
+  draft_unapproved
+  approval_pending
+  approved_not_published
+  active
+  superseded
+  rolled_back
+
+  @@map("rule_bundle_status")
+}
+
+enum RecommendationReviewEventType {
+  submitted
+  approved
+  edited
+  rejected
+  auto_published
+  missed_sla
+  blocked
+
+  @@map("recommendation_review_event_type")
+}
+
 model User {
   id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   status             UserStatus                @default(active)
@@ -359,6 +382,7 @@ model DailyHealthFactRevision {
   supersedes         DailyHealthFactRevision?  @relation("FactSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
   supersededBy       DailyHealthFactRevision[] @relation("FactSupersession")
   healthSyncRun      HealthSyncRun?            @relation(fields: [healthSyncRunId], references: [id], onDelete: Restrict)
+  recommendationInputs RecommendationRunFactInput[]
 
   @@unique([userId, localDate, metric, inputHash])
   @@index([userId, localDate, metric, createdAt])
@@ -395,6 +419,7 @@ model LabObservation {
   confidence         Decimal            @db.Decimal(6, 5)
   confirmationStatus ConfirmationStatus @default(extracted) @map("confirmation_status")
   document           LabDocument        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  recommendationInputs RecommendationRunLabInput[]
 
   @@index([documentId, code])
   @@map("lab_observations")
@@ -470,6 +495,7 @@ model ProfileSnapshot {
 
   @@unique([userId, version])
   @@unique([userId, sourceSequence])
+  @@unique([id, userId, consentEpoch])
   @@index([userId, createdAt])
   @@map("profile_snapshots")
 }
@@ -496,15 +522,59 @@ model ProfileCandidate {
 }
 
 model RuleBundle {
-  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  version            String              @unique
-  status             String
-  contentHash        String              @unique @map("content_hash")
-  publishedBy        String?             @map("published_by")
-  publishedAt        DateTime?           @map("published_at") @db.Timestamptz(6)
-  recommendationRuns RecommendationRun[]
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  version             String               @unique
+  status              RuleBundleStatus     @default(draft_unapproved)
+  contentHash         String               @unique @map("content_hash")
+  contentJson         Json?                @map("content_json") @db.JsonB
+  bundleDigest        String?              @map("bundle_digest")
+  autoPublishEligible Boolean              @default(false) @map("auto_publish_eligible")
+  publishedBy         String?              @map("published_by")
+  publishedAt         DateTime?            @map("published_at") @db.Timestamptz(6)
+  rolledBackAt        DateTime?            @map("rolled_back_at") @db.Timestamptz(6)
+  lastRollbackEventId String?              @map("last_rollback_event_id") @db.Uuid
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  approvals           RuleBundleApproval[]
+  rollbackSources     RuleBundleRollbackEvent[] @relation("RollbackSource")
+  rollbackTargets     RuleBundleRollbackEvent[] @relation("RollbackTarget")
+  lastRollbackEvent   RuleBundleRollbackEvent?  @relation("LastRollbackEvidence", fields: [lastRollbackEventId], references: [id], onDelete: Restrict)
+  recommendationRuns  RecommendationRun[]
 
   @@map("rule_bundles")
+}
+
+model RuleBundleRollbackEvent {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceBundleId String     @map("source_bundle_id") @db.Uuid
+  targetBundleId String     @map("target_bundle_id") @db.Uuid
+  actorId        String     @map("actor_id")
+  reasonCode     String     @map("reason_code")
+  sourceDigest   String     @map("source_digest")
+  targetDigest   String     @map("target_digest")
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  sourceBundle   RuleBundle @relation("RollbackSource", fields: [sourceBundleId], references: [id], onDelete: Restrict)
+  targetBundle   RuleBundle @relation("RollbackTarget", fields: [targetBundleId], references: [id], onDelete: Restrict)
+  referencedBy   RuleBundle[] @relation("LastRollbackEvidence")
+
+  @@index([sourceBundleId, createdAt])
+  @@map("rule_bundle_rollback_events")
+}
+
+model RuleBundleApproval {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ruleBundleId    String     @map("rule_bundle_id") @db.Uuid
+  role            String
+  actorId         String     @map("actor_id")
+  normalizedActor String     @map("normalized_actor")
+  bundleDigest    String     @map("bundle_digest")
+  approvedAt      DateTime   @map("approved_at") @db.Timestamptz(6)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  ruleBundle      RuleBundle @relation(fields: [ruleBundleId], references: [id], onDelete: Restrict)
+
+  @@unique([ruleBundleId, role])
+  @@unique([ruleBundleId, normalizedActor])
+  @@index([ruleBundleId, approvedAt])
+  @@map("rule_bundle_approvals")
 }
 
 model RecommendationRun {
@@ -513,40 +583,142 @@ model RecommendationRun {
   localDate       DateTime                 @map("local_date") @db.Date
   inputSnapshotId String                   @map("input_snapshot_id") @db.Uuid
   ruleBundleId    String                   @map("rule_bundle_id") @db.Uuid
+  consentEpoch    Int                      @map("consent_epoch")
+  inputHash       String?                  @map("input_hash")
+  inputManifestJson Json?                  @map("input_manifest_json") @db.JsonB
   status          RecordStatus             @default(pending)
+  attempt         Int                      @default(0)
+  leaseToken      String?                  @map("lease_token")
+  leaseUntil      DateTime?                @map("lease_until") @db.Timestamptz(6)
   correlationId   String                   @map("correlation_id")
   createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
   user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inputSnapshot   ProfileSnapshot          @relation(fields: [inputSnapshotId], references: [id], onDelete: Restrict)
+  inputSnapshot   ProfileSnapshot          @relation(fields: [inputSnapshotId, userId, consentEpoch], references: [id, userId, consentEpoch], onDelete: Restrict)
   ruleBundle      RuleBundle               @relation(fields: [ruleBundleId], references: [id], onDelete: Restrict)
   snapshots       RecommendationSnapshot[]
+  factInputs      RecommendationRunFactInput[]
+  labInputs       RecommendationRunLabInput[]
 
-  @@unique([userId, localDate, inputSnapshotId, ruleBundleId])
+  @@unique([userId, localDate])
   @@index([userId, localDate])
   @@map("recommendation_runs")
+}
+
+model RecommendationRunFactInput {
+  runId          String                  @map("run_id") @db.Uuid
+  factRevisionId String                  @map("fact_revision_id") @db.Uuid
+  inputHash      String                  @map("input_hash")
+  run            RecommendationRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  factRevision   DailyHealthFactRevision @relation(fields: [factRevisionId], references: [id], onDelete: Restrict)
+
+  @@id([runId, factRevisionId])
+  @@map("recommendation_run_fact_inputs")
+}
+
+model RecommendationRunLabInput {
+  runId             String             @map("run_id") @db.Uuid
+  labObservationId  String             @map("lab_observation_id") @db.Uuid
+  observationHash   String             @map("observation_hash")
+  run               RecommendationRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  labObservation    LabObservation     @relation(fields: [labObservationId], references: [id], onDelete: Restrict)
+
+  @@id([runId, labObservationId])
+  @@map("recommendation_run_lab_inputs")
 }
 
 model RecommendationSnapshot {
   id                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   runId                  String                     @map("run_id") @db.Uuid
   revision               Int
-  riskArea               String                     @map("risk_area")
+  riskArea               String?                    @map("risk_area")
   safetyClass            String                     @map("safety_class")
-  actionCode             String                     @map("action_code")
+  actionCode             String?                    @map("action_code")
   renderedPayloadJson    Json                       @map("rendered_payload_json") @db.JsonB
   canonicalRuleInputJson Json                       @map("canonical_rule_input_json") @db.JsonB
   provenanceJson         Json                       @map("provenance_json") @db.JsonB
+  snapshotHash           String?                    @map("snapshot_hash")
+  releaseStage           String?                    @map("release_stage")
+  reviewRoute            String?                    @map("review_route")
+  policyDigest           String?                    @map("policy_digest")
+  samplingBucket         Int?                       @map("sampling_bucket")
+  reviewSamplePercent    Int?                       @map("review_sample_percent")
   reviewStatus           RecommendationReviewStatus @default(draft) @map("review_status")
   supersedesId           String?                    @map("supersedes_id") @db.Uuid
   createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
   run                    RecommendationRun          @relation(fields: [runId], references: [id], onDelete: Cascade)
-  supersedes             RecommendationSnapshot?    @relation("RecommendationSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersedes             RecommendationSnapshot?    @relation("RecommendationSupersession", fields: [supersedesId], references: [id], onDelete: Cascade)
   supersededBy           RecommendationSnapshot[]   @relation("RecommendationSupersession")
   actions                ActionAssignment[]
+  reviewEvents           RecommendationReviewEvent[] @relation("ReviewEventSubject")
+  reviewEventsFrom       RecommendationReviewEvent[] @relation("ReviewEventFrom")
+  reviewEventsTo         RecommendationReviewEvent[] @relation("ReviewEventTo")
+  publications           RecommendationPublication[]
+  reviewTasks            RecommendationReviewTask[]
 
   @@unique([runId, revision])
   @@index([runId, reviewStatus])
   @@map("recommendation_snapshots")
+}
+
+model RecommendationReviewEvent {
+  id               String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotId       String                        @map("snapshot_id") @db.Uuid
+  eventType        RecommendationReviewEventType @map("event_type")
+  actorId          String?                       @map("actor_id")
+  reasonCode       String?                       @map("reason_code")
+  fromSnapshotId   String?                       @map("from_snapshot_id") @db.Uuid
+  toSnapshotId     String?                       @map("to_snapshot_id") @db.Uuid
+  beforeHash       String?                       @map("before_hash")
+  afterHash        String?                       @map("after_hash")
+  createdAt        DateTime                      @default(now()) @map("created_at") @db.Timestamptz(6)
+  snapshot         RecommendationSnapshot        @relation("ReviewEventSubject", fields: [snapshotId], references: [id], onDelete: Cascade)
+  fromSnapshot     RecommendationSnapshot?       @relation("ReviewEventFrom", fields: [fromSnapshotId], references: [id], onDelete: Cascade)
+  toSnapshot       RecommendationSnapshot?       @relation("ReviewEventTo", fields: [toSnapshotId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId, createdAt])
+  @@unique([toSnapshotId, eventType])
+  @@map("recommendation_review_events")
+}
+
+model RecommendationReviewTask {
+  id          String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotId  String                 @map("snapshot_id") @db.Uuid
+  priority    String
+  status      RecordStatus           @default(pending)
+  slaAt       DateTime               @map("sla_at") @db.Timestamptz(6)
+  reasonCode  String                 @map("reason_code")
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  snapshot    RecommendationSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId])
+  @@index([status, priority, slaAt])
+  @@map("recommendation_review_tasks")
+}
+
+model RecommendationPublication {
+  id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotId         String                 @unique @map("snapshot_id") @db.Uuid
+  actionAssignmentId String?                @unique @map("action_assignment_id") @db.Uuid
+  domainOutboxId     String                 @unique @map("domain_outbox_id") @db.Uuid
+  auditLogId         String                 @unique @map("audit_log_id") @db.Uuid
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  snapshot           RecommendationSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  actionAssignment   ActionAssignment?       @relation(fields: [actionAssignmentId], references: [id], onDelete: Cascade)
+  domainOutbox       DomainOutbox             @relation(fields: [domainOutboxId], references: [id], onDelete: Cascade)
+  auditLog           AuditLog                 @relation(fields: [auditLogId], references: [id], onDelete: Restrict)
+  channels           RecommendationPublicationChannel[]
+
+  @@map("recommendation_publications")
+}
+
+model RecommendationPublicationChannel {
+  publicationId  String                    @map("publication_id") @db.Uuid
+  channelOutboxId String                   @unique @map("channel_outbox_id") @db.Uuid
+  publication    RecommendationPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  channelOutbox  ChannelOutbox              @relation(fields: [channelOutboxId], references: [id], onDelete: Cascade)
+
+  @@id([publicationId, channelOutboxId])
+  @@map("recommendation_publication_channels")
 }
 
 model ActionAssignment {
@@ -560,10 +732,11 @@ model ActionAssignment {
   replacedById             String?                @map("replaced_by_id") @db.Uuid
   createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   user                     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  recommendationSnapshot   RecommendationSnapshot @relation(fields: [recommendationSnapshotId], references: [id], onDelete: Restrict)
+  recommendationSnapshot   RecommendationSnapshot @relation(fields: [recommendationSnapshotId], references: [id], onDelete: Cascade)
   replacedBy               ActionAssignment?      @relation("ActionReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
   replaces                 ActionAssignment[]     @relation("ActionReplacement")
   feedback                 FeedbackEvent[]
+  publication              RecommendationPublication?
 
   @@index([userId, localDate, status])
   @@map("action_assignments")
@@ -661,6 +834,7 @@ model ChannelOutbox {
   user                User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
   attempts            DeliveryAttempt[]
   consentRequirements ChannelOutboxConsentRequirement[]
+  recommendationPublicationChannel RecommendationPublicationChannel?
 
   @@index([status, availableAt])
   @@map("channel_outbox")
@@ -705,6 +879,7 @@ model DomainOutbox {
   createdAt           DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
   user                User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
   consentRequirements DomainOutboxConsentRequirement[]
+  recommendationPublication RecommendationPublication?
 
   @@index([status, availableAt, leaseUntil])
   @@index([userId, status])
@@ -755,6 +930,7 @@ model AuditLog {
   beforeHash   String?  @map("before_hash")
   afterHash    String?  @map("after_hash")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  recommendationPublication RecommendationPublication?
 
   @@index([resourceType, resourceId, createdAt])
   @@map("audit_logs")

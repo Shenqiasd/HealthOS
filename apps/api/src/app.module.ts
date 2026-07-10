@@ -8,6 +8,7 @@ import { IdentityModule } from "./identity/identity.module";
 import { ConsentModule } from "./consent/consent.module";
 import { PrivacyModule } from "./privacy/privacy.module";
 import { ProfileModule } from "./profile/profile.module";
+import { RecommendationsModule } from "./recommendations/recommendations.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProfileModule } from "./profile/profile.module";
     PrivacyModule,
     HealthModule,
     ProfileModule,
+    RecommendationsModule,
   ],
   controllers: [HealthController],
   providers: [ReadinessService],
