@@ -7,9 +7,17 @@ import { HealthModule } from "./health/health.module";
 import { IdentityModule } from "./identity/identity.module";
 import { ConsentModule } from "./consent/consent.module";
 import { PrivacyModule } from "./privacy/privacy.module";
+import { ProfileModule } from "./profile/profile.module";
 
 @Module({
-  imports: [DatabaseModule, IdentityModule, ConsentModule, PrivacyModule, HealthModule],
+  imports: [
+    DatabaseModule,
+    IdentityModule,
+    ConsentModule,
+    PrivacyModule,
+    HealthModule,
+    ProfileModule,
+  ],
   controllers: [HealthController],
   providers: [ReadinessService],
 })

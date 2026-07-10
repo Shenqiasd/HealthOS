@@ -154,3 +154,18 @@ export interface HealthFreshnessResponse {
   status: "absent" | "partial" | "current" | "stale";
   latest_local_date: string | null;
 }
+
+export interface ProfileCandidateResponse {
+  id: string;
+  candidate_type: string;
+  structured_value: unknown;
+  status: "pending" | "confirmed" | "rejected";
+  confirmed_event_id: string | null;
+}
+
+export interface ProfileSnapshotResponse {
+  version: number;
+  facts: unknown;
+  source_sequence: string;
+  snapshot_hash: string;
+}

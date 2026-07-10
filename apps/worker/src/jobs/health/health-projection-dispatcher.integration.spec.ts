@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { after, afterEach, before, test } from "node:test";
 
 import { PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { HealthProjectionDispatcher } from "./health-projection-dispatcher";
 
@@ -19,6 +20,8 @@ afterEach(async () => {
       consumer_inbox,
       domain_outbox_consent_requirements,
       domain_outbox,
+      daily_health_fact_revisions,
+      health_sync_runs,
       profile_events,
       consent_records,
       users
@@ -44,19 +47,50 @@ async function message(granted = true) {
       source: "synthetic",
     },
   });
+  const run = await database.healthSyncRun.create({
+    data: {
+      userId: user.id,
+      deviceId: "synthetic-health-device",
+      anchorEpoch: 1,
+      idempotencyKey: randomUUID(),
+      requestHash: randomUUID(),
+      timezone: "Asia/Shanghai",
+      consentEpoch: 1,
+      correlationId: randomUUID(),
+      status: "completed",
+      completedAt: new Date(),
+    },
+  });
+  const revision = await database.dailyHealthFactRevision.create({
+    data: {
+      userId: user.id,
+      localDate: new Date("2026-07-10T00:00:00.000Z"),
+      metric: "steps",
+      canonicalValueJson: { value: 8000 },
+      coverage: 1,
+      sourceVectorJson: [{ source_id: "synthetic-watch", contribution: 1 }],
+      inputHash: randomUUID(),
+      healthSyncRunId: run.id,
+      serverSequence: run.serverSequence,
+    },
+  });
   const outbox = await database.domainOutbox.create({
     data: {
       userId: user.id,
-      aggregateId: randomUUID(),
+      aggregateId: run.id,
       eventType: "health.facts.accepted",
       idempotencyKey: randomUUID(),
-      payload: { sync_run_id: randomUUID(), revision_ids: [randomUUID()] },
+      payload: {
+        sync_run_id: run.id,
+        revision_ids: [revision.id],
+        server_sequence: run.serverSequence.toString(),
+      },
       consentRequirements: {
         create: { purpose: "health_processing", grantEpoch: 1 },
       },
     },
   });
-  return { user, outbox };
+  return { user, outbox, revision, run };
 }
 
 test("claims with fencing and creates one inbox/profile event across retry", async () => {
@@ -67,6 +101,15 @@ test("claims with fencing and creates one inbox/profile event across retry", asy
 
   assert.equal(await database.consumerInbox.count(), 1);
   assert.equal(await database.profileEvent.count(), 1);
+  assert.equal(await database.domainOutbox.count({
+    where: { eventType: "profile.event.appended" },
+  }), 1);
+  const event = await database.profileEvent.findFirstOrThrow();
+  const facts = (event.payload as Prisma.JsonObject).facts;
+  assert.ok(Array.isArray(facts));
+  const firstFact = facts[0] as Prisma.JsonObject;
+  assert.equal(typeof firstFact.revision_id, "string");
+  assert.equal((firstFact.revision_id as string).length, 36);
   assert.equal(
     (await database.domainOutbox.findUniqueOrThrow({ where: { id: outbox.id } })).status,
     "sent",

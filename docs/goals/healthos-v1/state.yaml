@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T019
+active_task: T111
 
 tasks:
   - id: T001
@@ -946,7 +946,7 @@ tasks:
   - id: T019
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the complete server-side Task 10 profile ledger and deterministic snapshot pipeline using synthetic data: append-only allowlisted events, pending free-text candidates with explicit confirmation, monotonic ordered projection, immutable versioned snapshots and canonical hashes, consent-aware outbox/inbox delivery, correction and withdrawal semantics, replay from zero, and fenced idempotent worker execution."
     inputs:
@@ -997,8 +997,129 @@ tasks:
       - "Fenced, consent-aware, idempotent profile projection worker"
       - "Deterministic replay, late-event, correction, withdrawal, duplicate-delivery, and unsupported-free-text tests"
       - "Operational replay and failure-recovery runbook"
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711052000_profile_projection/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/profile/canonical-json.ts
+        - apps/api/src/profile/dto/profile-candidate.dto.ts
+        - apps/api/src/profile/profile-candidate.service.ts
+        - apps/api/src/profile/profile-event.service.ts
+        - apps/api/src/profile/profile-snapshot.service.ts
+        - apps/api/src/profile/profile.controller.ts
+        - apps/api/src/profile/profile.integration.spec.ts
+        - apps/api/src/profile/profile.module.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/health/health-projection-dispatcher.integration.spec.ts
+        - apps/worker/src/jobs/health/health-projection-dispatcher.ts
+        - apps/worker/src/jobs/profile/canonical-json.ts
+        - apps/worker/src/jobs/profile/profile-projection-worker.integration.spec.ts
+        - apps/worker/src/jobs/profile/profile-projection-worker.ts
+        - infra/runbooks/profile-projection.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "fresh PostgreSQL 17 database: apply all five Prisma migrations from zero"
+          status: pass
+        - cmd: "historical upgrade: apply first four migrations, seed legacy profile event/snapshot, then apply 20260711052000_profile_projection"
+          status: pass
+        - cmd: "non-CREATEROLE healthos_migrator: apply all five migrations and run Prisma migrate diff"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:profile"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:profile"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:privacy"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:integration"
+          status: pass
+        - cmd: "prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url <ephemeral-shadow> --exit-code"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "Ruby OpenAPI parse and local-reference resolution"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T019.json <T019 allowlist>"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Implemented the complete server-side Task 10 profile ledger: database-enforced append-only typed events, immutable confirmed candidates and versioned snapshots, canonical SHA-256 replay, Health-to-Profile transactional outbox chaining, consent-epoch read gates, fenced idempotent projection, API contracts, and operational recovery guidance."
+      evidence:
+        - "Commit ef98aed (feat: add deterministic profile projections)"
+        - "API profile suite passed 9/9, including restricted-role GUC bypass rejection, candidate immutability, cross-user provenance rejection, consent read gate, and authorized privacy deletion."
+        - "Profile worker suite passed 8/8, including inverse delivery, late correction, concurrent workers, future/expired leases, rollback atomicity, and both real PostgreSQL user-lock withdrawal linearizations."
+        - "Health ingestion passed 9/9 and Health-to-Profile dispatcher passed 3/3 with a transactional secondary profile.event.appended outbox."
+        - "Privacy worker passed 3/3 and database invariant suite passed 9/9."
+        - "Historical event/snapshot upgrade returned historical-upgrade-pass; SQL backfill hashes exactly matched Node canonical SHA-256 and append-only triggers were restored."
+        - "healthos_migrator had rolsuper=false, rolcreaterole=false, rolcreatedb=false; five migrations and migration diff still passed."
+        - "Prisma migration history and schema reported No difference detected."
+        - "OpenAPI parsed with 17 paths and 91 resolved references, including three authenticated profile paths."
+        - "Independent three-round specification review ended with no remaining P0/P1 and made no repository changes."
+        - "Synthetic fixtures only; no real health data, OCR/LLM provider, Apple credential, or production secret was used."
+      risks_remaining:
+        - "A DBA must provision healthos_privacy_worker and worker-login membership before production migration/deploy; the migration intentionally does not require CREATEROLE."
+        - "The profile projector is implemented and integration-tested as a job class; production polling/scheduler composition and runtime observability remain later worker/operations scope."
+        - "Lab-derived events remain inactive until Task 9 provider, corpus, medical-review, object-storage, and user-confirmation gates pass."
+        - "Native iOS, Apple/HealthKit, true-device, and GitHub-hosted CI billing gates remain external pending work."
+      next: "T020 PM audit maps T019 to plan Task 10/T110 and defines the largest safe Task 11 rules/safety package without claiming medical approval."
+  - id: T020
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T019 profile-ledger evidence, reconcile implementation plan Task 10/T110, and define the largest safe Task 11 rules/safety Worker package without fabricating medical approval or publishing an unapproved rule bundle."
+    inputs:
+      - "T019 receipt"
+      - "Implementation plan Tasks 10-12"
+      - "Technical design safety, rule versioning, and review-gate sections"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T110 done unless append-only, replay, consent, migration, and independent-review evidence is complete."
+      - "Do not infer medical reviewer approval; rules and cases may remain draft/unpublished pending named sign-off."
+      - "Keep provider-dependent Labs and native iOS work deferred while their gates remain unavailable."
+    expected_output:
+      - "T019 evidence audit and T110 reconciliation"
+      - "Task 11 authority boundary"
+      - "Explicit Worker scope, tests, and stop conditions for deterministic rules and safety cases"
+      - "Next active Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T020.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T019 as complete implementation-plan Task 10 evidence, marked T110 done with receipt-backed proof, and converted T111 into an executable draft-only deterministic rules/safety package with 50 golden and 30 adversarial synthetic cases."
+      evidence:
+        - "T019 commit ef98aed and receipt cover every Task 10 behavior, migration, privacy, replay, and independent-review requirement."
+        - "T110 now has a compact evidence receipt and no longer remains a queued plan-coverage shell."
+        - "T111 has an explicit write allowlist, test commands, 80-case corpus requirement, 100 percent safety-code branch coverage target, and conservative outcome taxonomy."
+        - "T111 explicitly forbids publishing or claiming medical approval and requires distinct named medical and technical actors for any future publishable state."
+        - "Labs, native iOS, provider, Apple, and real-data work remain deferred to their existing gates."
+      risks_remaining:
+        - "The medical-content owner and backup remain unconfirmed; T111 output must remain draft_unapproved."
+        - "Clinical thresholds beyond already authorized product-plan constraints cannot be invented by engineering."
+        - "GitHub-hosted CI remains externally blocked by the account billing state."
+      next: "T111 implements the deterministic draft rule engine, action catalog, executable safety policy, dual-approval bundle state machine, and 80 synthetic evaluation cases."
   - id: T003
     type: worker
     assignee: Worker
@@ -1699,23 +1820,109 @@ tasks:
   - id: T110
     type: worker
     assignee: Worker
-    status: queued
+    status: done
     reasoning_hint: high
     objective: "Execute implementation plan Task 10: implement profile events and versioned profile snapshots."
-    allowed_files: []
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711052000_profile_projection/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/profile/**"
+      - "apps/worker/package.json"
+      - "apps/worker/src/jobs/health/**"
+      - "apps/worker/src/jobs/profile/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/profile-projection.md"
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711052000_profile_projection/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/profile/canonical-json.ts
+        - apps/api/src/profile/dto/profile-candidate.dto.ts
+        - apps/api/src/profile/profile-candidate.service.ts
+        - apps/api/src/profile/profile-event.service.ts
+        - apps/api/src/profile/profile-snapshot.service.ts
+        - apps/api/src/profile/profile.controller.ts
+        - apps/api/src/profile/profile.integration.spec.ts
+        - apps/api/src/profile/profile.module.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/health/health-projection-dispatcher.integration.spec.ts
+        - apps/worker/src/jobs/health/health-projection-dispatcher.ts
+        - apps/worker/src/jobs/profile/canonical-json.ts
+        - apps/worker/src/jobs/profile/profile-projection-worker.integration.spec.ts
+        - apps/worker/src/jobs/profile/profile-projection-worker.ts
+        - infra/runbooks/profile-projection.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "Audit T019 receipt against implementation plan Task 10 Steps 1-4"
+          status: pass
+        - cmd: "Verify fresh and historical PostgreSQL migration evidence, canonical replay, consent withdrawal, outbox/inbox idempotency, and independent review"
+          status: pass
+      summary: "T019 fully implements implementation plan Task 10: append-only allowlisted profile events, explicit free-text candidate confirmation, deterministic immutable versioned snapshots, consent-aware outbox/inbox projection, and replay from zero."
+      evidence:
+        - "T019 commit ef98aed and receipt cover the complete Task 10 file and behavior surface."
+        - "API profile integration passed 9/9 and profile worker integration passed 8/8."
+        - "Historical upgrade, non-CREATEROLE migration, fresh migration, migration diff, privacy deletion, and independent three-round review all passed."
+        - "No real health data, provider, medical approval, or production credential was used or inferred."
+      risks_remaining:
+        - "Production worker scheduler/observability remains later operations scope."
+        - "Lab-origin profile events remain gated on Task 9."
+        - "DBA privacy-worker role provisioning remains a deployment precondition."
+      next: "Execute T111 as a draft-only deterministic rules and safety package; do not publish without distinct medical and technical approvals."
 
   - id: T111
     type: worker
     assignee: Worker
-    status: queued
+    status: active
     reasoning_hint: xhigh
-    objective: "Execute implementation plan Task 11: implement rules, action catalog, safety policy, and 50 golden cases."
-    allowed_files: []
-    verify: []
-    stop_if: []
+    objective: "Execute implementation plan Task 11 as a synthetic, draft-only deterministic policy package: typed profile inputs, eligibility gates, one-risk/one-action selection, action catalog with contraindications and lighter/swap variants, executable safety policy, dual-approval bundle state machine, 50 golden cases, and 30 adversarial cases. No rule bundle may be published or described as medically approved."
+    inputs:
+      - "T019/T110 deterministic profile snapshot contract"
+      - "Implementation plan Task 11"
+      - "Technical design sections 5, 10, 11, 12, 17, and 18"
+      - "docs/product/medical-content-governance.md pending authority state"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "packages/rules/**"
+      - "packages/evals/**"
+      - "docs/product/safety-taxonomy.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "pnpm --filter @healthos/rules test --coverage"
+      - "pnpm --filter @healthos/rules typecheck"
+      - "pnpm --filter @healthos/evals typecheck"
+      - "pnpm --filter @healthos/evals eval:rules"
+      - "Assert exactly 50 golden and 30 adversarial synthetic fixtures execute"
+      - "Assert every case yields one of action, insufficient_data, doctor, or blocked with an explicit safety class and provenance"
+      - "Assert no bundle reaches publishable/published without distinct named technical and medical approvals"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires inventing medical-review approval, clinical thresholds not already authorized by the plan, or claims of diagnosis/treatment."
+      - "An LLM, external provider, real health record, or production credential is required."
+      - "A normal/caution action can bypass eligibility, contraindication, stale/missing/conflicting-data, or fixed doctor/blocked fallback rules."
+      - "A rule bundle can publish with one actor filling both medical and technical approvals."
+      - "Golden/adversarial fixtures include identifying or real-user health data."
+      - "Implementation requires files outside allowed_files."
+    expected_output:
+      - "Typed deterministic risk engine and action catalog"
+      - "Executable safety policy with conservative fallbacks"
+      - "Draft-only versioned bundle and distinct-approver state machine"
+      - "50 golden and 30 adversarial synthetic cases with a deterministic runner"
+      - "100 percent branch coverage for safety-critical rule code"
+      - "Safety taxonomy documenting normal, caution, doctor, and blocked behavior"
     receipt: null
 
   - id: T112
