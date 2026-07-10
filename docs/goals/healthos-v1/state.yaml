@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T101
+active_task: T102
 
 tasks:
   - id: T001
@@ -291,6 +291,62 @@ tasks:
         - "Terraform CLI is not currently installed and must be made available before T101 verification."
         - "GitHub Actions remains blocked by T006 billing lock; local verification remains authoritative for this package."
       next: "Activate T101 and implement the synthetic repository foundation."
+
+  - id: T009
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T101 foundation evidence and turn implementation Task 2 into the next executable API, worker, admin, and OpenAPI contract package without weakening pending production gates."
+    inputs:
+      - "T101 receipt and commit"
+      - "Implementation plan Task 2"
+      - "Technical design module boundaries and architecture"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Keep all development synthetic-only."
+      - "Do not select real providers or production infrastructure."
+      - "Populate exact allowed_files, verification, and stop conditions before activating T102."
+    expected_output:
+      - "T101 evidence audit"
+      - "Executable T102 Worker package"
+      - "Updated residual-risk and dependency record"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T009.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T101 as complete for its declared synthetic foundation scope and populated T102 with exact service, contract, admin, test, dependency, and safety boundaries. T102 readiness must fail closed until real dependencies exist, while liveness, correlation, validation, redacted errors, worker boot, admin build, and OpenAPI consistency are testable now."
+      evidence:
+        - "T101 commit 243678d and receipt contain all required local verification passes."
+        - "T102 now owns only Task 2 source/config files plus root dependency and lint/typecheck configuration."
+        - "T010 is queued as the next PM dependency boundary."
+      risks_remaining:
+        - "Remote GitHub CI is still blocked by T006 billing lock."
+        - "Optional local container-health smoke remains a host Docker Desktop issue and is not hidden by readiness stubs."
+      next: "Activate T102 and implement the runnable service and OpenAPI contract skeleton."
+  - id: T010
+    type: pm
+    assignee: PM
+    status: queued
+    reasoning_hint: high
+    objective: "Audit T102 service-contract evidence, then populate the next dependency-safe Worker package from implementation Task 3 or the iOS design-system lane."
+    inputs:
+      - "T102 receipt and commit"
+      - "Implementation plan dependency map"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Prefer the largest vertical package whose dependencies are green."
+      - "Do not bypass pending real-data, Apple-signing, clinical, provider, or production-region gates."
+    expected_output:
+      - "T102 evidence audit"
+      - "Next executable Worker package with exact scope and verification"
+    receipt: null
+
   - id: T003
     type: worker
     assignee: Worker
@@ -505,7 +561,7 @@ tasks:
   - id: T101
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Execute implementation plan Task 1 for synthetic development: establish the modular-monolith workspace, local PostgreSQL/object storage, CI contract, and provider-neutral Terraform foundation without selecting or provisioning a production region."
     inputs:
@@ -550,17 +606,127 @@ tasks:
       - "Synthetic Terraform foundation enforces encryption, private database networking, secret-manager placeholders, and backup policy inputs without choosing a production cloud."
       - "CI can run workspace, preflight, long-goal, and prototype checks once GitHub billing is restored."
       - "ADRs record modular-monolith acceptance and a deliberately pending production-region decision."
-    receipt: null
-
+    receipt:
+      result: done
+      changed_files:
+        - .env.example
+        - .github/workflows/ci.yml
+        - .gitignore
+        - apps/admin/README.md
+        - apps/api/README.md
+        - apps/ios/README.md
+        - apps/worker/README.md
+        - docker-compose.yml
+        - docs/adr/0001-modular-monolith.md
+        - docs/adr/0002-production-data-region.md
+        - infra/docker/postgres-init.sql
+        - infra/terraform/environments/staging-synthetic/main.tf
+        - infra/terraform/modules/foundation/main.tf
+        - infra/terraform/modules/foundation/outputs.tf
+        - infra/terraform/modules/foundation/variables.tf
+        - package.json
+        - packages/contracts/README.md
+        - packages/evals/README.md
+        - packages/observability/README.md
+        - packages/rules/README.md
+        - packages/test-fixtures/README.md
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - scripts/check-workspace.mjs
+        - scripts/check-workspace.test.mjs
+      commands:
+        - cmd: "node --test scripts/check-workspace.test.mjs"
+          status: pass
+        - cmd: "node scripts/check-workspace.mjs"
+          status: pass
+        - cmd: "pnpm install --lockfile-only --frozen-lockfile=false"
+          status: pass
+        - cmd: "docker compose config --quiet"
+          status: pass
+        - cmd: "terraform fmt -check -recursive infra/terraform"
+          status: pass
+        - cmd: "terraform -chdir=infra/terraform/environments/staging-synthetic init -backend=false -input=false"
+          status: pass
+        - cmd: "terraform -chdir=infra/terraform/environments/staging-synthetic validate"
+          status: pass
+        - cmd: "git diff --cached --check"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T101.json with all declared allowed paths"
+          status: pass
+      summary: "Established the HealthOS modular-monolith workspace, explicit app/package boundaries, pinned pnpm lockfile, secret-safe synthetic environment, validated PostgreSQL/MinIO Compose configuration, provider-neutral Terraform control module, CI workflow, and architecture/data-region ADRs. Terraform creates only a synthetic control contract and cannot select a production region. Commit 243678d contains only T101 scope."
+      deviations:
+        - "The required goal_worker dispatch produced no allowed-file changes within one wait window and was terminated per GoalBuddy recovery policy; PM fallback completed the declared Worker scope."
+        - "Terraform 1.15.8 was installed as a local verification tool because it was absent."
+        - "An extra Docker runtime smoke could not start any new container, including hello-world, although manifests and Compose validation passed. Existing unrelated containers were not restarted; HealthOS test containers and volumes were removed."
+      remaining_blockers:
+        - "Repeat the optional local container-health smoke after the host Docker Desktop can start new containers."
+        - "Remote CI cannot execute until the T006 GitHub billing lock is cleared."
+        - "All production data-region and professional governance gates remain pending."
+      verification_attempts: 2
+      stopped_because: null
+      commit: 243678d
   - id: T102
     type: worker
     assignee: Worker
-    status: queued
-    reasoning_hint: high
-    objective: "Execute implementation plan Task 2: scaffold API, worker, admin, and shared contracts."
-    allowed_files: []
-    verify: []
-    stop_if: []
+    status: active
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 2: build runnable NestJS/Fastify API and worker skeletons, a minimal Next.js admin readiness page, the HealthOS V1 OpenAPI health contract, and tested correlation/error/health behavior."
+    inputs:
+      - "T101 receipt and commit 243678d"
+      - "Implementation plan Task 2"
+      - "Technical design sections 5 and 6"
+    allowed_files:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "tsconfig.base.json"
+      - "eslint.config.mjs"
+      - "apps/api/package.json"
+      - "apps/api/tsconfig.json"
+      - "apps/api/src/**"
+      - "apps/api/test/health.e2e-spec.ts"
+      - "apps/api/jest.config.mjs"
+      - "apps/worker/package.json"
+      - "apps/worker/tsconfig.json"
+      - "apps/worker/src/**"
+      - "apps/admin/package.json"
+      - "apps/admin/tsconfig.json"
+      - "apps/admin/next-env.d.ts"
+      - "apps/admin/next.config.ts"
+      - "apps/admin/app/layout.tsx"
+      - "apps/admin/app/page.tsx"
+      - "apps/admin/app/globals.css"
+      - "packages/contracts/package.json"
+      - "packages/contracts/tsconfig.json"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/observability/package.json"
+      - "packages/observability/tsconfig.json"
+      - "packages/observability/jest.config.mjs"
+      - "packages/observability/src/correlation.ts"
+      - "packages/observability/src/correlation.spec.ts"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm --filter @healthos/api test:e2e -- health.e2e-spec.ts"
+      - "pnpm --filter @healthos/observability test"
+      - "pnpm --filter @healthos/admin build"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would add a real database, object-storage, AI, OCR, Apple, APNs, or WeCom credential or provider call."
+      - "Readiness would report a dependency healthy without a real check."
+      - "Logging or error envelopes would expose request bodies, health payloads, credentials, or provider responses."
+      - "Implementation needs files outside allowed_files."
+      - "Verification fails twice without a confirmed root cause."
+    expected_output:
+      - "GET /health/live returns status ok and a correlation ID."
+      - "GET /health/ready reports database, object storage, and worker lease separately and fails closed while they are not configured."
+      - "Incoming x-correlation-id is validated and echoed; absent IDs are generated."
+      - "API validation and errors use a stable redacted envelope."
+      - "Worker boots without feature jobs."
+      - "Admin renders only an environment badge and live API readiness state."
+      - "OpenAPI defines the implemented health endpoints and error contract."
     receipt: null
 
   - id: T103

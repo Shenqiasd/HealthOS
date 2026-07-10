@@ -1,0 +1,17 @@
+{
+  "name": "healthos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HealthOS V1 modular monolith workspace",
+  "packageManager": "pnpm@10.32.0",
+  "engines": {
+    "node": ">=22 <25",
+    "pnpm": ">=10 <11"
+  },
+  "scripts": {
+    "check:workspace": "node scripts/check-workspace.mjs",
+    "check:preflight:structure": "node scripts/check-preflight-gates.mjs --mode structure",
+    "check:preflight:blocked": "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked",
+    "test:foundation": "node --test scripts/check-workspace.test.mjs scripts/check-preflight-gates.test.mjs"
+  }
+}

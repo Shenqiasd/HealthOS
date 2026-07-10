@@ -20,6 +20,16 @@
 **/.next/
 **/coverage/
 
+# Terraform local state and initialization output
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
 # Apple build and user state
 **/DerivedData/
 **/.build/
