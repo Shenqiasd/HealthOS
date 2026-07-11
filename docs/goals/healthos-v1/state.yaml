@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T029
+active_task: T031
 
 tasks:
   - id: T001
@@ -1623,7 +1623,7 @@ tasks:
   - id: T029
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the production server tranche of implementation Task 14: authenticated and consent/privacy-gated action feedback with an explicit versioned state machine, transactional idempotency, deterministic lighter/swap replacement revalidation, immutable feedback/replacement history, updated Today projection, and canonical OpenAPI/contracts. This auxiliary task does not complete native offline/UI Task 14/T114."
     inputs:
@@ -1681,6 +1681,169 @@ tasks:
       - "Today projection of the latest assignment-level action and terminal/replacement states"
       - "Fresh/historical/restricted migration, concurrency/idempotency, OpenAPI, full-workspace, scope, and independent no-P0/P1 evidence"
       - "Receipt explicitly leaving native T114 incomplete"
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/20260711100000_action_feedback/migration.sql
+        - apps/api/src/actions/action-feedback.service.ts
+        - apps/api/src/actions/actions.controller.ts
+        - apps/api/src/actions/actions.integration.spec.ts
+        - apps/api/src/actions/actions.module.ts
+        - apps/api/src/actions/dto/action-feedback.dto.ts
+        - apps/api/src/app.module.ts
+        - apps/api/src/today/today.integration.spec.ts
+        - apps/api/src/today/today.service.ts
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "Fresh eight-migration Prisma deploy, status, and zero schema diff"
+          status: pass
+        - cmd: "Seven-migration historical upgrade preserving arbitrary legacy feedback type/reason"
+          status: pass
+        - cmd: "Eight-migration deploy by NOSUPERUSER NOCREATEROLE NOCREATEDB owner"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-eight-migration-postgres> pnpm --filter @healthos/api test:actions"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-eight-migration-postgres> pnpm --filter @healthos/api test:today"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-eight-migration-postgres> pnpm --filter @healthos/api test:integration"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules test --coverage"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "Ruby OpenAPI parse and internal-reference resolution"
+          status: pass
+        - cmd: "T029 scope guard and git diff --check"
+          status: pass
+      summary: "Implemented the production server action-feedback loop: authenticated and consent/privacy-gated complete/skip/lighter/swap commands, user-scoped idempotency and exact replay, deterministic safe replacements, explicit versioned assignment transitions, deferred replacement-chain integrity, immutable feedback history, active-only Today projection, and aligned TypeScript/OpenAPI/DTO contracts."
+      evidence:
+        - "Product commit 8a4e214"
+        - "Action feedback integration: 22/22 passed, including duplicate taps, replay conflict, replacement cycles, orphan proposals, and command-specific HTTP 400 validation"
+        - "Today integration: 19/19 passed; database invariants: 11/11 passed"
+        - "Rules: 36/36 passed with 100% statement, branch, function, and line coverage"
+        - "Historical upgrade retained type=completed and reason_code=legacy_custom while backfilling ownership, idempotency, hash, and result"
+        - "Restricted migrator flags were rolsuper=false, rolcreaterole=false, rolcreatedb=false"
+        - "Canonical OpenAPI parsed with 117 internal references resolved"
+        - "Independent final review: no P0/P1/P2"
+      risks_remaining:
+        - "Native implementation Task 14/T114 remains incomplete: Swift feedback outbox, airplane-mode replay, ActionFeedbackSheet, native unit/UI tests, and D3 E2E evidence are still required."
+        - "Only synthetic health data and local PostgreSQL evidence were used."
+        - "No production rule-bundle medical approval or real provider/channel approval is implied."
+        - "GitHub Actions remains externally blocked by the account billing state tracked in T006."
+      next: "Activate T030 to audit this server tranche and select the next safe production package without closing native T114."
+  - id: T030
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T029 server action-feedback evidence, preserve native T114 as incomplete, and select the next largest production package that can proceed with synthetic data and without inventing Apple, medical, provider, or channel approval."
+    inputs:
+      - "T029 receipt and commit"
+      - "Implementation plan Tasks 9 and 13-16"
+      - "Current T104-T116 dependency and governance state"
+      - "Technical design contracts for Today, Coach, Map, and lab ingestion"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T114 done without native Swift feedback outbox/UI tests and D3 E2E evidence."
+      - "Do not choose a package that requires a real provider, production rule approval, Apple entitlement, personal WeChat bridge, or real health data."
+      - "Keep T006 and named professional governance gates truthfully blocked."
+      - "Populate exact allowed_files, verify commands, and stop conditions before activating a Worker."
+    expected_output:
+      - "T029 evidence audit against its task contract"
+      - "Explicit residual scope for native T114"
+      - "One next largest safe Worker package with dependencies, allowed files, verification, and stop conditions"
+      - "Updated board and scope baseline for that Worker"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "git show --stat --oneline 8a4e214"
+          status: pass
+        - cmd: "Read implementation Tasks 9 and 13-16 plus technical-design dependency, Map, and failure-mode contracts"
+          status: pass
+        - cmd: "Audit T104-T116 board dependencies and unresolved governance gates"
+          status: pass
+        - cmd: "T030 scope guard for docs/goals/healthos-v1 only"
+          status: pass
+      summary: "Audited T029 as a complete production server action-feedback tranche while preserving native T114 as queued. Selected a server-only Task 16 Signals/Map tranche as the next largest safe package because it can consume immutable published recommendation inputs and trusted source coverage without external providers, Apple entitlements, new clinical thresholds, or real data."
+      evidence:
+        - "T029 commit 8a4e214 and receipt contain fresh/historical/restricted migration, 22 action, 19 Today, 11 database, full workspace, OpenAPI, and independent no-P0/P1/P2 evidence."
+        - "Implementation dependency table permits Map/Review after Snapshots and Actions; T112, T025, and T029 provide those server dependencies."
+        - "Technical design requires Map to display stored semantic state, trend, confidence, freshness, drivers, and Today link while forbidding client-side health conclusions."
+        - "Coach still requires pinned provider sandbox/evals and Labs requires approved OCR/parser ports plus medically reviewed fixtures, so neither is the next unblocked production package."
+        - "T031 has explicit files, migration discipline, deterministic no-new-clinical-logic constraints, privacy/ownership gates, and native T116 exclusion."
+      risks_remaining:
+        - "Native T113 and T114 remain blocked behind the iOS shell, HealthKit, Apple, and TestFlight work represented by T104-T107."
+        - "T031 can prove only the server projection/API slice; native Map accessibility, focus, and visual acceptance remain required for T116."
+        - "Production medical/rule approval, provider choices, channel readiness, and GitHub Actions billing remain unresolved."
+      next: "Activate T031 and implement the synthetic-only server Signals/Map production tranche."
+  - id: T031
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the production server tranche of implementation Task 16: immutable provenance-bound signal snapshots projected asynchronously from already trusted published recommendation inputs, plus an authenticated consent/privacy-gated Map read model with semantic summaries, selected-signal detail, freshness, confidence, drivers, and a current Today action link. This auxiliary task must not invent clinical thresholds or complete native T116."
+    inputs:
+      - "T110 immutable profile snapshots and trusted daily fact revisions"
+      - "T112 published recommendation snapshots with exact canonical rule input and provenance"
+      - "T025 authenticated Today read model"
+      - "T029 latest action-assignment projection and immutable feedback history"
+      - "Implementation plan Task 16 and technical design sections 7.3, 12.3, 18, 22, and 23"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711123000_signal_snapshots/**"
+      - "apps/api/src/signals/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/jobs/signals/**"
+      - "apps/worker/src/worker.module.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "Write failing API, worker, and database tests before implementation"
+      - "Fresh nine-migration Prisma validate/deploy and zero migration diff"
+      - "Valid eight-migration historical upgrade preserving legacy signal rows and full nine-migration deploy by a NOSUPERUSER NOCREATEROLE NOCREATEDB owner"
+      - "DATABASE_URL=<fresh-nine-migration-postgres> pnpm --filter @healthos/api test:signals"
+      - "DATABASE_URL=<fresh-nine-migration-postgres> pnpm --filter @healthos/worker test:signals"
+      - "DATABASE_URL=<fresh-nine-migration-postgres> pnpm --filter @healthos/api test:integration"
+      - "Assert improving, stable, watch, stale, unknown, partial, conflicting-driver, missing-selected-signal, reduced-confidence, and current-Today-action-link behavior"
+      - "Assert the projector consumes only a published snapshot's stored canonical rule input and immutable source identities; it must not rerun rules, call an LLM, parse raw samples, or invent thresholds"
+      - "Assert signal state is a fixed semantic translation of already validated rule-input states, trend uses only prior immutable signal snapshots, and confidence is bounded by stored source coverage/conflict evidence"
+      - "Assert projection is idempotent under duplicate delivery, rejects stale consent/profile/publication/bundle provenance, and cannot overwrite immutable signal history"
+      - "Assert Map reads only the authenticated user's current consent epoch and ready privacy state, returns no raw health values, and links only to that user's latest active primary action"
+      - "Assert canonical OpenAPI parses with all references resolved and matches TypeScript plus runtime DTO/query contracts"
+      - "pnpm --filter @healthos/rules test --coverage"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "env -u DATABASE_URL pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires inventing a clinical threshold, risk ordering, diagnosis, new action, production rule approval, or LLM/provider decision path."
+      - "A signal can be derived from unconfirmed/raw input, another user, an old consent epoch, an unpublished/withdrawn recommendation, a stale profile, or a rolled-back rule bundle."
+      - "Projection can overwrite history, duplicate a signal revision for one source snapshot, lose exact source identities, or expose raw health values in Map output/logs."
+      - "Map can link to another user's, non-current, non-primary, proposed, terminal, or withdrawn action."
+      - "Migration rewrites legacy signal meaning, needs elevated cluster roles, blocks exact privacy deletion, or requires files outside allowed_files."
+      - "The task would be declared as full Task 16/T116 without native Swift Map store/UI, eight-state tests, VoiceOver ordering, focus behavior, and visual evidence."
+    expected_output:
+      - "Immutable, versioned, provenance-bound signal-snapshot projection and idempotent worker"
+      - "Authenticated Map API returning semantic summaries and one selected detail with freshness/confidence/drivers/action link"
+      - "No-new-clinical-logic proof based on stored validated rule inputs and source coverage"
+      - "Fresh/historical/restricted migration, privacy/ownership, projection idempotency, OpenAPI, full-workspace, scope, and independent no-P0/P1 evidence"
+      - "Receipt explicitly leaving native T116 incomplete"
     receipt: null
   - id: T003
     type: worker
