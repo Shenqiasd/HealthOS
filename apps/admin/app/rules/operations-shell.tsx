@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import styles from "./operations.module.css";
 
-type OperationsSection = "recommendations" | "rules";
+type OperationsSection = "recommendations" | "rules" | "incidents";
 
 interface OperationsShellProps {
   active: OperationsSection;
@@ -19,10 +19,11 @@ const sections: ReadonlyArray<{
 }> = [
   { href: "/rules", id: "rules", label: "Rule bundles" },
   {
-    href: "/recommendations",
+    href: "/review-tasks",
     id: "recommendations",
     label: "Review queue",
   },
+  { href: "/safety-incidents", id: "incidents", label: "Safety incidents" },
 ];
 
 export function OperationsShell({
@@ -68,18 +69,18 @@ export function OperationsShell({
         </div>
         <div aria-label="Data classification" className={styles.classifiers}>
           <span className={styles.syntheticTag}>Synthetic data</span>
-          <span className={styles.draftTag}>Draft only</span>
-          <span className={styles.readOnlyTag}>Read only</span>
+          <span className={styles.draftTag}>Synthetic authority</span>
+          <span className={styles.readOnlyTag}>MFA required</span>
         </div>
       </header>
 
       <aside className={styles.boundary}>
         <span aria-hidden="true" className={styles.boundaryIndicator} />
         <div>
-          <strong>Write boundary locked</strong>
+          <strong>Production authority unavailable</strong>
           <p>
-            Administrator identity, MFA and RBAC are not provisioned for T112.
-            No approval, publish, rollback or queue mutation is exposed.
+            Queue actions cannot publish recommendations, approve medical rules,
+            send messages, or process real health data.
           </p>
         </div>
       </aside>

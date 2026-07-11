@@ -474,6 +474,27 @@
   line-height: 1.45;
 }
 
+.operationalState {
+  display: grid;
+  min-height: 112px;
+  align-content: center;
+  gap: 6px;
+  padding: 20px;
+  border-top: 1px solid #cfd5d9;
+  border-bottom: 1px solid #cfd5d9;
+  color: #30373b;
+  background: #f8f9f9;
+}
+
+.operationalState strong {
+  font-size: 14px;
+}
+
+.operationalState span {
+  color: #687178;
+  font-size: 12px;
+}
+
 @media (max-width: 860px) {
   .metrics,
   .detailGrid {

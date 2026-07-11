@@ -434,3 +434,53 @@ export function buildWeeklyReviewSharePayload(
       next_actions: snapshot.nextActions.map((item) => ({ action_code: item.action_code })),
     };
 }
+
+export type AdminRole = "reviewer" | "operator" | "admin" | "medical_approver";
+export type AdminQueueStatus = "pending" | "active" | "completed";
+
+export interface AdminReviewTask {
+  id: string;
+  task_type: string;
+  priority: "low" | "normal" | "high" | "urgent";
+  status: AdminQueueStatus;
+  assignee_id: string | null;
+  assignee_label: string | null;
+  sla_at: string;
+  version: number;
+}
+
+export interface AdminSafetyIncident {
+  id: string;
+  source: "rule" | "provider" | "channel" | "system" | "other";
+  severity: "low" | "medium" | "high" | "critical";
+  status: AdminQueueStatus;
+  assignee_id: string | null;
+  assignee_label: string | null;
+  created_at: string;
+  version: number;
+}
+
+export interface AdminReviewTaskPage {
+  items: AdminReviewTask[];
+  next_cursor: string | null;
+}
+
+export interface AdminSafetyIncidentPage {
+  items: AdminSafetyIncident[];
+  next_cursor: string | null;
+}
+
+interface AdminWorkflowActionRequestBase {
+  expected_version: number;
+  reason: string;
+}
+
+export type AdminReviewWorkflowActionRequest =
+  | (AdminWorkflowActionRequestBase & { action: "claim"; assignee_id?: never })
+  | (AdminWorkflowActionRequestBase & { action: "reassign"; assignee_id: string })
+  | (AdminWorkflowActionRequestBase & { action: "release"; assignee_id?: never });
+
+export type AdminSafetyWorkflowActionRequest = AdminWorkflowActionRequestBase & {
+  action: "acknowledge" | "resolve" | "reopen";
+  assignee_id?: never;
+};

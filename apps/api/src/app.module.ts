@@ -13,6 +13,7 @@ import { TodayModule } from "./today/today.module";
 import { ActionsModule } from "./actions/actions.module";
 import { SignalsModule } from "./signals/signals.module";
 import { ReviewsModule } from "./reviews/reviews.module";
+import { AdminModule } from "./admin/admin.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ReviewsModule } from "./reviews/reviews.module";
     ActionsModule,
     SignalsModule,
     ReviewsModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [ReadinessService],

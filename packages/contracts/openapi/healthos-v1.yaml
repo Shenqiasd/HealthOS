@@ -177,7 +177,7 @@ paths:
             schema:
               $ref: "#/components/schemas/ReviewGenerationRequest"
       responses:
-        "201":
+        "200":
           description: Generation request accepted or exactly replayed.
           content:
             application/json:
@@ -645,12 +645,110 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+  /admin/review-tasks:
+    get:
+      operationId: listAdminReviewTasks
+      summary: List minimum-necessary operations review tasks in stable SLA order
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AdminQueueLimit"
+        - $ref: "#/components/parameters/AdminQueueCursor"
+        - $ref: "#/components/parameters/AdminQueueStatus"
+      responses:
+        "200":
+          description: Role- and subject-scoped review queue.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminReviewTaskPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /admin/review-tasks/{taskId}/actions:
+    post:
+      operationId: mutateAdminReviewTask
+      summary: Claim, reassign, or release an operations review task with audit fencing
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AdminTaskId"
+        - $ref: "#/components/parameters/AdminCorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminReviewWorkflowActionRequest" }
+      responses:
+        "200":
+          description: Versioned review task after the audited mutation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminReviewTask" }
+        "400":
+          description: Invalid action, reason, correlation identifier, or target actor.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /admin/safety-incidents:
+    get:
+      operationId: listAdminSafetyIncidents
+      summary: List redacted safety incidents for operators and administrators
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AdminQueueLimit"
+        - $ref: "#/components/parameters/AdminQueueCursor"
+        - $ref: "#/components/parameters/AdminQueueStatus"
+      responses:
+        "200":
+          description: Redacted safety incident queue without encrypted detail.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSafetyIncidentPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /admin/safety-incidents/{incidentId}/actions:
+    post:
+      operationId: mutateAdminSafetyIncident
+      summary: Acknowledge, resolve, or reopen one safety incident with audit fencing
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AdminIncidentId"
+        - $ref: "#/components/parameters/AdminCorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminSafetyWorkflowActionRequest" }
+      responses:
+        "200":
+          description: Versioned safety incident after the audited mutation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSafetyIncident" }
+        "400":
+          description: Invalid action, reason, or correlation identifier.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    adminBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Provider-neutral administrator token with MFA
   headers:
     CorrelationId:
       description: Validated incoming identifier or a server-generated UUID.
@@ -666,12 +764,49 @@ components:
       schema:
         type: string
         format: uuid
+    AdminTaskId:
+      name: taskId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    AdminIncidentId:
+      name: incidentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    AdminQueueLimit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    AdminQueueCursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string, minLength: 8, maxLength: 1024 }
+    AdminQueueStatus:
+      name: status
+      in: query
+      required: false
+      schema: { type: string, enum: [pending, active, completed] }
+    AdminCorrelationId:
+      name: x-correlation-id
+      in: header
+      required: true
+      description: Client-generated UUID used to correlate the audited mutation.
+      schema: { type: string, format: uuid }
   responses:
     Unauthorized:
       description: Authentication failed or the session is no longer active.
       headers:
         x-correlation-id:
           $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Forbidden:
+      description: MFA, administrator status, role, or subject scope does not permit the request.
       content:
         application/json:
           schema:
@@ -704,6 +839,123 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
   schemas:
+    AdminReviewTask:
+      type: object
+      additionalProperties: false
+      required: [id, task_type, priority, status, assignee_id, assignee_label, sla_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        task_type: { type: string, minLength: 1, maxLength: 100 }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        status: { type: string, enum: [pending, active, completed] }
+        assignee_id: { type: [string, "null"], format: uuid }
+        assignee_label: { type: [string, "null"], maxLength: 120 }
+        sla_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    AdminSafetyIncident:
+      type: object
+      additionalProperties: false
+      required: [id, source, severity, status, assignee_id, assignee_label, created_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        source: { type: string, enum: [rule, provider, channel, system, other] }
+        severity: { type: string, enum: [low, medium, high, critical] }
+        status: { type: string, enum: [pending, active, completed] }
+        assignee_id: { type: [string, "null"], format: uuid }
+        assignee_label: { type: [string, "null"], maxLength: 120 }
+        created_at: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    AdminReviewTaskPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/AdminReviewTask" }
+        next_cursor: { type: [string, "null"] }
+    AdminSafetyIncidentPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/AdminSafetyIncident" }
+        next_cursor: { type: [string, "null"] }
+    AdminReviewWorkflowActionRequest:
+      oneOf:
+        - $ref: "#/components/schemas/AdminReviewClaimActionRequest"
+        - $ref: "#/components/schemas/AdminReviewReassignActionRequest"
+        - $ref: "#/components/schemas/AdminReviewReleaseActionRequest"
+      discriminator:
+        propertyName: action
+        mapping:
+          claim: "#/components/schemas/AdminReviewClaimActionRequest"
+          reassign: "#/components/schemas/AdminReviewReassignActionRequest"
+          release: "#/components/schemas/AdminReviewReleaseActionRequest"
+    AdminReviewClaimActionRequest:
+      type: object
+      additionalProperties: false
+      required: [action, expected_version, reason]
+      properties:
+        action: { const: claim }
+        expected_version: { type: integer, minimum: 1 }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    AdminReviewReassignActionRequest:
+      type: object
+      additionalProperties: false
+      required: [action, expected_version, reason, assignee_id]
+      properties:
+        action: { const: reassign }
+        expected_version: { type: integer, minimum: 1 }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+        assignee_id: { type: string, format: uuid }
+    AdminReviewReleaseActionRequest:
+      type: object
+      additionalProperties: false
+      required: [action, expected_version, reason]
+      properties:
+        action: { const: release }
+        expected_version: { type: integer, minimum: 1 }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    AdminSafetyWorkflowActionRequest:
+      oneOf:
+        - $ref: "#/components/schemas/AdminSafetyAcknowledgeActionRequest"
+        - $ref: "#/components/schemas/AdminSafetyResolveActionRequest"
+        - $ref: "#/components/schemas/AdminSafetyReopenActionRequest"
+      discriminator:
+        propertyName: action
+        mapping:
+          acknowledge: "#/components/schemas/AdminSafetyAcknowledgeActionRequest"
+          resolve: "#/components/schemas/AdminSafetyResolveActionRequest"
+          reopen: "#/components/schemas/AdminSafetyReopenActionRequest"
+    AdminSafetyAcknowledgeActionRequest:
+      type: object
+      additionalProperties: false
+      required: [action, expected_version, reason]
+      properties:
+        action: { const: acknowledge }
+        expected_version: { type: integer, minimum: 1 }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    AdminSafetyResolveActionRequest:
+      type: object
+      additionalProperties: false
+      required: [action, expected_version, reason]
+      properties:
+        action: { const: resolve }
+        expected_version: { type: integer, minimum: 1 }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    AdminSafetyReopenActionRequest:
+      type: object
+      additionalProperties: false
+      required: [action, expected_version, reason]
+      properties:
+        action: { const: reopen }
+        expected_version: { type: integer, minimum: 1 }
+        reason: { type: string, minLength: 3, maxLength: 500 }
     LivenessResponse:
       type: object
       additionalProperties: false
