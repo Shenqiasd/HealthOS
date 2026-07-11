@@ -344,6 +344,7 @@ describe("Today read model", () => {
     expect(first.action).toEqual({
       id: fixture.manifest.actionAssignmentId!,
       code: "SLEEP_WIND_DOWN",
+      version: 1,
       status: "active",
       duration_minutes: 10,
       difficulty: "standard",
@@ -374,7 +375,7 @@ describe("Today read model", () => {
     const before = await today.get(fixture.user.id, "before", new Date("2026-07-11T08:00:00.000Z"));
     await database.actionAssignment.update({
       where: { id: fixture.manifest.actionAssignmentId! },
-      data: { status },
+      data: { status, version: { increment: 1 } },
     });
     const after = await today.get(fixture.user.id, "after", new Date("2026-07-11T08:00:00.000Z"));
     expect(after.state).toBe(`action_${status}`);
