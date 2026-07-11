@@ -164,6 +164,131 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /reviews/generations:
+    post:
+      operationId: requestWeeklyReviewGeneration
+      summary: Enqueue one consent-bound weekly Review generation request
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewGenerationRequest"
+      responses:
+        "201":
+          description: Generation request accepted or exactly replayed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewGenerationResponse"
+        "400":
+          description: Runtime request validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current processing authorization is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Generation window or idempotency identity conflicted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /reviews/current:
+    get:
+      operationId: getCurrentWeeklyReview
+      summary: Read the latest immutable weekly Review snapshot
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: week_start
+          in: query
+          required: false
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Current consent-qualified weekly Review.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReviewViewModel"
+        "400":
+          description: Week query validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current processing authorization is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: No production weekly Review is available.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /reviews/{reviewId}/shares/{variant}:
+    get:
+      operationId: getWeeklyReviewShare
+      summary: Read one owner-scoped unexpired private or redacted share payload
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: variant
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/ReviewShareVariant" }
+      responses:
+        "200":
+          description: Immutable share payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewShareResponse"
+        "400":
+          description: Share variant is unsupported.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current processing authorization is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Share does not belong to the current user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "410":
+          description: Share payload expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /actions/{id}/feedback:
     post:
       operationId: applyActionFeedback
@@ -1155,6 +1280,156 @@ components:
           oneOf:
             - $ref: "#/components/schemas/MapSignalDetail"
             - type: "null"
+    ReviewConclusionKey:
+      type: string
+      enum:
+        - review.conclusion.no_data
+        - review.conclusion.partial_week
+        - review.conclusion.improving
+        - review.conclusion.mixed
+        - review.conclusion.watch
+        - review.conclusion.stable
+    ReviewFrictionCode:
+      type: string
+      enum:
+        - review.friction.no_actions
+        - review.friction.all_skipped
+        - review.friction.mostly_completed
+        - review.friction.mixed
+    ReviewEvidenceRow:
+      type: object
+      additionalProperties: false
+      required: [signal_code, state, trend, freshness, days_observed]
+      properties:
+        signal_code: { $ref: "#/components/schemas/SignalCode" }
+        state: { $ref: "#/components/schemas/SignalState" }
+        trend: { $ref: "#/components/schemas/SignalTrend" }
+        freshness: { $ref: "#/components/schemas/SignalFreshness" }
+        days_observed: { type: integer, minimum: 1, maximum: 7 }
+    ReviewFrictionSummary:
+      type: object
+      additionalProperties: false
+      required: [code, completed, skipped, replaced]
+      properties:
+        code: { $ref: "#/components/schemas/ReviewFrictionCode" }
+        completed: { type: integer, minimum: 0 }
+        skipped: { type: integer, minimum: 0 }
+        replaced: { type: integer, minimum: 0 }
+    ReviewNextAction:
+      type: object
+      additionalProperties: false
+      required: [assignment_id, action_code]
+      properties:
+        assignment_id: { type: string, format: uuid }
+        action_code: { $ref: "#/components/schemas/ActionCode" }
+    WeeklyReviewViewModel:
+      type: object
+      additionalProperties: false
+      required: [schema_version, id, week_start, week_end, cutoff_at, revision, coverage, conclusion_key, evidence, friction, next_actions, generated_at]
+      properties:
+        schema_version: { const: 1 }
+        id: { type: string, format: uuid }
+        week_start: { type: string, format: date }
+        week_end: { type: string, format: date }
+        cutoff_at: { type: string, format: date-time }
+        revision: { type: integer, minimum: 1 }
+        coverage: { type: number, minimum: 0, maximum: 1 }
+        conclusion_key: { $ref: "#/components/schemas/ReviewConclusionKey" }
+        evidence:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/ReviewEvidenceRow" }
+        friction: { $ref: "#/components/schemas/ReviewFrictionSummary" }
+        next_actions:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/ReviewNextAction" }
+        generated_at: { type: string, format: date-time }
+    ReviewShareVariant:
+      type: string
+      enum: [redacted, private]
+    ReviewRedactedNextAction:
+      type: object
+      additionalProperties: false
+      required: [action_code]
+      properties:
+        action_code: { $ref: "#/components/schemas/ActionCode" }
+    RedactedReviewSharePayload:
+      type: object
+      additionalProperties: false
+      required: [schema_version, review_id, variant, week_start, week_end, coverage, conclusion_key, evidence, friction, next_actions]
+      properties:
+        schema_version: { const: 1 }
+        review_id: { type: string, format: uuid }
+        variant: { const: redacted }
+        week_start: { type: string, format: date }
+        week_end: { type: string, format: date }
+        coverage: { type: number, minimum: 0, maximum: 1 }
+        conclusion_key: { $ref: "#/components/schemas/ReviewConclusionKey" }
+        evidence:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/ReviewEvidenceRow" }
+        friction: { $ref: "#/components/schemas/ReviewFrictionSummary" }
+        next_actions:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/ReviewRedactedNextAction" }
+    PrivateReviewSharePayload:
+      type: object
+      additionalProperties: false
+      required: [schema_version, review_id, variant, week_start, week_end, coverage, conclusion_key, evidence, friction, next_actions]
+      properties:
+        schema_version: { const: 1 }
+        review_id: { type: string, format: uuid }
+        variant: { const: private }
+        week_start: { type: string, format: date }
+        week_end: { type: string, format: date }
+        coverage: { type: number, minimum: 0, maximum: 1 }
+        conclusion_key: { $ref: "#/components/schemas/ReviewConclusionKey" }
+        evidence:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/ReviewEvidenceRow" }
+        friction: { $ref: "#/components/schemas/ReviewFrictionSummary" }
+        next_actions:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/ReviewNextAction" }
+    ReviewSharePayload:
+      oneOf:
+        - $ref: "#/components/schemas/RedactedReviewSharePayload"
+        - $ref: "#/components/schemas/PrivateReviewSharePayload"
+      discriminator:
+        propertyName: variant
+        mapping:
+          redacted: "#/components/schemas/RedactedReviewSharePayload"
+          private: "#/components/schemas/PrivateReviewSharePayload"
+    ReviewShareResponse:
+      type: object
+      additionalProperties: false
+      required: [id, expires_at, payload]
+      properties:
+        id: { type: string, format: uuid }
+        expires_at: { type: string, format: date-time }
+        payload: { $ref: "#/components/schemas/ReviewSharePayload" }
+    ReviewGenerationRequest:
+      type: object
+      additionalProperties: false
+      required: [week_start, cutoff_at, idempotency_key]
+      properties:
+        week_start: { type: string, format: date }
+        cutoff_at: { type: string, format: date-time }
+        idempotency_key: { type: string, format: uuid }
+    ReviewGenerationResponse:
+      type: object
+      additionalProperties: false
+      required: [request_id, status]
+      properties:
+        request_id: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [pending, leased, sent, failed, suppressed]
     ActionCode:
       type: string
       enum: [SLEEP_WIND_DOWN, SLEEP_WIND_DOWN_LIGHT, POST_MEAL_WALK, SUGARY_DRINK_SWAP]

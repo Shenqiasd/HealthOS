@@ -12,6 +12,7 @@ import { RecommendationsModule } from "./recommendations/recommendations.module"
 import { TodayModule } from "./today/today.module";
 import { ActionsModule } from "./actions/actions.module";
 import { SignalsModule } from "./signals/signals.module";
+import { ReviewsModule } from "./reviews/reviews.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SignalsModule } from "./signals/signals.module";
     TodayModule,
     ActionsModule,
     SignalsModule,
+    ReviewsModule,
   ],
   controllers: [HealthController],
   providers: [ReadinessService],

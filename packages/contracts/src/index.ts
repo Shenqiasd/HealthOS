@@ -298,3 +298,139 @@ export interface MapViewModel {
   signals: MapSignalSummary[];
   selected: MapSignalDetail | null;
 }
+
+export type ReviewConclusionKey =
+  | "review.conclusion.no_data"
+  | "review.conclusion.partial_week"
+  | "review.conclusion.improving"
+  | "review.conclusion.mixed"
+  | "review.conclusion.watch"
+  | "review.conclusion.stable";
+
+export interface ReviewEvidenceRow {
+  signal_code: SignalCode;
+  state: SignalState;
+  trend: SignalTrend;
+  freshness: SignalFreshness;
+  days_observed: number;
+}
+
+export interface ReviewFrictionSummary {
+  code:
+    | "review.friction.no_actions"
+    | "review.friction.all_skipped"
+    | "review.friction.mostly_completed"
+    | "review.friction.mixed";
+  completed: number;
+  skipped: number;
+  replaced: number;
+}
+
+export interface ReviewNextAction {
+  assignment_id: string;
+  action_code: MapTodayActionLink["code"];
+}
+
+export interface WeeklyReviewViewModel {
+  schema_version: 1;
+  id: string;
+  week_start: string;
+  week_end: string;
+  cutoff_at: string;
+  revision: number;
+  coverage: number;
+  conclusion_key: ReviewConclusionKey;
+  evidence: ReviewEvidenceRow[];
+  friction: ReviewFrictionSummary;
+  next_actions: ReviewNextAction[];
+  generated_at: string;
+}
+
+export type ReviewShareVariant = "redacted" | "private";
+
+interface ReviewSharePayloadBase {
+  schema_version: 1;
+  review_id: string;
+  week_start: string;
+  week_end: string;
+  coverage: number;
+  conclusion_key: ReviewConclusionKey;
+  evidence: ReviewEvidenceRow[];
+  friction: ReviewFrictionSummary;
+}
+
+export interface RedactedReviewSharePayload extends ReviewSharePayloadBase {
+  variant: "redacted";
+  next_actions: Array<{ action_code: MapTodayActionLink["code"] }>;
+}
+
+export interface PrivateReviewSharePayload extends ReviewSharePayloadBase {
+  variant: "private";
+  next_actions: ReviewNextAction[];
+}
+
+export type ReviewSharePayload = RedactedReviewSharePayload | PrivateReviewSharePayload;
+
+export interface ReviewShareResponse {
+  id: string;
+  expires_at: string;
+  payload: ReviewSharePayload;
+}
+
+export interface ReviewGenerationRequest {
+  week_start: string;
+  cutoff_at: string;
+  idempotency_key: string;
+}
+
+export interface ReviewGenerationResponse {
+  request_id: string;
+  status: "pending" | "leased" | "sent" | "failed" | "suppressed";
+}
+
+export interface ReviewShareSource {
+  id: string;
+  weekStart: Date;
+  coverage: number;
+  conclusion: ReviewConclusionKey;
+  evidence: ReviewEvidenceRow[];
+  friction: ReviewFrictionSummary;
+  nextActions: ReviewNextAction[];
+}
+
+export function buildWeeklyReviewSharePayload(
+  snapshot: ReviewShareSource,
+  variant: "redacted",
+): RedactedReviewSharePayload;
+export function buildWeeklyReviewSharePayload(
+  snapshot: ReviewShareSource,
+  variant: "private",
+): PrivateReviewSharePayload;
+export function buildWeeklyReviewSharePayload(
+  snapshot: ReviewShareSource,
+  variant: ReviewShareVariant,
+): ReviewSharePayload;
+export function buildWeeklyReviewSharePayload(
+  snapshot: ReviewShareSource,
+  variant: ReviewShareVariant,
+): ReviewSharePayload {
+  const weekStart = snapshot.weekStart.toISOString().slice(0, 10);
+  const weekEnd = new Date(snapshot.weekStart.getTime() + 6 * 86_400_000).toISOString().slice(0, 10);
+  const base = {
+    schema_version: 1 as const,
+    review_id: snapshot.id,
+    week_start: weekStart,
+    week_end: weekEnd,
+    coverage: snapshot.coverage,
+    conclusion_key: snapshot.conclusion,
+    evidence: snapshot.evidence,
+    friction: snapshot.friction,
+  };
+  return variant === "private"
+    ? { ...base, variant, next_actions: snapshot.nextActions }
+    : {
+      ...base,
+      variant,
+      next_actions: snapshot.nextActions.map((item) => ({ action_code: item.action_code })),
+    };
+}
