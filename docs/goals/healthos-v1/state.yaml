@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T035
+active_task: T037
 
 tasks:
   - id: T001
@@ -2140,7 +2140,7 @@ tasks:
   - id: T035
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the provider-neutral operations-control tranche of implementation Task 20: fail-closed administrator authentication adapter, MFA and role enforcement, cursor-paginated review/safety queues, optimistic-concurrency workflow mutations with mandatory reasons, and transactionally reconstructable audit records, plus a dense API-backed admin surface. Use synthetic actors only and do not complete full T120."
     inputs:
@@ -2214,6 +2214,204 @@ tasks:
       - "Dense accessible admin queue/detail UI backed by typed API contracts, with honest unavailable/empty/error states"
       - "Fresh/historical/restricted migration, RBAC/adversarial/privacy, OpenAPI, admin build/tests, full-workspace, scope, and independent no-P0/P1 evidence"
       - "Receipt explicitly leaving full Task 20/T120 incomplete"
+    receipt:
+      result: done
+      changed_files:
+        - "apps/admin/app/(authenticated)/layout.tsx"
+        - "apps/admin/app/(authenticated)/review-tasks/page.tsx"
+        - "apps/admin/app/(authenticated)/safety-incidents/page.tsx"
+        - apps/admin/app/rules/operations-shell.tsx
+        - apps/admin/app/rules/operations.module.css
+        - apps/admin/components/operations-queue-content.tsx
+        - apps/admin/components/operations-queue-view.tsx
+        - apps/admin/components/safety-incident-view.tsx
+        - apps/admin/lib/api/admin-web-session.ts
+        - apps/admin/lib/api/operations.ts
+        - apps/admin/package.json
+        - apps/admin/tests/admin-web-session.test.ts
+        - apps/admin/tests/operations-view.test.tsx
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711190000_operations_control/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/admin/admin-access.guard.ts
+        - apps/api/src/admin/admin-cursor.codec.ts
+        - apps/api/src/admin/admin-identity.verifier.ts
+        - apps/api/src/admin/admin-principal.ts
+        - apps/api/src/admin/admin-view.ts
+        - apps/api/src/admin/admin.controller.ts
+        - apps/api/src/admin/admin.integration.spec.ts
+        - apps/api/src/admin/admin.module.ts
+        - apps/api/src/admin/admin.service.ts
+        - apps/api/src/admin/dto/admin-query.dto.ts
+        - apps/api/src/admin/dto/admin-workflow-action.dto.ts
+        - apps/api/src/admin/openapi-contract.spec.ts
+        - apps/api/src/app.module.ts
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "Fresh eleven-migration Prisma validate/deploy and zero migration diff"
+          status: pass
+        - cmd: "Ten-to-eleven historical migration preserving arbitrary review task, audit log, and safety incident values"
+          status: pass
+        - cmd: "Eleven-migration deploy by NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION owner"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:admin"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:integration"
+          status: pass
+        - cmd: "pnpm --filter @healthos/admin test && pnpm --filter @healthos/admin build"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/worker test:reviews && pnpm --filter @healthos/api test:reviews"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/worker test:signals && pnpm --filter @healthos/api test:signals"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:today && pnpm --filter @healthos/api test:actions"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules test --coverage"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "T035 scope guard and git diff --check"
+          status: pass
+      summary: "Implemented the provider-neutral operations-control foundation: fail-closed administrator identity and MFA/RBAC enforcement, authorization-bound stable queue snapshots, command-specific optimistic workflow APIs, same-transaction once-only reconstructable audit fencing, and dense API-backed review and safety pages using synthetic actors only."
+      evidence:
+        - "Product commit 1ca748f"
+        - "Admin API and OpenAPI 9/9 passed, including token separation, MFA, inactive actor, role and subject scope, scope revocation between pages, signed cursor tampering, command-specific payloads, optimistic conflicts, safety transitions, and privacy deletion"
+        - "Database tests prove NULL and multi-role escalation rejection, orphan and forged-consumption audit rollback, immutable safety source rows, exact same-transaction audit consumption, and no mutation without a matching audit"
+        - "Admin web 5/5 and production build passed with request-bound MFA session, mandatory iat/exp, maximum 15-minute remaining lifetime, and dense unavailable, error, empty, and ready states"
+        - "Fresh and historical migration plus restricted migrator passed; Prisma reported zero schema difference"
+        - "Review, Signals, Today, Actions, database invariants, rules at 100% coverage, lint, typecheck, full workspace tests, audit, and exact allowed-files scope passed"
+        - "Independent fourth-round final review: no P0/P1/P2"
+      risks_remaining:
+        - "Full implementation Task 20/T120 remains incomplete: real administrator IdP and MFA issuance, lab and channel workflows, export and deletion dual approval, staffing and SLA simulation, complete E2E, and named operational and medical authority are still required."
+        - "Only synthetic actors, synthetic health data, request-bound test sessions, and local PostgreSQL evidence were used; no production access or authority is implied."
+        - "Native lanes remain unable to produce required acceptance evidence while full Xcode and Apple readiness are absent."
+        - "GitHub Actions remains externally blocked by the account billing state tracked in T006."
+      next: "Activate T036 to audit T035, preserve T120 as incomplete, and select the next largest safe production package."
+  - id: T036
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T035 operations-control evidence, preserve full Task 20/T120 as incomplete, and select the next largest production package that can proceed with synthetic data and current local capabilities without inventing Apple, medical, provider, channel, operational, or real-user approval."
+    inputs:
+      - "T035 product commit and receipt"
+      - "Independent final no-P0/P1/P2 review"
+      - "Implementation plan Tasks 15 and 19-23 plus current T100-T127 dependency state"
+      - "Current governance blockers, local Xcode/toolchain evidence, and GitHub Actions billing state"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T120 done without real administrator IdP/MFA integration, lab/channel/export-delete workflows, staffing and SLA simulation, complete E2E, and named operational and medical authority."
+      - "Do not select work that requires a real provider, production rule or medical approval, Apple entitlement, official channel credential, personal WeChat bridge, production access, or real health data."
+      - "Keep T006 and every named professional governance gate truthfully blocked."
+      - "Populate exact dependencies, allowed_files, verify commands, and stop conditions before activating a Worker."
+    expected_output:
+      - "T035 evidence audit against its provider-neutral operations-control contract"
+      - "Explicit residual scope for full Task 20/T120"
+      - "One next largest safe Worker package or a truthful dependency decision"
+      - "Updated board, next-task scope baseline, and PM receipt"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "Audit T035 receipt, product commit 1ca748f, final full regression, migration, scope, and independent no-P0/P1/P2 evidence"
+          status: pass
+        - cmd: "Read implementation Tasks 15 and 19-24 plus technical timezone, consent, cutoff, channel, operations, and observability contracts"
+          status: pass
+        - cmd: "Audit T100-T127 status and current repository scheduling, consent, timezone, worker, and channel foundations"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked"
+          status: pass
+        - cmd: "xcode-select -p and xcodebuild -version environment audit"
+          status: pass
+        - cmd: "T036 scope guard for docs/goals/healthos-v1 only"
+          status: pass
+      summary: "Audited T035 as a complete provider-neutral operations-control foundation while preserving full Task 20/T120 as queued. Selected the provider-neutral server scheduling tranche of Task 21 as the next largest safe package because deterministic timezone, DST, travel, quiet-hour, consent, cutoff, cap, and idempotency behavior can be implemented and proved without Xcode, Apple, APNs, WeCom, production providers, medical approval, or external delivery."
+      evidence:
+        - "T035 commit 1ca748f and receipt include fresh/historical/restricted migration, admin API/OpenAPI 9/9, database invariants 11/11, admin web 5/5 plus production build, Review, Signals, Today, Actions, rules at 100%, full workspace, scope, and independent no-P0/P1/P2 evidence."
+        - "Full Task 20/T120 still requires real administrator IdP/MFA issuance, lab and channel workflows, export/delete dual approval, staffing/SLA simulation, complete E2E, and named operational and medical authority."
+        - "Preflight readiness remains truthfully blocked on twelve professional and production decisions, including Apple, clinical, provider, channel, incident-response, backup, privacy, and data-region authority."
+        - "Full Xcode remains unavailable at /Library/Developer/CommandLineTools, so native lanes cannot currently produce their required acceptance evidence."
+        - "The repository already has authenticated user timezone, notification-consent, immutable recommendation and weekly Review cutoffs, PostgreSQL durability, and worker patterns needed for a server scheduling tranche."
+        - "T037 explicitly forbids channel_outbox delivery, provider adapters, APNs/WeCom credentials, hand-rolled DST arithmetic, and full-T121 completion."
+      risks_remaining:
+        - "T037 will not implement native reminder settings, APNs/WeCom delivery, device E2E, or production notification authority."
+        - "T119 channels and full T120 operations remain incomplete and may later add send-time consent, binding, retry, and staffing evidence."
+        - "All named governance decisions and GitHub Actions billing remain unresolved."
+      next: "Activate T037 and implement the synthetic-only provider-neutral server scheduling tranche without closing full T121."
+  - id: T037
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the production server tranche of implementation Task 21: authenticated versioned reminder preferences plus provider-neutral, durable and idempotent scheduling plans that respect IANA timezone and DST transitions, travel updates, quiet hours, notification consent, missed cutoffs, late data, daily caps, weekly report-day changes, and duplicate scheduler execution. Use a proven timezone library, synthetic data only, create no external delivery, and do not complete native or channel-dependent T121."
+    inputs:
+      - "T103 PostgreSQL schema, migration, privacy deletion, and outbox foundations"
+      - "T013 authenticated user identity and T015 notification-consent lifecycle"
+      - "T112 immutable daily recommendation pipeline and T033 immutable weekly Review cutoff semantics"
+      - "T035 operations audit foundation while keeping full T120 incomplete"
+      - "Implementation plan Task 21 and technical design timezone, consent, cutoff, and no-real-time-monitoring contracts"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711230000_scheduling_reminders/**"
+      - "apps/api/src/reminders/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/jobs/scheduling/**"
+      - "apps/worker/src/worker.module.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile after any lockfile update"
+      - "Write failing API, contract, planner, database, fake-clock, and adversarial tests before implementation"
+      - "Use @js-temporal/polyfill or another proven IANA timezone library; do not hand-roll DST arithmetic"
+      - "Fresh twelve-migration Prisma validate/deploy and zero migration diff"
+      - "Valid eleven-to-twelve historical upgrade preserving users, channel outbox rows, weekly Reviews, review tasks, audit logs, and operation-audit consumptions, plus full twelve-migration deploy by a NOSUPERUSER NOCREATEROLE NOCREATEDB owner"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/api test:reminders"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/worker test:scheduling"
+      - "Simulate fourteen days across Asia/Shanghai, America/New_York including DST, and Europe/London, plus an explicit travel timezone change"
+      - "Assert quiet hours, notification consent, disabled mode, intensity, one daily advisor plus at most one behavior reminder, weekly report-day changes, missed cutoff suppression, late-data no-regeneration, and duplicate execution idempotency"
+      - "Assert cross-user preference access is impossible, optimistic versions and idempotency are enforced, and exact privacy deletion removes preferences and schedule plans"
+      - "Assert the tranche writes no channel_outbox row, invokes no provider adapter, contains no APNs/WeCom credential path, and cannot externally deliver"
+      - "Assert canonical OpenAPI parses with every internal reference resolved and matches TypeScript plus runtime DTO/query contracts"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/api test:admin"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/worker test:reviews"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/api test:reviews"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/worker test:signals"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/api test:signals"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/api test:today"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/api test:actions"
+      - "DATABASE_URL=<fresh-twelve-migration-postgres> pnpm --filter @healthos/api test:integration"
+      - "pnpm --filter @healthos/admin test && pnpm --filter @healthos/admin build"
+      - "pnpm --filter @healthos/rules test --coverage"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "env -u DATABASE_URL pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires APNs, WeCom, a real provider credential, production access, Apple entitlement, real health data, or a named medical or operations approval."
+      - "A scheduling plan can directly invoke an external provider, create a deliverable channel_outbox row, bypass current notification consent or quiet hours, or exceed the product daily cap."
+      - "Timezone or DST handling would be hand-rolled instead of delegated to a proven IANA timezone library."
+      - "A duplicate, late-data, travel, report-day-change, or missed-cutoff path can regenerate or resend an already planned local-day item."
+      - "Migration weakens privacy deletion, consent fencing, append-only operational evidence, or needs files outside allowed_files."
+      - "The task would be declared as full Task 21/T121 without native reminder settings, channel delivery integration, device E2E, and production notification authority."
+    expected_output:
+      - "Authenticated versioned reminder-preference API with explicit disabled, quiet-hour, intensity, timezone, and weekly-day semantics"
+      - "Durable provider-neutral schedule plans and deterministic fake-clock planner across timezone, DST, travel, cutoff, and duplicate cases"
+      - "Database-enforced uniqueness, caps, consent/privacy deletion, and no-external-delivery evidence"
+      - "Fresh/historical/restricted migration, OpenAPI, regression, scope, and independent no-P0/P1 evidence"
+      - "Receipt explicitly leaving native/channel-dependent Task 21/T121 incomplete"
     receipt: null
   - id: T003
     type: worker
