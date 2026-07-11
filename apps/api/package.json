@@ -13,7 +13,7 @@
     "pretest:integration": "pnpm prisma:generate",
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest --config jest.config.mjs --testPathIgnorePatterns=database-constraints identity.integration consent.integration privacy.integration health-ingestion.integration profile.integration recommendations.integration today.integration actions.integration signals.integration",
+    "test": "jest --config jest.config.mjs --testPathIgnorePatterns=database-constraints identity.integration consent.integration privacy.integration health-ingestion.integration profile.integration recommendations.integration today.integration actions.integration signals.integration reviews.integration",
     "test:e2e": "jest --config jest.config.mjs",
     "test:integration": "jest --config jest.config.mjs database-constraints.e2e-spec.ts --runInBand",
     "test:identity": "jest --config jest.config.mjs identity --runInBand",
@@ -23,7 +23,8 @@
     "test:recommendations": "jest --config jest.config.mjs recommendations --runInBand",
     "test:today": "jest --config jest.config.mjs today --runInBand",
     "test:actions": "jest --config jest.config.mjs actions --runInBand",
-    "test:signals": "jest --config jest.config.mjs signals --runInBand"
+    "test:signals": "jest --config jest.config.mjs signals --runInBand",
+    "test:reviews": "jest --config jest.config.mjs reviews --runInBand"
   },
   "dependencies": {
     "@healthos/contracts": "workspace:*",

@@ -164,6 +164,7 @@ model User {
   feedbackEvents     FeedbackEvent[]
   signals            SignalSnapshot[]
   weeklyReviews      WeeklyReviewSnapshot[]
+  weeklyReviewShares WeeklyReviewShare[]
   coachThreads       CoachThread[]
   channelOutbox      ChannelOutbox[]
   domainOutbox       DomainOutbox[]
@@ -367,22 +368,22 @@ model HealthSyncRun {
 }
 
 model DailyHealthFactRevision {
-  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId             String                    @map("user_id") @db.Uuid
-  localDate          DateTime                  @map("local_date") @db.Date
-  metric             String
-  canonicalValueJson Json                      @map("canonical_value_json") @db.JsonB
-  coverage           Decimal?                  @db.Decimal(6, 5)
-  sourceVectorJson   Json                      @map("source_vector_json") @db.JsonB
-  inputHash          String                    @map("input_hash")
-  supersedesId       String?                   @map("supersedes_id") @db.Uuid
-  healthSyncRunId    String?                   @map("health_sync_run_id") @db.Uuid
-  serverSequence     BigInt?                   @map("server_sequence")
-  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  supersedes         DailyHealthFactRevision?  @relation("FactSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
-  supersededBy       DailyHealthFactRevision[] @relation("FactSupersession")
-  healthSyncRun      HealthSyncRun?            @relation(fields: [healthSyncRunId], references: [id], onDelete: Restrict)
+  id                   String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String                       @map("user_id") @db.Uuid
+  localDate            DateTime                     @map("local_date") @db.Date
+  metric               String
+  canonicalValueJson   Json                         @map("canonical_value_json") @db.JsonB
+  coverage             Decimal?                     @db.Decimal(6, 5)
+  sourceVectorJson     Json                         @map("source_vector_json") @db.JsonB
+  inputHash            String                       @map("input_hash")
+  supersedesId         String?                      @map("supersedes_id") @db.Uuid
+  healthSyncRunId      String?                      @map("health_sync_run_id") @db.Uuid
+  serverSequence       BigInt?                      @map("server_sequence")
+  createdAt            DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                 User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supersedes           DailyHealthFactRevision?     @relation("FactSupersession", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy         DailyHealthFactRevision[]    @relation("FactSupersession")
+  healthSyncRun        HealthSyncRun?               @relation(fields: [healthSyncRunId], references: [id], onDelete: Restrict)
   recommendationInputs RecommendationRunFactInput[]
 
   @@unique([userId, localDate, metric, inputHash])
@@ -408,18 +409,18 @@ model LabDocument {
 }
 
 model LabObservation {
-  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  documentId         String             @map("document_id") @db.Uuid
-  code               String
-  value              String
-  unit               String
-  normalizedValue    Decimal?           @map("normalized_value") @db.Decimal(18, 6)
-  referenceRange     String?            @map("reference_range")
-  page               Int?
-  evidenceBox        Json               @map("evidence_box") @db.JsonB
-  confidence         Decimal            @db.Decimal(6, 5)
-  confirmationStatus ConfirmationStatus @default(extracted) @map("confirmation_status")
-  document           LabDocument        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id                   String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId           String                      @map("document_id") @db.Uuid
+  code                 String
+  value                String
+  unit                 String
+  normalizedValue      Decimal?                    @map("normalized_value") @db.Decimal(18, 6)
+  referenceRange       String?                     @map("reference_range")
+  page                 Int?
+  evidenceBox          Json                        @map("evidence_box") @db.JsonB
+  confidence           Decimal                     @db.Decimal(6, 5)
+  confirmationStatus   ConfirmationStatus          @default(extracted) @map("confirmation_status")
+  document             LabDocument                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
   recommendationInputs RecommendationRunLabInput[]
 
   @@index([documentId, code])
@@ -523,18 +524,18 @@ model ProfileCandidate {
 }
 
 model RuleBundle {
-  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  version             String               @unique
-  status              RuleBundleStatus     @default(draft_unapproved)
-  contentHash         String               @unique @map("content_hash")
-  contentJson         Json?                @map("content_json") @db.JsonB
-  bundleDigest        String?              @map("bundle_digest")
-  autoPublishEligible Boolean              @default(false) @map("auto_publish_eligible")
-  publishedBy         String?              @map("published_by")
-  publishedAt         DateTime?            @map("published_at") @db.Timestamptz(6)
-  rolledBackAt        DateTime?            @map("rolled_back_at") @db.Timestamptz(6)
-  lastRollbackEventId String?              @map("last_rollback_event_id") @db.Uuid
-  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  version             String                    @unique
+  status              RuleBundleStatus          @default(draft_unapproved)
+  contentHash         String                    @unique @map("content_hash")
+  contentJson         Json?                     @map("content_json") @db.JsonB
+  bundleDigest        String?                   @map("bundle_digest")
+  autoPublishEligible Boolean                   @default(false) @map("auto_publish_eligible")
+  publishedBy         String?                   @map("published_by")
+  publishedAt         DateTime?                 @map("published_at") @db.Timestamptz(6)
+  rolledBackAt        DateTime?                 @map("rolled_back_at") @db.Timestamptz(6)
+  lastRollbackEventId String?                   @map("last_rollback_event_id") @db.Uuid
+  createdAt           DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   approvals           RuleBundleApproval[]
   rollbackSources     RuleBundleRollbackEvent[] @relation("RollbackSource")
   rollbackTargets     RuleBundleRollbackEvent[] @relation("RollbackTarget")
@@ -545,16 +546,16 @@ model RuleBundle {
 }
 
 model RuleBundleRollbackEvent {
-  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sourceBundleId String     @map("source_bundle_id") @db.Uuid
-  targetBundleId String     @map("target_bundle_id") @db.Uuid
-  actorId        String     @map("actor_id")
-  reasonCode     String     @map("reason_code")
-  sourceDigest   String     @map("source_digest")
-  targetDigest   String     @map("target_digest")
-  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  sourceBundle   RuleBundle @relation("RollbackSource", fields: [sourceBundleId], references: [id], onDelete: Restrict)
-  targetBundle   RuleBundle @relation("RollbackTarget", fields: [targetBundleId], references: [id], onDelete: Restrict)
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceBundleId String       @map("source_bundle_id") @db.Uuid
+  targetBundleId String       @map("target_bundle_id") @db.Uuid
+  actorId        String       @map("actor_id")
+  reasonCode     String       @map("reason_code")
+  sourceDigest   String       @map("source_digest")
+  targetDigest   String       @map("target_digest")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  sourceBundle   RuleBundle   @relation("RollbackSource", fields: [sourceBundleId], references: [id], onDelete: Restrict)
+  targetBundle   RuleBundle   @relation("RollbackTarget", fields: [targetBundleId], references: [id], onDelete: Restrict)
   referencedBy   RuleBundle[] @relation("LastRollbackEvidence")
 
   @@index([sourceBundleId, createdAt])
@@ -579,26 +580,26 @@ model RuleBundleApproval {
 }
 
 model RecommendationRun {
-  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId          String                   @map("user_id") @db.Uuid
-  localDate       DateTime                 @map("local_date") @db.Date
-  inputSnapshotId String                   @map("input_snapshot_id") @db.Uuid
-  ruleBundleId    String                   @map("rule_bundle_id") @db.Uuid
-  consentEpoch    Int                      @map("consent_epoch")
-  inputHash       String?                  @map("input_hash")
-  inputManifestJson Json?                  @map("input_manifest_json") @db.JsonB
-  status          RecordStatus             @default(pending)
-  attempt         Int                      @default(0)
-  leaseToken      String?                  @map("lease_token")
-  leaseUntil      DateTime?                @map("lease_until") @db.Timestamptz(6)
-  correlationId   String                   @map("correlation_id")
-  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
-  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inputSnapshot   ProfileSnapshot          @relation(fields: [inputSnapshotId, userId, consentEpoch], references: [id, userId, consentEpoch], onDelete: Restrict)
-  ruleBundle      RuleBundle               @relation(fields: [ruleBundleId], references: [id], onDelete: Restrict)
-  snapshots       RecommendationSnapshot[]
-  factInputs      RecommendationRunFactInput[]
-  labInputs       RecommendationRunLabInput[]
+  id                String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String                       @map("user_id") @db.Uuid
+  localDate         DateTime                     @map("local_date") @db.Date
+  inputSnapshotId   String                       @map("input_snapshot_id") @db.Uuid
+  ruleBundleId      String                       @map("rule_bundle_id") @db.Uuid
+  consentEpoch      Int                          @map("consent_epoch")
+  inputHash         String?                      @map("input_hash")
+  inputManifestJson Json?                        @map("input_manifest_json") @db.JsonB
+  status            RecordStatus                 @default(pending)
+  attempt           Int                          @default(0)
+  leaseToken        String?                      @map("lease_token")
+  leaseUntil        DateTime?                    @map("lease_until") @db.Timestamptz(6)
+  correlationId     String                       @map("correlation_id")
+  createdAt         DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  user              User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inputSnapshot     ProfileSnapshot              @relation(fields: [inputSnapshotId, userId, consentEpoch], references: [id, userId, consentEpoch], onDelete: Restrict)
+  ruleBundle        RuleBundle                   @relation(fields: [ruleBundleId], references: [id], onDelete: Restrict)
+  snapshots         RecommendationSnapshot[]
+  factInputs        RecommendationRunFactInput[]
+  labInputs         RecommendationRunLabInput[]
 
   @@unique([userId, localDate])
   @@index([userId, localDate])
@@ -617,38 +618,38 @@ model RecommendationRunFactInput {
 }
 
 model RecommendationRunLabInput {
-  runId             String             @map("run_id") @db.Uuid
-  labObservationId  String             @map("lab_observation_id") @db.Uuid
-  observationHash   String             @map("observation_hash")
-  run               RecommendationRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
-  labObservation    LabObservation     @relation(fields: [labObservationId], references: [id], onDelete: Restrict)
+  runId            String            @map("run_id") @db.Uuid
+  labObservationId String            @map("lab_observation_id") @db.Uuid
+  observationHash  String            @map("observation_hash")
+  run              RecommendationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  labObservation   LabObservation    @relation(fields: [labObservationId], references: [id], onDelete: Restrict)
 
   @@id([runId, labObservationId])
   @@map("recommendation_run_lab_inputs")
 }
 
 model RecommendationSnapshot {
-  id                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  runId                  String                     @map("run_id") @db.Uuid
+  id                     String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  runId                  String                      @map("run_id") @db.Uuid
   revision               Int
-  riskArea               String?                    @map("risk_area")
-  safetyClass            String                     @map("safety_class")
-  actionCode             String?                    @map("action_code")
-  renderedPayloadJson    Json                       @map("rendered_payload_json") @db.JsonB
-  canonicalRuleInputJson Json                       @map("canonical_rule_input_json") @db.JsonB
-  provenanceJson         Json                       @map("provenance_json") @db.JsonB
-  snapshotHash           String?                    @map("snapshot_hash")
-  releaseStage           String?                    @map("release_stage")
-  reviewRoute            String?                    @map("review_route")
-  policyDigest           String?                    @map("policy_digest")
-  samplingBucket         Int?                       @map("sampling_bucket")
-  reviewSamplePercent    Int?                       @map("review_sample_percent")
-  reviewStatus           RecommendationReviewStatus @default(draft) @map("review_status")
-  supersedesId           String?                    @map("supersedes_id") @db.Uuid
-  createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
-  run                    RecommendationRun          @relation(fields: [runId], references: [id], onDelete: Cascade)
-  supersedes             RecommendationSnapshot?    @relation("RecommendationSupersession", fields: [supersedesId], references: [id], onDelete: Cascade)
-  supersededBy           RecommendationSnapshot[]   @relation("RecommendationSupersession")
+  riskArea               String?                     @map("risk_area")
+  safetyClass            String                      @map("safety_class")
+  actionCode             String?                     @map("action_code")
+  renderedPayloadJson    Json                        @map("rendered_payload_json") @db.JsonB
+  canonicalRuleInputJson Json                        @map("canonical_rule_input_json") @db.JsonB
+  provenanceJson         Json                        @map("provenance_json") @db.JsonB
+  snapshotHash           String?                     @map("snapshot_hash")
+  releaseStage           String?                     @map("release_stage")
+  reviewRoute            String?                     @map("review_route")
+  policyDigest           String?                     @map("policy_digest")
+  samplingBucket         Int?                        @map("sampling_bucket")
+  reviewSamplePercent    Int?                        @map("review_sample_percent")
+  reviewStatus           RecommendationReviewStatus  @default(draft) @map("review_status")
+  supersedesId           String?                     @map("supersedes_id") @db.Uuid
+  createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  run                    RecommendationRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+  supersedes             RecommendationSnapshot?     @relation("RecommendationSupersession", fields: [supersedesId], references: [id], onDelete: Cascade)
+  supersededBy           RecommendationSnapshot[]    @relation("RecommendationSupersession")
   actions                ActionAssignment[]
   reviewEvents           RecommendationReviewEvent[] @relation("ReviewEventSubject")
   reviewEventsFrom       RecommendationReviewEvent[] @relation("ReviewEventFrom")
@@ -663,34 +664,34 @@ model RecommendationSnapshot {
 }
 
 model RecommendationReviewEvent {
-  id               String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  snapshotId       String                        @map("snapshot_id") @db.Uuid
-  eventType        RecommendationReviewEventType @map("event_type")
-  actorId          String?                       @map("actor_id")
-  reasonCode       String?                       @map("reason_code")
-  fromSnapshotId   String?                       @map("from_snapshot_id") @db.Uuid
-  toSnapshotId     String?                       @map("to_snapshot_id") @db.Uuid
-  beforeHash       String?                       @map("before_hash")
-  afterHash        String?                       @map("after_hash")
-  createdAt        DateTime                      @default(now()) @map("created_at") @db.Timestamptz(6)
-  snapshot         RecommendationSnapshot        @relation("ReviewEventSubject", fields: [snapshotId], references: [id], onDelete: Cascade)
-  fromSnapshot     RecommendationSnapshot?       @relation("ReviewEventFrom", fields: [fromSnapshotId], references: [id], onDelete: Cascade)
-  toSnapshot       RecommendationSnapshot?       @relation("ReviewEventTo", fields: [toSnapshotId], references: [id], onDelete: Cascade)
+  id             String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotId     String                        @map("snapshot_id") @db.Uuid
+  eventType      RecommendationReviewEventType @map("event_type")
+  actorId        String?                       @map("actor_id")
+  reasonCode     String?                       @map("reason_code")
+  fromSnapshotId String?                       @map("from_snapshot_id") @db.Uuid
+  toSnapshotId   String?                       @map("to_snapshot_id") @db.Uuid
+  beforeHash     String?                       @map("before_hash")
+  afterHash      String?                       @map("after_hash")
+  createdAt      DateTime                      @default(now()) @map("created_at") @db.Timestamptz(6)
+  snapshot       RecommendationSnapshot        @relation("ReviewEventSubject", fields: [snapshotId], references: [id], onDelete: Cascade)
+  fromSnapshot   RecommendationSnapshot?       @relation("ReviewEventFrom", fields: [fromSnapshotId], references: [id], onDelete: Cascade)
+  toSnapshot     RecommendationSnapshot?       @relation("ReviewEventTo", fields: [toSnapshotId], references: [id], onDelete: Cascade)
 
-  @@index([snapshotId, createdAt])
   @@unique([toSnapshotId, eventType])
+  @@index([snapshotId, createdAt])
   @@map("recommendation_review_events")
 }
 
 model RecommendationReviewTask {
-  id          String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  snapshotId  String                 @map("snapshot_id") @db.Uuid
-  priority    String
-  status      RecordStatus           @default(pending)
-  slaAt       DateTime               @map("sla_at") @db.Timestamptz(6)
-  reasonCode  String                 @map("reason_code")
-  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  snapshot    RecommendationSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  id         String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotId String                 @map("snapshot_id") @db.Uuid
+  priority   String
+  status     RecordStatus           @default(pending)
+  slaAt      DateTime               @map("sla_at") @db.Timestamptz(6)
+  reasonCode String                 @map("reason_code")
+  createdAt  DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  snapshot   RecommendationSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
 
   @@unique([snapshotId])
   @@index([status, priority, slaAt])
@@ -698,52 +699,52 @@ model RecommendationReviewTask {
 }
 
 model RecommendationPublication {
-  id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  snapshotId         String                 @unique @map("snapshot_id") @db.Uuid
-  actionAssignmentId String?                @unique @map("action_assignment_id") @db.Uuid
-  domainOutboxId     String                 @unique @map("domain_outbox_id") @db.Uuid
-  auditLogId         String                 @unique @map("audit_log_id") @db.Uuid
-  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  snapshot           RecommendationSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  actionAssignment   ActionAssignment?       @relation(fields: [actionAssignmentId], references: [id], onDelete: Cascade)
-  domainOutbox       DomainOutbox             @relation(fields: [domainOutboxId], references: [id], onDelete: Cascade)
-  auditLog           AuditLog                 @relation(fields: [auditLogId], references: [id], onDelete: Restrict)
+  id                 String                             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotId         String                             @unique @map("snapshot_id") @db.Uuid
+  actionAssignmentId String?                            @unique @map("action_assignment_id") @db.Uuid
+  domainOutboxId     String                             @unique @map("domain_outbox_id") @db.Uuid
+  auditLogId         String                             @unique @map("audit_log_id") @db.Uuid
+  createdAt          DateTime                           @default(now()) @map("created_at") @db.Timestamptz(6)
+  snapshot           RecommendationSnapshot             @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  actionAssignment   ActionAssignment?                  @relation(fields: [actionAssignmentId], references: [id], onDelete: Cascade)
+  domainOutbox       DomainOutbox                       @relation(fields: [domainOutboxId], references: [id], onDelete: Cascade)
+  auditLog           AuditLog                           @relation(fields: [auditLogId], references: [id], onDelete: Restrict)
   channels           RecommendationPublicationChannel[]
 
   @@map("recommendation_publications")
 }
 
 model RecommendationPublicationChannel {
-  publicationId  String                    @map("publication_id") @db.Uuid
-  channelOutboxId String                   @unique @map("channel_outbox_id") @db.Uuid
-  publication    RecommendationPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  channelOutbox  ChannelOutbox              @relation(fields: [channelOutboxId], references: [id], onDelete: Cascade)
+  publicationId   String                    @map("publication_id") @db.Uuid
+  channelOutboxId String                    @unique @map("channel_outbox_id") @db.Uuid
+  publication     RecommendationPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  channelOutbox   ChannelOutbox             @relation(fields: [channelOutboxId], references: [id], onDelete: Cascade)
 
   @@id([publicationId, channelOutboxId])
   @@map("recommendation_publication_channels")
 }
 
 model ActionAssignment {
-  id                       String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId                   String                 @map("user_id") @db.Uuid
-  recommendationSnapshotId String                 @map("recommendation_snapshot_id") @db.Uuid
-  localDate                DateTime               @map("local_date") @db.Date
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String                     @map("user_id") @db.Uuid
+  recommendationSnapshotId String                     @map("recommendation_snapshot_id") @db.Uuid
+  localDate                DateTime                   @map("local_date") @db.Date
   difficulty               String
-  actionCode               String?                @map("action_code")
-  version                  Int                    @default(1)
-  status                   ActionStatus           @default(proposed)
-  isPrimary                Boolean                @default(true) @map("is_primary")
-  replacedById             String?                @unique @map("replaced_by_id") @db.Uuid
-  createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  user                     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  recommendationSnapshot   RecommendationSnapshot @relation(fields: [recommendationSnapshotId], references: [id], onDelete: Cascade)
-  replacedBy               ActionAssignment?      @relation("ActionReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
-  replaces                 ActionAssignment[]     @relation("ActionReplacement")
+  actionCode               String?                    @map("action_code")
+  version                  Int                        @default(1)
+  status                   ActionStatus               @default(proposed)
+  isPrimary                Boolean                    @default(true) @map("is_primary")
+  replacedById             String?                    @unique @map("replaced_by_id") @db.Uuid
+  createdAt                DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                     User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendationSnapshot   RecommendationSnapshot     @relation(fields: [recommendationSnapshotId], references: [id], onDelete: Cascade)
+  replacedBy               ActionAssignment?          @relation("ActionReplacement", fields: [replacedById], references: [id], onDelete: Restrict)
+  replaces                 ActionAssignment[]         @relation("ActionReplacement")
   feedback                 FeedbackEvent[]
   publication              RecommendationPublication?
 
-  @@index([userId, localDate, status])
   @@unique([recommendationSnapshotId, actionCode])
+  @@index([userId, localDate, status])
   @@map("action_assignments")
 }
 
@@ -762,8 +763,8 @@ model FeedbackEvent {
   user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   actionAssignment   ActionAssignment @relation(fields: [actionAssignmentId], references: [id], onDelete: Cascade)
 
-  @@index([actionAssignmentId, occurredAt])
   @@unique([userId, idempotencyKey])
+  @@index([actionAssignmentId, occurredAt])
   @@map("feedback_events")
 }
 
@@ -792,20 +793,45 @@ model SignalSnapshot {
 }
 
 model WeeklyReviewSnapshot {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  weekStart       DateTime @map("week_start") @db.Date
-  coverage        Decimal  @db.Decimal(6, 5)
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  weekStart       DateTime            @map("week_start") @db.Date
+  cutoffAt        DateTime?           @map("cutoff_at") @db.Timestamptz(6)
+  consentEpoch    Int?                @map("consent_epoch")
+  coverage        Decimal             @db.Decimal(6, 5)
   conclusion      String
-  evidenceJson    Json     @map("evidence_json") @db.JsonB
-  nextActionsJson Json     @map("next_actions_json") @db.JsonB
-  provenanceJson  Json     @map("provenance_json") @db.JsonB
+  evidenceJson    Json                @map("evidence_json") @db.JsonB
+  frictionJson    Json?               @map("friction_json") @db.JsonB
+  nextActionsJson Json                @map("next_actions_json") @db.JsonB
+  provenanceJson  Json                @map("provenance_json") @db.JsonB
+  sourceHash      String?             @map("source_hash")
+  snapshotHash    String?             @map("snapshot_hash")
   revision        Int
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares          WeeklyReviewShare[]
 
   @@unique([userId, weekStart, revision])
+  @@unique([userId, sourceHash])
+  @@index([userId, weekStart, createdAt])
   @@map("weekly_review_snapshots")
+}
+
+model WeeklyReviewShare {
+  id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weeklyReviewSnapshotId String               @map("weekly_review_snapshot_id") @db.Uuid
+  userId                 String               @map("user_id") @db.Uuid
+  variant                String
+  payloadJson            Json                 @map("payload_json") @db.JsonB
+  payloadHash            String               @map("payload_hash")
+  expiresAt              DateTime             @map("expires_at") @db.Timestamptz(6)
+  createdAt              DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  review                 WeeklyReviewSnapshot @relation(fields: [weeklyReviewSnapshotId], references: [id], onDelete: Cascade)
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([weeklyReviewSnapshotId, variant])
+  @@index([userId, expiresAt])
+  @@map("weekly_review_shares")
 }
 
 model CoachThread {
@@ -839,19 +865,19 @@ model CoachMessage {
 }
 
 model ChannelOutbox {
-  id                  String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId              String                            @map("user_id") @db.Uuid
-  channel             String
-  template            String
-  payload             Json                              @db.JsonB
-  idempotencyKey      String                            @unique @map("idempotency_key")
-  availableAt         DateTime                          @default(now()) @map("available_at") @db.Timestamptz(6)
-  status              OutboxStatus                      @default(pending)
-  leaseToken          String?                           @map("lease_token")
-  leaseUntil          DateTime?                         @map("lease_until") @db.Timestamptz(6)
-  user                User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attempts            DeliveryAttempt[]
-  consentRequirements ChannelOutboxConsentRequirement[]
+  id                               String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                           String                            @map("user_id") @db.Uuid
+  channel                          String
+  template                         String
+  payload                          Json                              @db.JsonB
+  idempotencyKey                   String                            @unique @map("idempotency_key")
+  availableAt                      DateTime                          @default(now()) @map("available_at") @db.Timestamptz(6)
+  status                           OutboxStatus                      @default(pending)
+  leaseToken                       String?                           @map("lease_token")
+  leaseUntil                       DateTime?                         @map("lease_until") @db.Timestamptz(6)
+  user                             User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts                         DeliveryAttempt[]
+  consentRequirements              ChannelOutboxConsentRequirement[]
   recommendationPublicationChannel RecommendationPublicationChannel?
 
   @@index([status, availableAt])
@@ -884,19 +910,19 @@ model DeliveryAttempt {
 }
 
 model DomainOutbox {
-  id                  String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  eventType           String                           @map("event_type")
-  aggregateId         String                           @map("aggregate_id") @db.Uuid
-  userId              String?                          @map("user_id") @db.Uuid
-  payload             Json                             @db.JsonB
-  idempotencyKey      String                           @unique @map("idempotency_key")
-  availableAt         DateTime                         @default(now()) @map("available_at") @db.Timestamptz(6)
-  leaseUntil          DateTime?                        @map("lease_until") @db.Timestamptz(6)
-  leaseToken          String?                          @map("lease_token")
-  status              OutboxStatus                     @default(pending)
-  createdAt           DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
-  user                User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  consentRequirements DomainOutboxConsentRequirement[]
+  id                        String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType                 String                           @map("event_type")
+  aggregateId               String                           @map("aggregate_id") @db.Uuid
+  userId                    String?                          @map("user_id") @db.Uuid
+  payload                   Json                             @db.JsonB
+  idempotencyKey            String                           @unique @map("idempotency_key")
+  availableAt               DateTime                         @default(now()) @map("available_at") @db.Timestamptz(6)
+  leaseUntil                DateTime?                        @map("lease_until") @db.Timestamptz(6)
+  leaseToken                String?                          @map("lease_token")
+  status                    OutboxStatus                     @default(pending)
+  createdAt                 DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                      User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consentRequirements       DomainOutboxConsentRequirement[]
   recommendationPublication RecommendationPublication?
 
   @@index([status, availableAt, leaseUntil])
@@ -940,14 +966,14 @@ model ReviewTask {
 }
 
 model AuditLog {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  actorId      String?  @map("actor_id") @db.Uuid
-  action       String
-  resourceType String   @map("resource_type")
-  resourceId   String   @map("resource_id") @db.Uuid
-  beforeHash   String?  @map("before_hash")
-  afterHash    String?  @map("after_hash")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId                   String?                    @map("actor_id") @db.Uuid
+  action                    String
+  resourceType              String                     @map("resource_type")
+  resourceId                String                     @map("resource_id") @db.Uuid
+  beforeHash                String?                    @map("before_hash")
+  afterHash                 String?                    @map("after_hash")
+  createdAt                 DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
   recommendationPublication RecommendationPublication?
 
   @@index([resourceType, resourceId, createdAt])
