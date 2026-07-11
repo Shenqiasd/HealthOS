@@ -266,3 +266,35 @@ export interface ActionFeedbackResponse {
   current_action: ActionFeedbackAssignment | null;
   recovery_key: string | null;
 }
+
+export type SignalCode = "sleep_recovery" | "fatty_liver" | "uric_acid" | "waist_weight";
+export type SignalState = "stable" | "watch" | "unknown";
+export type SignalTrend = "improving" | "stable" | "worsening" | "unknown";
+export type SignalFreshness = "current" | "partial" | "stale" | "unknown";
+
+export interface MapSignalSummary {
+  code: SignalCode;
+  state: SignalState;
+  trend: SignalTrend;
+  confidence: number;
+  freshness: SignalFreshness;
+}
+
+export interface MapTodayActionLink {
+  id: string;
+  code: "SLEEP_WIND_DOWN" | "SLEEP_WIND_DOWN_LIGHT" | "POST_MEAL_WALK" | "SUGARY_DRINK_SWAP";
+  version: number;
+}
+
+export interface MapSignalDetail extends MapSignalSummary {
+  drivers: Array<{ code: "validated_rule_signal" }>;
+  today_action_link: MapTodayActionLink | null;
+}
+
+export interface MapViewModel {
+  schema_version: 1;
+  local_date: string;
+  generated_at: string | null;
+  signals: MapSignalSummary[];
+  selected: MapSignalDetail | null;
+}

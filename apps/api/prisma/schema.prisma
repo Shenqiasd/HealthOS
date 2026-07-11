@@ -655,6 +655,7 @@ model RecommendationSnapshot {
   reviewEventsTo         RecommendationReviewEvent[] @relation("ReviewEventTo")
   publications           RecommendationPublication[]
   reviewTasks            RecommendationReviewTask[]
+  signals                SignalSnapshot[]
 
   @@unique([runId, revision])
   @@index([runId, reviewStatus])
@@ -767,19 +768,26 @@ model FeedbackEvent {
 }
 
 model SignalSnapshot {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  localDate      DateTime @map("local_date") @db.Date
-  signalCode     String   @map("signal_code")
-  state          String
-  trend          String
-  confidence     Decimal  @db.Decimal(6, 5)
-  driversJson    Json     @map("drivers_json") @db.JsonB
-  provenanceJson Json     @map("provenance_json") @db.JsonB
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                       String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String                  @map("user_id") @db.Uuid
+  localDate                DateTime                @map("local_date") @db.Date
+  signalCode               String                  @map("signal_code")
+  revision                 Int                     @default(1)
+  state                    String
+  trend                    String
+  confidence               Decimal                 @db.Decimal(6, 5)
+  freshness                String                  @default("unknown")
+  driversJson              Json                    @map("drivers_json") @db.JsonB
+  provenanceJson           Json                    @map("provenance_json") @db.JsonB
+  sourceHash               String                  @map("source_hash")
+  recommendationSnapshotId String?                 @map("recommendation_snapshot_id") @db.Uuid
+  createdAt                DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                     User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendationSnapshot   RecommendationSnapshot? @relation(fields: [recommendationSnapshotId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, localDate, signalCode])
+  @@unique([userId, signalCode, revision])
+  @@unique([recommendationSnapshotId, signalCode])
+  @@index([userId, localDate, createdAt])
   @@map("signal_snapshots")
 }
 

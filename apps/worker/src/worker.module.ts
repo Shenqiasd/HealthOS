@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 
 import { RecommendationWorker } from "./jobs/recommendations/recommendation-worker";
+import { SignalProjectionWorker } from "./jobs/signals/signal-projection-worker";
+import { SignalProjectionDispatcher } from "./jobs/signals/signal-projection-dispatcher";
 
 @Module({
   providers: [
@@ -17,7 +19,21 @@ import { RecommendationWorker } from "./jobs/recommendations/recommendation-work
         reviewSlaSeconds: 1800,
       }),
     },
+    {
+      provide: SignalProjectionWorker,
+      inject: [PrismaClient],
+      useFactory: (database: PrismaClient) => new SignalProjectionWorker(database),
+    },
+    {
+      provide: SignalProjectionDispatcher,
+      inject: [PrismaClient, SignalProjectionWorker],
+      useFactory: (database: PrismaClient, projector: SignalProjectionWorker) =>
+        new SignalProjectionDispatcher(database, projector, {
+          leaseSeconds: 300,
+          pollMilliseconds: 5_000,
+        }),
+    },
   ],
-  exports: [RecommendationWorker],
+  exports: [RecommendationWorker, SignalProjectionWorker, SignalProjectionDispatcher],
 })
 export class WorkerModule {}
