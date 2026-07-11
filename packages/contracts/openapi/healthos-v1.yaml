@@ -131,6 +131,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /map:
+    get:
+      operationId: getHealthSignalMap
+      summary: Read immutable semantic signal summaries and one selected detail
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: selected
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/SignalCode"
+      responses:
+        "200":
+          description: Current provenance-qualified Map projection without raw health values.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MapViewModel"
+        "400":
+          description: The selected signal code is unsupported.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current active-user, consent, or privacy reconciliation gate failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /actions/{id}/feedback:
     post:
       operationId: applyActionFeedback
@@ -1052,6 +1085,75 @@ components:
         recovery:
           oneOf:
             - $ref: "#/components/schemas/TodayRecovery"
+            - type: "null"
+    SignalCode:
+      type: string
+      enum: [sleep_recovery, fatty_liver, uric_acid, waist_weight]
+    SignalState:
+      type: string
+      enum: [stable, watch, unknown]
+    SignalTrend:
+      type: string
+      enum: [improving, stable, worsening, unknown]
+    SignalFreshness:
+      type: string
+      enum: [current, partial, stale, unknown]
+    MapSignalSummary:
+      type: object
+      additionalProperties: false
+      required: [code, state, trend, confidence, freshness]
+      properties:
+        code: { $ref: "#/components/schemas/SignalCode" }
+        state: { $ref: "#/components/schemas/SignalState" }
+        trend: { $ref: "#/components/schemas/SignalTrend" }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        freshness: { $ref: "#/components/schemas/SignalFreshness" }
+    MapSignalDriver:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: { const: validated_rule_signal }
+    MapTodayActionLink:
+      type: object
+      additionalProperties: false
+      required: [id, code, version]
+      properties:
+        id: { type: string, format: uuid }
+        code: { $ref: "#/components/schemas/ActionCode" }
+        version: { type: integer, minimum: 1 }
+    MapSignalDetail:
+      type: object
+      additionalProperties: false
+      required: [code, state, trend, confidence, freshness, drivers, today_action_link]
+      properties:
+        code: { $ref: "#/components/schemas/SignalCode" }
+        state: { $ref: "#/components/schemas/SignalState" }
+        trend: { $ref: "#/components/schemas/SignalTrend" }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        freshness: { $ref: "#/components/schemas/SignalFreshness" }
+        drivers:
+          type: array
+          items: { $ref: "#/components/schemas/MapSignalDriver" }
+        today_action_link:
+          oneOf:
+            - $ref: "#/components/schemas/MapTodayActionLink"
+            - type: "null"
+    MapViewModel:
+      type: object
+      additionalProperties: false
+      required: [schema_version, local_date, generated_at, signals, selected]
+      properties:
+        schema_version: { const: 1 }
+        local_date: { type: string, format: date }
+        generated_at: { type: [string, "null"], format: date-time }
+        signals:
+          type: array
+          maxItems: 4
+          items: { $ref: "#/components/schemas/MapSignalSummary" }
+        selected:
+          oneOf:
+            - $ref: "#/components/schemas/MapSignalDetail"
             - type: "null"
     ActionCode:
       type: string

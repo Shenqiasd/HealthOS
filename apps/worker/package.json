@@ -11,7 +11,8 @@
     "test:privacy": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/privacy/privacy-job-runner.integration.spec.ts",
     "test:health": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/health/health-projection-dispatcher.integration.spec.ts",
     "test:profile": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/profile/profile-projection-worker.integration.spec.ts",
-    "test:recommendations": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/recommendations/recommendation-worker.integration.spec.ts"
+    "test:recommendations": "pnpm --filter @healthos/api prisma:generate && node --import tsx --test src/jobs/recommendations/recommendation-worker.integration.spec.ts",
+    "test:signals": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/signals/signal-projection-worker.integration.spec.ts"
   },
   "dependencies": {
     "@healthos/contracts": "workspace:*",
