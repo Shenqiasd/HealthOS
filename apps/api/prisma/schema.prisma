@@ -140,38 +140,40 @@ enum RecommendationReviewEventType {
 }
 
 model User {
-  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  status             UserStatus                @default(active)
-  timezone           String                    @default("Asia/Shanghai")
-  locale             String                    @default("zh-CN")
-  consentEpoch       Int                       @default(0) @map("consent_epoch")
-  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt          DateTime?                 @map("deleted_at") @db.Timestamptz(6)
-  identities         UserIdentity[]
-  devices            Device[]
-  consents           ConsentRecord[]
-  channelAccounts    ChannelAccount[]
-  healthSyncRuns     HealthSyncRun[]
-  dailyFacts         DailyHealthFactRevision[]
-  labDocuments       LabDocument[]
-  foodScans          FoodScan[]
-  profileEvents      ProfileEvent[]
-  profileSnapshots   ProfileSnapshot[]
-  profileCandidates  ProfileCandidate[]
-  recommendationRuns RecommendationRun[]
-  actions            ActionAssignment[]
-  feedbackEvents     FeedbackEvent[]
-  signals            SignalSnapshot[]
-  weeklyReviews      WeeklyReviewSnapshot[]
-  weeklyReviewShares WeeklyReviewShare[]
-  coachThreads       CoachThread[]
-  channelOutbox      ChannelOutbox[]
-  domainOutbox       DomainOutbox[]
-  safetyIncidents    SafetyIncident[]
-  refreshSessions    RefreshSession[]
-  securityEvents     SecurityEvent[]
-  exportJobs         ExportJob[]
+  id                    String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status                UserStatus                @default(active)
+  timezone              String                    @default("Asia/Shanghai")
+  locale                String                    @default("zh-CN")
+  consentEpoch          Int                       @default(0) @map("consent_epoch")
+  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt             DateTime?                 @map("deleted_at") @db.Timestamptz(6)
+  identities            UserIdentity[]
+  devices               Device[]
+  consents              ConsentRecord[]
+  channelAccounts       ChannelAccount[]
+  healthSyncRuns        HealthSyncRun[]
+  dailyFacts            DailyHealthFactRevision[]
+  labDocuments          LabDocument[]
+  foodScans             FoodScan[]
+  profileEvents         ProfileEvent[]
+  profileSnapshots      ProfileSnapshot[]
+  profileCandidates     ProfileCandidate[]
+  recommendationRuns    RecommendationRun[]
+  actions               ActionAssignment[]
+  feedbackEvents        FeedbackEvent[]
+  signals               SignalSnapshot[]
+  weeklyReviews         WeeklyReviewSnapshot[]
+  weeklyReviewShares    WeeklyReviewShare[]
+  coachThreads          CoachThread[]
+  channelOutbox         ChannelOutbox[]
+  domainOutbox          DomainOutbox[]
+  safetyIncidents       SafetyIncident[]
+  refreshSessions       RefreshSession[]
+  securityEvents        SecurityEvent[]
+  exportJobs            ExportJob[]
+  operationsReviewTasks ReviewTask[]              @relation("OperationsReviewSubject")
+  adminSubjectScopes    AdminActorSubjectScope[]
 
   @@map("users")
 }
@@ -952,17 +954,90 @@ model ConsumerInbox {
 }
 
 model ReviewTask {
-  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  taskType   String       @map("task_type")
-  subjectId  String       @map("subject_id") @db.Uuid
-  priority   String
-  status     RecordStatus @default(pending)
-  assigneeId String?      @map("assignee_id") @db.Uuid
-  slaAt      DateTime     @map("sla_at") @db.Timestamptz(6)
-  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taskType           String                   @map("task_type")
+  subjectId          String                   @map("subject_id") @db.Uuid
+  userId             String?                  @map("user_id") @db.Uuid
+  priority           String
+  status             RecordStatus             @default(pending)
+  assigneeId         String?                  @map("assignee_id") @db.Uuid
+  version            Int                      @default(1)
+  slaAt              DateTime                 @map("sla_at") @db.Timestamptz(6)
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                 @default(now()) @map("updated_at") @db.Timestamptz(6)
+  user               User?                    @relation("OperationsReviewSubject", fields: [userId], references: [id], onDelete: Cascade)
+  queueSnapshotItems AdminQueueSnapshotItem[]
 
   @@index([status, priority, slaAt])
+  @@index([userId, status, slaAt, id])
+  @@index([assigneeId, status, slaAt, id])
   @@map("review_tasks")
+}
+
+model AdminActor {
+  id             String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lookupHash     String                   @unique @map("lookup_hash")
+  displayLabel   String                   @map("display_label")
+  status         String                   @default("active")
+  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime                 @default(now()) @map("updated_at") @db.Timestamptz(6)
+  roles          AdminActorRole[]
+  subjectScopes  AdminActorSubjectScope[]
+  auditLogs      AuditLog[]
+  queueSnapshots AdminQueueSnapshot[]
+
+  @@index([status, id])
+  @@map("admin_actors")
+}
+
+model AdminActorRole {
+  actorId String     @map("actor_id") @db.Uuid
+  role    String
+  actor   AdminActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@id([actorId, role])
+  @@map("admin_actor_roles")
+}
+
+model AdminActorSubjectScope {
+  actorId String     @map("actor_id") @db.Uuid
+  userId  String     @map("user_id") @db.Uuid
+  actor   AdminActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([actorId, userId])
+  @@index([userId, actorId])
+  @@map("admin_actor_subject_scopes")
+}
+
+model AdminQueueSnapshot {
+  id                String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId           String                   @map("actor_id") @db.Uuid
+  queueKind         String                   @map("queue_kind")
+  statusFilter      String                   @map("status_filter")
+  filterHash        String                   @map("filter_hash")
+  authorizationHash String                   @map("authorization_hash")
+  expiresAt         DateTime                 @map("expires_at") @db.Timestamptz(6)
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor             AdminActor               @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  items             AdminQueueSnapshotItem[]
+
+  @@index([actorId, expiresAt])
+  @@map("admin_queue_snapshots")
+}
+
+model AdminQueueSnapshotItem {
+  snapshotId      String             @map("snapshot_id") @db.Uuid
+  position        Int
+  workItemId      String             @map("work_item_id") @db.Uuid
+  workItemVersion Int                @map("work_item_version")
+  snapshot        AdminQueueSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  workItem        ReviewTask         @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@id([snapshotId, position])
+  @@unique([snapshotId, workItemId])
+  @@index([workItemId])
+  @@map("admin_queue_snapshot_items")
 }
 
 model AuditLog {
@@ -973,11 +1048,34 @@ model AuditLog {
   resourceId                String                     @map("resource_id") @db.Uuid
   beforeHash                String?                    @map("before_hash")
   afterHash                 String?                    @map("after_hash")
+  adminActorId              String?                    @map("admin_actor_id") @db.Uuid
+  actorRole                 String?                    @map("actor_role")
+  reason                    String?
+  correlationId             String?                    @map("correlation_id") @db.Uuid
+  beforeJson                Json?                      @map("before_json") @db.JsonB
+  afterJson                 Json?                      @map("after_json") @db.JsonB
+  operationVersion          Int?                       @map("operation_version")
+  operationTxid             BigInt                     @default(dbgenerated("txid_current()")) @map("operation_txid")
   createdAt                 DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
   recommendationPublication RecommendationPublication?
+  adminActor                AdminActor?                @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
+  operationConsumption      OperationAuditConsumption?
 
   @@index([resourceType, resourceId, createdAt])
+  @@index([adminActorId, createdAt])
   @@map("audit_logs")
+}
+
+model OperationAuditConsumption {
+  auditId          String   @id @map("audit_id") @db.Uuid
+  workItemId       String   @map("work_item_id") @db.Uuid
+  operationVersion Int      @map("operation_version")
+  operationTxid    BigInt   @default(dbgenerated("txid_current()")) @map("operation_txid")
+  consumedAt       DateTime @default(now()) @map("consumed_at") @db.Timestamptz(6)
+  audit            AuditLog @relation(fields: [auditId], references: [id], onDelete: Restrict)
+
+  @@unique([workItemId, operationVersion])
+  @@map("operation_audit_consumptions")
 }
 
 model SafetyIncident {

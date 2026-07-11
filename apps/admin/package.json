@@ -5,9 +5,12 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "test": "node --import tsx --test tests/*.test.ts tests/*.test.tsx",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@healthos/contracts": "workspace:*",
+    "jose": "5.10.0",
     "next": "16.2.10",
     "react": "19.2.7",
     "react-dom": "19.2.7"
@@ -16,6 +19,7 @@
     "@types/node": "22.20.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "tsx": "4.21.0",
     "typescript": "5.9.3"
   }
 }

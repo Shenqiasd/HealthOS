@@ -34,6 +34,12 @@ importers:
 
   apps/admin:
     dependencies:
+      '@healthos/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      jose:
+        specifier: 5.10.0
+        version: 5.10.0
       next:
         specifier: 16.2.10
         version: 16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -53,6 +59,9 @@ importers:
       '@types/react-dom':
         specifier: 19.2.3
         version: 19.2.3(@types/react@19.2.14)
+      tsx:
+        specifier: 4.21.0
+        version: 4.21.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3
