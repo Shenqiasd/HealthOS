@@ -279,4 +279,62 @@ describe("health ingestion integration", () => {
       freshness.forUser(user.id, new Date("2026-07-10T06:30:00.000Z")),
     ).resolves.toMatchObject({ status: "current", latestLocalDate: "2026-07-09" });
   });
+
+  test("freezes sync identity and completion state after ingestion", async () => {
+    const { user } = await authorizedUser();
+    const otherUser = await database.user.create({ data: {} });
+    const result = await ingestion.ingest(user.id, randomUUID(), batch());
+    const run = await database.healthSyncRun.findUniqueOrThrow({
+      where: { id: result.syncRunId },
+    });
+
+    const identityMutations = [
+      { userId: otherUser.id },
+      { deviceId: "mutated-device" },
+      { anchorEpoch: run.anchorEpoch + 1 },
+      { idempotencyKey: randomUUID() },
+      { requestHash: randomUUID() },
+      { timezone: "UTC" },
+      { consentEpoch: run.consentEpoch + 1 },
+      { serverSequence: run.serverSequence + 1n },
+      { startedAt: new Date(run.startedAt.getTime() + 1_000) },
+      { correlationId: randomUUID() },
+    ];
+    for (const data of identityMutations) {
+      await expect(database.healthSyncRun.update({
+        where: { id: run.id },
+        data,
+      })).rejects.toThrow(/immutable|health sync/i);
+    }
+
+    await expect(database.healthSyncRun.update({
+      where: { id: run.id },
+      data: { status: "pending", completedAt: null },
+    })).rejects.toThrow(/transition|health sync/i);
+
+    const pending = await database.healthSyncRun.create({
+      data: {
+        userId: user.id,
+        deviceId: "synthetic-pending-device",
+        anchorEpoch: 1,
+        idempotencyKey: randomUUID(),
+        requestHash: randomUUID(),
+        timezone: "Asia/Shanghai",
+        consentEpoch: 1,
+        correlationId: randomUUID(),
+      },
+    });
+    await expect(database.healthSyncRun.update({
+      where: { id: pending.id },
+      data: { status: "completed" },
+    })).rejects.toThrow(/completed_at|transition|health sync/i);
+    await expect(database.healthSyncRun.update({
+      where: { id: pending.id },
+      data: { status: "failed", completedAt: new Date() },
+    })).rejects.toThrow(/transition|health sync/i);
+    await expect(database.healthSyncRun.update({
+      where: { id: pending.id },
+      data: { status: "completed", completedAt: new Date() },
+    })).resolves.toMatchObject({ status: "completed" });
+  });
 });

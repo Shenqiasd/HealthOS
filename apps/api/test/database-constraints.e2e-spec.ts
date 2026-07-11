@@ -247,6 +247,21 @@ describe("database invariants", () => {
   test("allows append-only deletion only inside the privacy-delete transaction", async () => {
     const { user } = await createPublishedSnapshot();
 
+    await database.healthSyncRun.create({
+      data: {
+        userId: user.id,
+        deviceId: "synthetic-delete-device",
+        anchorEpoch: 1,
+        idempotencyKey: randomUUID(),
+        requestHash: randomUUID(),
+        timezone: "Asia/Shanghai",
+        consentEpoch: 1,
+        status: "completed",
+        completedAt: new Date(),
+        correlationId: randomUUID(),
+      },
+    });
+
     await expect(database.user.delete({ where: { id: user.id } })).rejects.toThrow(
       /append-only/i,
     );
@@ -263,6 +278,7 @@ describe("database invariants", () => {
     await database.$queryRaw`SELECT "healthos_delete_frozen_user"(${user.id}::uuid)`;
 
     expect(await database.user.count({ where: { id: user.id } })).toBe(0);
+    expect(await database.healthSyncRun.count({ where: { userId: user.id } })).toBe(0);
   });
 
   test("rejects publication when canonical inputs reference unconfirmed labs", async () => {

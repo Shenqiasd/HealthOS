@@ -9,6 +9,7 @@ import { ConsentModule } from "./consent/consent.module";
 import { PrivacyModule } from "./privacy/privacy.module";
 import { ProfileModule } from "./profile/profile.module";
 import { RecommendationsModule } from "./recommendations/recommendations.module";
+import { TodayModule } from "./today/today.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { RecommendationsModule } from "./recommendations/recommendations.module"
     HealthModule,
     ProfileModule,
     RecommendationsModule,
+    TodayModule,
   ],
   controllers: [HealthController],
   providers: [ReadinessService],

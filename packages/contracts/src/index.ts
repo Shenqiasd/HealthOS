@@ -169,3 +169,64 @@ export interface ProfileSnapshotResponse {
   source_sequence: string;
   snapshot_hash: string;
 }
+
+export type TodayFreshnessStatus = "absent" | "partial" | "current" | "stale";
+
+export type TodayState =
+  | "active_action"
+  | "first_launch"
+  | "awaiting_recommendation"
+  | "stale_data"
+  | "profile_changed"
+  | "recommendation_withdrawn"
+  | "clinical_follow_up"
+  | "action_completed"
+  | "action_skipped"
+  | "action_rejected"
+  | "action_expired"
+  | "action_replaced";
+
+export interface TodayActionCommands {
+  complete: boolean;
+  lighter: boolean;
+  swap: boolean;
+  skip: boolean;
+  why: boolean;
+}
+
+export interface TodayActionViewModel {
+  id: string;
+  code: string;
+  status: "proposed" | "active";
+  duration_minutes: number;
+  difficulty: "light" | "standard";
+  reason_key: string;
+  signal_key: string;
+  commands: TodayActionCommands;
+}
+
+export interface TodayRecoveryViewModel {
+  code: Exclude<TodayState, "active_action">;
+  copy_key: string;
+  primary_command: "refresh" | "open_permissions" | "open_coach" | "none";
+}
+
+export interface TodayViewModel {
+  schema_version: 1;
+  state: TodayState;
+  local_date: string;
+  generated_at: string | null;
+  cache_identity: string;
+  correlation_id: string;
+  freshness: {
+    status: TodayFreshnessStatus;
+    coverage: number | null;
+    latest_local_date: string | null;
+  };
+  momo: {
+    state: "ready" | "waiting" | "care" | "celebrate" | "reset";
+    copy_key: string;
+  };
+  action: TodayActionViewModel | null;
+  recovery: TodayRecoveryViewModel | null;
+}
