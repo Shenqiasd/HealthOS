@@ -18,7 +18,10 @@ goal:
     interpreted_outcome: "A production-grade native iOS health companion reaches the plan's Task 27 release gates with durable, independently auditable evidence."
     input_shape: existing_plan
     audience: "HealthOS product, engineering, medical-review, operations, and release owners"
-    authority: needs_approval
+    authority: approved
+    authority_evidence:
+      - "2026-07-10: Product owner explicitly approved entering implementation Task 0 and continuing later engineering tasks after their technical and governance dependencies pass."
+      - "This approval does not substitute for named legal, privacy, medical, Apple, WeCom, provider, security, incident-response, or backup authority."
     proof_type: review
     completion_proof: "Task 27 and the Definition of Done pass against the implemented system, with a final Judge/PM audit recording full_outcome_complete: true."
     likely_misfire: "Declare success after reproducing the visual prototype or completing only a partial vertical slice."
@@ -67,13 +70,13 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T001
+active_task: T027
 
 tasks:
   - id: T001
     type: judge
     assignee: Judge
-    status: active
+    status: done
     reasoning_hint: high
     objective: "Audit the existing technical and implementation plans against current repository reality, then turn Task 0 into the largest safe executable first package without changing product files."
     inputs:
@@ -93,12 +96,58 @@ tasks:
       - "Largest safe first Worker package"
       - "Exact allowed_files, verify commands, and stop conditions"
       - "Blocked or deferred work"
-    receipt: null
-
+    receipt:
+      result: done
+      decision: approve_subgoal
+      full_outcome_complete: false
+      rationale: "当前仓库已有受保护的公开 GitHub 基线、完整技术/实施计划和视觉原型，但尚无生产应用代码。产品负责人已批准进入 Task 0；法律隐私、医学、Apple、企业微信和安全责任人仍未具名签署，因此完整 Task 0 不能诚实通过。先实现不依赖专业签字的治理证据结构、可测试 preflight 检查器和企业微信合成验证协议，是当前最大的安全开发包。"
+      worker_package:
+        objective: "建立 Task 0 可执行治理地基：创建全部治理证据模板、结构化决策状态、preflight 检查器及测试、企业微信合成数据验证协议；所有未获得的专业决定必须保持 pending，完整 readiness 检查必须继续失败。"
+        allowed_files:
+          - "docs/product/**"
+          - "spikes/wecom-synthetic/**"
+          - scripts/check-preflight-gates.mjs
+          - scripts/check-preflight-gates.test.mjs
+        verify:
+          - "node --test scripts/check-preflight-gates.test.mjs"
+          - "node scripts/check-preflight-gates.mjs --mode structure"
+          - "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked"
+          - "git diff --check"
+        stop_if:
+          - "实现要求虚构法律、隐私、医学、Apple、企业微信、安全或供应商批准。"
+          - "实现要求使用真实健康数据、真实企业微信用户或生产凭证。"
+          - "实现需要 allowed_files 之外的文件。"
+          - "结构检查或测试连续两次失败且根因不明。"
+      evidence:
+        - "git status --short --branch: main 与 origin/main 一致且工作树 clean"
+        - "当前 HEAD: a1d0386 docs: record public GitHub setup"
+        - "仓库已有规划、GoalBuddy 控制、GitHub 基线和 React/Vite 视觉原型，但没有 apps/、packages/ 或生产基础设施"
+        - "implementation plan Task 0 要求 11 份治理文件、WeCom synthetic spike 和 executable preflight gate"
+        - "technical design 26 节要求四类具名组织责任；这些责任尚无可验证签字"
+        - "用户在长期目标中明确授权进入 implementation Task 0"
+        - "T006 receipt 证明远端 Actions 仍受 GitHub billing lock 阻塞，但不阻止此本地合成数据包"
+      subgoal_contract: null
+      parallel_safety:
+        parallel_allowed: false
+        reason: "GoalBuddy 当前规定单 active_task；先由 PM 把该包固化为窄范围 Worker 任务。"
+      blocked_tasks:
+        - "T006: 等待用户解除 GitHub billing lock"
+        - "T100 完整关闭 Task 0：等待治理证据模板完成及具名专业决定"
+      missing_evidence:
+        - "法律/隐私负责人及生产数据区域决定"
+        - "医学 reviewer 与 backup"
+        - "企业微信主体、目标身份模型及管理员"
+        - "Apple Developer/App Store/entitlement/大陆分发负责人"
+        - "事故响应、备份和供应商责任人"
+      required_board_updates:
+        - "记录用户对进入 implementation Task 0 的产品负责人授权"
+        - "新增并激活上述 Worker package，保持 T100 queued"
+        - "保持 T006 blocked，不重试 billing"
+        - "Worker 完成后激活 PM/Judge 复核并请求最少必要具名责任输入"
   - id: T002
     type: pm
     assignee: PM
-    status: queued
+    status: done
     reasoning_hint: high
     objective: "Apply the T001 decision to the rolling board, request only mandatory owner inputs, and activate the first Task 0 Worker package when its authority is real."
     inputs:
@@ -112,8 +161,1411 @@ tasks:
       - "Updated board"
       - "Named missing inputs, if any"
       - "Activated Worker task or truthful blocked receipt"
-    receipt: null
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/goal.md
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T002.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Recorded the product owner's explicit authority to enter Task 0, preserved every professional approval as independently pending, created the T007 synthetic-only governance Worker package, and queued T008 for the next PM boundary."
+      evidence:
+        - "state.yaml intake authority is approved with two scoped authority-evidence statements."
+        - "T007 has explicit allowed_files, passing verification commands, and stop conditions."
+        - "T006 remains blocked on the external GitHub billing lock."
+        - "T100 remains queued and cannot be marked done until full Task 0 readiness evidence exists."
+      risks_remaining:
+        - "Named legal/privacy, medical, Apple, WeCom, provider, security, incident-response, and backup authority is still missing."
+        - "Remote GitHub CI remains unavailable until the user clears the billing lock."
+      next: "Activate T007 and implement the Task 0 governance foundation using synthetic data only."
+  - id: T007
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: xhigh
+    objective: "Build the executable Task 0 governance foundation without fabricating approvals: evidence templates, structured decision states, a tested preflight checker, and a synthetic-only WeCom feasibility protocol."
+    inputs:
+      - "T001 Judge receipt"
+      - "Implementation plan Task 0"
+      - "Technical design sections 5, 6, 9, 13, 20, 24, and 26"
+    allowed_files:
+      - "docs/product/**"
+      - "spikes/wecom-synthetic/**"
+      - "scripts/check-preflight-gates.mjs"
+      - "scripts/check-preflight-gates.test.mjs"
+    verify:
+      - "node --test scripts/check-preflight-gates.test.mjs"
+      - "node scripts/check-preflight-gates.mjs --mode structure"
+      - "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would fabricate legal, privacy, medical, Apple, WeCom, provider, security, incident-response, or backup approval."
+      - "Implementation would use real health data, real WeCom users, or production credentials."
+      - "Implementation needs files outside allowed_files."
+      - "Structure verification or tests fail twice without a confirmed root cause."
+    expected_output:
+      - "All Task 0 governance artifacts exist with machine-readable pending/approved/rejected states and evidence fields."
+      - "The checker distinguishes structural completeness from production readiness."
+      - "Structure mode passes while readiness remains truthfully blocked on named missing authority."
+      - "The WeCom protocol can be executed later with synthetic identities and records a binary PASS/FAIL decision."
+    receipt:
+      result: done
+      changed_files:
+        - docs/product/apple-platform-readiness.md
+        - docs/product/clinical-governance.md
+        - docs/product/data-flow.md
+        - docs/product/data-inventory.md
+        - docs/product/metrics-contract.md
+        - docs/product/preflight-gates.json
+        - docs/product/privacy-impact-assessment.md
+        - docs/product/provider-register.md
+        - docs/product/regulatory-positioning.md
+        - docs/product/retention-schedule.md
+        - docs/product/threat-model.md
+        - docs/product/wecom-feasibility.md
+        - scripts/check-preflight-gates.mjs
+        - scripts/check-preflight-gates.test.mjs
+        - spikes/wecom-synthetic/README.md
+        - spikes/wecom-synthetic/protocol.json
+        - spikes/wecom-synthetic/result-template.json
+      commands:
+        - cmd: "node --test scripts/check-preflight-gates.test.mjs"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode structure"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked"
+          status: pass
+        - cmd: "git diff --cached --check"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T007.json --allow docs/product/** --allow spikes/wecom-synthetic/** --allow scripts/check-preflight-gates.mjs --allow scripts/check-preflight-gates.test.mjs"
+          status: pass
+      summary: "Created the complete Task 0 governance evidence structure, a JSON-backed gate manifest, a tested structure/readiness checker, and a synthetic-only official WeCom feasibility protocol. Structure mode passes. Production readiness remains intentionally blocked on 11 professional decisions plus the binary WeCom result. The only approved gate is the product owner's evidenced authority to begin Task 0."
+      deviations:
+        - "The required goal_worker dispatch produced no allowed-file changes within one wait window and was terminated per GoalBuddy recovery policy; PM fallback completed the same declared Worker scope."
+        - "Added preflight-gates.json and a checker test file inside the approved docs/product and scripts scopes to avoid parsing Markdown as machine state."
+      remaining_blockers:
+        - "Named legal/privacy owner and production region decision"
+        - "Named medical reviewer and backup"
+        - "Named Apple release owner and account readiness"
+        - "Named WeCom administrator and sandbox identity model"
+        - "Named provider, security, incident-response, backup, metrics, and infrastructure owners"
+        - "GitHub Actions billing lock in T006"
+      verification_attempts: 2
+      stopped_because: null
+      commit: f252e8b
+  - id: T008
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Review T007 evidence, keep unresolved professional decisions blocked, and prepare the next largest synthetic-only M0 engineering package permitted by the implementation plan."
+    inputs:
+      - "T007 receipt"
+      - "Task 0 and Task 1 from the implementation plan"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T100 done until full readiness mode passes with real evidence."
+      - "Do not let T006 billing lock block local synthetic-only foundation work."
+    expected_output:
+      - "T007 receipt audit"
+      - "Exact remaining named authority requests"
+      - "Populated and activated next Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T008.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T007 as structurally complete and truthfully blocked for production readiness. Populated T101 as the next largest synthetic-only M0 package: workspace boundaries, local services, CI, provider-neutral Terraform controls, and two ADRs. The package explicitly forbids selecting or provisioning a production region."
+      evidence:
+        - "T007 commit f252e8b passes five checker tests, structure mode, expected-blocked readiness mode, and scope guard."
+        - "preflight-gates.json preserves 11 pending professional gates and one pending WeCom decision."
+        - "T101 now has explicit inputs, allowed_files, verify, stop_if, and expected_output."
+      risks_remaining:
+        - "Terraform CLI is not currently installed and must be made available before T101 verification."
+        - "GitHub Actions remains blocked by T006 billing lock; local verification remains authoritative for this package."
+      next: "Activate T101 and implement the synthetic repository foundation."
 
+  - id: T009
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T101 foundation evidence and turn implementation Task 2 into the next executable API, worker, admin, and OpenAPI contract package without weakening pending production gates."
+    inputs:
+      - "T101 receipt and commit"
+      - "Implementation plan Task 2"
+      - "Technical design module boundaries and architecture"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Keep all development synthetic-only."
+      - "Do not select real providers or production infrastructure."
+      - "Populate exact allowed_files, verification, and stop conditions before activating T102."
+    expected_output:
+      - "T101 evidence audit"
+      - "Executable T102 Worker package"
+      - "Updated residual-risk and dependency record"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T009.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T101 as complete for its declared synthetic foundation scope and populated T102 with exact service, contract, admin, test, dependency, and safety boundaries. T102 readiness must fail closed until real dependencies exist, while liveness, correlation, validation, redacted errors, worker boot, admin build, and OpenAPI consistency are testable now."
+      evidence:
+        - "T101 commit 243678d and receipt contain all required local verification passes."
+        - "T102 now owns only Task 2 source/config files plus root dependency and lint/typecheck configuration."
+        - "T010 is queued as the next PM dependency boundary."
+      risks_remaining:
+        - "Remote GitHub CI is still blocked by T006 billing lock."
+        - "Optional local container-health smoke remains a host Docker Desktop issue and is not hidden by readiness stubs."
+      next: "Activate T102 and implement the runnable service and OpenAPI contract skeleton."
+  - id: T010
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T102 service-contract evidence, then populate the next dependency-safe Worker package from implementation Task 3 or the iOS design-system lane."
+    inputs:
+      - "T102 receipt and commit"
+      - "Implementation plan dependency map"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Prefer the largest vertical package whose dependencies are green."
+      - "Do not bypass pending real-data, Apple-signing, clinical, provider, or production-region gates."
+    expected_output:
+      - "T102 evidence audit"
+      - "Next executable Worker package with exact scope and verification"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T010.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T102 as complete for its service-contract scope, added a narrow T011 secret-scan hygiene task, and populated T103 as the next full PostgreSQL/Prisma package with explicit database safety invariants, migration reset, integration tests, and runbook evidence. Production data and non-PostgreSQL substitutes remain forbidden."
+      evidence:
+        - "T102 commit 9b6acb3 passes all declared verification and a zero-known-vulnerability audit."
+        - "T011 removes only a scanner-shaped test literal without weakening runtime detection."
+        - "T103 now contains exact files, commands, stop conditions, and database-enforced acceptance criteria."
+      risks_remaining:
+        - "The host Docker engine previously could not start new containers; T103 must use real local PostgreSQL and may need a non-destructive host recovery path."
+        - "Remote CI remains blocked by T006 billing lock."
+      next: "Activate T011, then continue directly to T103."
+  - id: T011
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: medium
+    objective: "Remove the scanner-shaped fake API-key literal from the workspace security test while preserving the runtime secret-detection assertion."
+    inputs:
+      - "T102 remaining blocker"
+      - "scripts/check-workspace.test.mjs"
+    allowed_files:
+      - "scripts/check-workspace.test.mjs"
+    verify:
+      - "node --test scripts/check-workspace.test.mjs"
+      - "node -e \"const s=require('node:fs').readFileSync('scripts/check-workspace.test.mjs','utf8');if(s.includes('sk-proj-'))process.exit(1)\""
+      - "git diff --check"
+    stop_if:
+      - "The change weakens the runtime assertion that production-looking secrets are rejected."
+      - "The change needs files outside allowed_files."
+    expected_output:
+      - "The test still constructs a production-looking value at runtime and passes."
+      - "No scanner-shaped sk-proj- literal remains in the tracked test source."
+    receipt:
+      result: done
+      changed_files:
+        - scripts/check-workspace.test.mjs
+      commands:
+        - cmd: "node --test scripts/check-workspace.test.mjs"
+          status: pass
+        - cmd: "node -e static source assertion for absence of sk-proj-"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "scope-guard T011 for scripts/check-workspace.test.mjs"
+          status: pass
+      summary: "Rewrote the fake API-key fixture to assemble its scanner-shaped value at runtime. The secret detector still rejects the production-looking value, all four workspace tests pass, and the tracked source no longer contains the static sk-proj- pattern. Commit b2af78f is limited to the declared test file."
+      deviations:
+        - "The goal_worker produced the correct allowed-file edit but the dispatch process timed out before returning a receipt; PM fallback verified, committed, and recorded the work without repeating it."
+      remaining_blockers:
+        - "Remote secret-scan CI still cannot run until the T006 GitHub billing lock is cleared."
+      verification_attempts: 1
+      stopped_because: null
+      commit: b2af78f
+
+  - id: T012
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: xhigh
+    objective: "Audit T103 persistence evidence and select the next dependency-safe M0 package, separating synthetic identity implementation from Apple account, entitlement, and distribution authority."
+    inputs:
+      - "T103 receipt and commit"
+      - "Implementation plan Tasks 4-6 and dependency map"
+      - "Apple platform and governance gate state"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not fabricate Apple team, bundle, entitlement, signing, or App Store approval."
+      - "Continue synthetic/offline implementation if the plan permits it without those approvals."
+      - "Populate exact allowed_files, verification, and stop conditions before activating the next Worker."
+    expected_output:
+      - "T103 evidence audit"
+      - "Identity/consent/iOS dependency decision"
+      - "Next executable Worker package or exact mandatory owner request"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T012.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+      summary: "Audited T103 as complete and split Task 4 at the real authority boundary. T013 can implement and verify the complete backend identity/session/device slice with synthetic keys and PostgreSQL. Apple accounts, bundle IDs, entitlements, signing, APNs, Keychain, and iOS Auth remain explicitly gated and cannot be inferred from backend success."
+      evidence:
+        - "T103 commit 1da634c passes fresh PostgreSQL migration reset, nine integration tests, full tests, and zero-vulnerability audit."
+        - "T013 has exact source, migration, contract, test, and secret-handling boundaries."
+        - "T014 is queued to preserve and schedule the remaining iOS/Apple half of Task 4."
+      risks_remaining:
+        - "Apple release owner and account/entitlement evidence remain missing."
+        - "Remote CI remains blocked by T006 billing lock."
+      next: "Activate T013 and implement synthetic backend identity and secure sessions."
+  - id: T013
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: xhigh
+    objective: "Implement the backend half of Task 4 with synthetic cryptographic fixtures: Apple JWT verification, nonce replay defense, subject hashing, rotating refresh sessions, logout/revocation, device registration, security events, API contracts, and a second migration."
+    inputs:
+      - "T103 persistence receipt and migration discipline"
+      - "Implementation plan Task 4 backend cases"
+      - "Apple platform gate remains pending for real accounts, entitlements, signing, and distribution"
+    allowed_files:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260710210000_identity/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/identity/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/session-key-rotation.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test -- identity"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires a real Apple token, Apple Developer account, bundle ID, entitlement, signing certificate, APNs token, or production credential."
+      - "Raw Apple subject, refresh token, nonce, APNs token, or session secret would be stored or logged without hashing/encryption."
+      - "Refresh rotation is not atomic or token reuse does not revoke the session family."
+      - "A deleted/frozen user can obtain a session."
+      - "Implementation needs files outside allowed_files."
+    expected_output:
+      - "Synthetic signed Apple JWTs prove issuer, audience, expiry, signature, and nonce behavior offline."
+      - "Provider subjects and refresh tokens are stored only as keyed/one-way hashes."
+      - "Refresh tokens rotate atomically; replay/revocation/deleted-user cases fail closed and create security events."
+      - "Device registration is idempotent by user/device and never trusts a body user_id."
+      - "OpenAPI and TypeScript contracts describe the implemented identity endpoints."
+      - "No iOS entitlement, signing, Keychain, or real Apple account is claimed complete."
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/20260710210000_identity/migration.sql
+        - apps/api/src/app.module.ts
+        - apps/api/src/identity/access-token.guard.ts
+        - apps/api/src/identity/apple-token-verifier.spec.ts
+        - apps/api/src/identity/apple-token-verifier.ts
+        - apps/api/src/identity/crypto.ts
+        - apps/api/src/identity/device.service.ts
+        - apps/api/src/identity/dto/apple-login.dto.ts
+        - apps/api/src/identity/dto/refresh-token.dto.ts
+        - apps/api/src/identity/dto/register-device.dto.ts
+        - apps/api/src/identity/identity.controller.ts
+        - apps/api/src/identity/identity.integration.spec.ts
+        - apps/api/src/identity/identity.module.ts
+        - apps/api/src/identity/identity.service.ts
+        - apps/api/src/identity/session.service.ts
+        - infra/runbooks/session-key-rotation.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+          status: pass
+        - cmd: "fresh PostgreSQL 17 init plus prisma migrate reset --force"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test -- identity"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:identity"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "OpenAPI YAML parse and five identity-path assertion"
+          status: pass
+        - cmd: "scope-guard T013 verify"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Implemented the complete synthetic backend identity slice: offline Apple JWT verification, one-time nonce consumption, keyed subject hashing, short access tokens, atomically rotating refresh families with row locking and reuse revocation, inactive-user rejection, logout, authenticated idempotent device registration with purpose-separated APNs encryption/fingerprinting keys, append-only security events, dual-key access-token rotation, API contracts, migration, and runbook."
+      evidence:
+        - "Commit d44991f"
+        - "Fresh PostgreSQL 17 applied initial and 20260710210000_identity migrations from zero"
+        - "Identity suite: 12/12 tests passed, including concurrency, replay, inactive user, key rotation, encrypted APNs, and family revocation"
+        - "Full repository tests passed; pnpm audit reported no known vulnerabilities"
+        - "OpenAPI parses with five identity endpoints and device request has no user_id"
+        - "PostgreSQL stopped after verification and T013 scope guard reported zero violations"
+      risks_remaining:
+        - "Real Apple Developer account, client ID, entitlement, signing, Keychain, APNs, and App Store evidence remain gated and are not claimed complete."
+        - "Remote GitHub Actions remain blocked by the existing billing lock; all evidence in this receipt is local and synthetic."
+      next: "T014 PM audits T013, preserves the unsigned iOS/Apple residual gate, and activates the next largest safe Task 5 or native-shell package."
+      harness: codex
+  - id: T014
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T013 backend identity evidence and choose the next safe package across consent/privacy backend and the unsigned native iOS shell, while preserving the remaining Task 4 Apple/iOS gate."
+    inputs:
+      - "T013 receipt"
+      - "Implementation plan Tasks 4-6"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T104 done until iOS Keychain/Auth tests and applicable Apple evidence pass."
+      - "Do not block synthetic backend work on signing credentials that it does not use."
+    expected_output:
+      - "T013 audit"
+      - "Updated T104 residual scope"
+      - "Next executable Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "git show --check --oneline d44991f"
+          status: pass
+        - cmd: "test \"$(xcode-select -p)\" = /Library/Developer/CommandLineTools"
+          status: pass
+        - cmd: "test ! -d /Applications/Xcode.app && test ! -d /Applications/Xcode-beta.app"
+          status: pass
+        - cmd: "scope-guard T014 verify"
+          status: pass
+        - cmd: "goalbuddy resume --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T013 as complete for backend identity only, preserved the remaining Task 4 native Apple/Keychain scope as blocked, recorded the full-Xcode blocker on the native shell, and created T015 as the largest safe PostgreSQL-verifiable Task 5 backend privacy package with T016 as its audit boundary."
+      evidence:
+        - "T013 commit d44991f and receipt contain fresh migration, 12/12 identity tests, full repository tests, clean dependency audit, and scope proof."
+        - "T104 now names only the unimplemented native Apple/Auth/Keychain/APNs scope and cannot be mistaken for completed Task 4."
+        - "xcodebuild and simctl are unavailable because only /Library/Developer/CommandLineTools is active and no Xcode app is installed."
+        - "T015 has exact file scope, fresh PostgreSQL verification, privacy invariants, and stop conditions; it needs no real health data or production provider."
+      risks_remaining:
+        - "Task 4 and Task 6 native work remain blocked until full Xcode is installed and selected."
+        - "Real Apple platform evidence and named privacy/retention authority remain pending."
+        - "Remote GitHub Actions remain unavailable under the existing billing lock."
+      next: "Activate T015 and implement the complete synthetic server-side consent, export, deletion, tombstone, and no-send reconciliation lifecycle."
+      harness: codex
+  - id: T015
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: xhigh
+    objective: "Implement the complete server-side half of Task 5 with synthetic data: versioned consent and global consent epochs, independent notification/health-processing grants, queued-send suppression after withdrawal, authenticated settings, idempotent export, processing freeze and retryable deletion, minimal hashed tombstones, and fail-closed post-restore reconciliation."
+    inputs:
+      - "T013 authenticated-user and session ownership contract"
+      - "T103 append-only persistence and transactional outbox foundation"
+      - "Implementation plan Task 5 backend cases"
+      - "Technical design privacy and no-send invariants"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711014000_consent_privacy/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/identity/identity.module.ts"
+      - "apps/api/src/consent/**"
+      - "apps/api/src/privacy/**"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/privacy/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/privacy-lifecycle.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:privacy"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/worker test:privacy"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would use real health data, real provider calls, production credentials, or unapproved retention values."
+      - "Consent would be inferred from data presence, combined across independent purposes, mutated in place, or checked only when a message is queued."
+      - "A delete request would not atomically freeze processing, revoke sessions, and suppress pending external sends."
+      - "A deletion tombstone would contain a raw user/provider identifier, health content, or other data beyond the minimum reconciliation proof."
+      - "Restore reconciliation could permit external sends before consent, deletion, and outbox state is proven consistent."
+      - "Implementation needs files outside allowed_files."
+    expected_output:
+      - "Append-only consent records advance a per-user epoch for every grant or withdrawal and keep notification consent independent from health processing."
+      - "Authenticated APIs never trust body user_id and expose current settings, versioned consent writes, export status, and deletion status through shared contracts."
+      - "Withdrawal immediately suppresses queued messages whose required epoch or purpose is no longer valid; provider invocation has a second fail-closed eligibility check."
+      - "Export follows requested -> generating -> ready -> expired and duplicate idempotency keys resolve to one job."
+      - "Deletion follows requested -> frozen -> deleting -> completed or failed_retryable, with retry-safe jobs and a minimal keyed user hash tombstone outside ordinary restore scope."
+      - "Post-restore reconciliation defaults to no-send until consent, deletion tombstones, and outbox suppression are reconciled."
+      - "No unapproved retention duration or real external integration is claimed complete."
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/20260711014000_consent_privacy/migration.sql
+        - apps/api/src/app.module.ts
+        - apps/api/src/identity/identity.module.ts
+        - apps/api/src/consent/consent.controller.ts
+        - apps/api/src/consent/consent.integration.spec.ts
+        - apps/api/src/consent/consent.module.ts
+        - apps/api/src/consent/consent.service.ts
+        - apps/api/src/consent/dto/write-consent.dto.ts
+        - apps/api/src/privacy/dto/privacy-request.dto.ts
+        - apps/api/src/privacy/file-privacy-control.store.spec.ts
+        - apps/api/src/privacy/file-privacy-control.store.ts
+        - apps/api/src/privacy/privacy.controller.ts
+        - apps/api/src/privacy/privacy.integration.spec.ts
+        - apps/api/src/privacy/privacy.module.ts
+        - apps/api/src/privacy/privacy.service.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/privacy/file-privacy-control.store.ts
+        - apps/worker/src/jobs/privacy/privacy-job-runner.integration.spec.ts
+        - apps/worker/src/jobs/privacy/privacy-job-runner.ts
+        - infra/runbooks/privacy-lifecycle.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+          status: pass
+        - cmd: "fresh PostgreSQL 17 init plus three-migration reset"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:privacy"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/worker test:privacy"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "prisma migrate diff migrations to datamodel --exit-code"
+          status: pass
+        - cmd: "OpenAPI parse, local-ref resolution, ownership and object-key exposure assertions"
+          status: pass
+        - cmd: "scope-guard T015 verify"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Implemented the synthetic server-side Task 5 privacy slice: append-only purpose-specific consent with globally serialized epochs and request hashes; multi-purpose consent requirements on channel/domain work; provider/withdrawal linearization; authenticated settings and export/deletion APIs with no body user_id; atomic processing freeze, session revocation, and dual-outbox suppression; leased export/deletion state machines; deterministic scoped deletion-status tokens; append-only deletion fences and no-send gate on a restore-separated control volume; keyed-version restore reconciliation; shared contracts, third migration, and runbook."
+      evidence:
+        - "Commit c425bdc"
+        - "Fresh PostgreSQL 17 applied all three migrations from zero and Prisma migrate diff reported no difference"
+        - "API privacy suite: 12/12 passed; worker privacy suite: 3/3 passed"
+        - "Tests cover concurrent idempotent consent, changed-payload rejection, append-only records, independent and combined purposes, withdraw/regrant suppression, provider/withdraw ordering, cross-user export rejection, scoped deletion status, atomic channel/domain freeze, leased retry, hard delete, external tombstone, and old-backup reconciliation"
+        - "Full repository tests and type/lint checks passed; dependency audit reported no known vulnerabilities"
+        - "OpenAPI contains 12 paths, all local refs resolve, privacy bodies contain no user_id, and public export responses expose no internal object key"
+        - "Independent privacy review identified same-database tombstone, single-purpose outbox, DomainOutbox ownership, idempotency, lease, and TOCTOU risks; the final implementation and tests address them"
+        - "PostgreSQL stopped after verification and T015 scope guard reported zero violations"
+      deviations:
+        - "Before implementation, PM added apps/api/src/identity/identity.module.ts to allowed_files so privacy controllers could reuse the existing access guard rather than duplicate JWT verification; the board correction is commit 718518a."
+        - "The primary-database deletion tombstone design was rejected after independent review. The final authoritative fence and send gate use append-only journals under PRIVACY_CONTROL_PATH, which the runbook requires outside ordinary PostgreSQL restore scope."
+        - "A second read-only review agent did not return within bounded waits and was terminated; no evidence claim relies on that attempt."
+      risks_remaining:
+        - "Retention durations, legal hold behavior, production region, privacy owner approval, and deletion/re-registration policy remain pending named authority and are not hard-coded."
+        - "Production must provision an encrypted independent privacy-control volume, retain prior HMAC key versions for the approved restore horizon, and grant healthos_delete_frozen_user only to a dedicated privacy worker role."
+        - "Object-storage export writing and signed download URLs remain blocked on the planned object-storage adapter and approved retention policy; the public API currently exposes status/availability only."
+        - "PrivacyJobRunner is implemented and tested but production scheduling/lease orchestration is deferred to the worker orchestration task."
+        - "Native iOS consent/settings UI remains in T105, blocked behind full Xcode availability. Remote GitHub Actions remain blocked by billing."
+      next: "T016 audits T015, narrows T105 to native consent/settings, and selects the next safe backend package while Xcode remains unavailable."
+      harness: codex
+  - id: T016
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T015 privacy lifecycle evidence, update the remaining Task 5 iOS scope, and choose the next safe package while Xcode and Apple authority remain independently gated."
+    inputs:
+      - "T015 receipt"
+      - "Implementation plan Tasks 5-8"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T105 done before native consent/settings tests pass."
+      - "Do not claim a retention, legal, Apple, or release decision that lacks named authority."
+      - "Continue safe backend work if Xcode remains unavailable."
+    expected_output:
+      - "T015 evidence audit"
+      - "Updated T105 residual iOS scope"
+      - "Next executable Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "git show --check --oneline c425bdc"
+          status: pass
+        - cmd: "scope-guard T016 verify"
+          status: pass
+        - cmd: "goalbuddy resume --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T015 as complete for the synthetic server/worker privacy slice, narrowed T105 to native consent/settings and blocked it on the real Xcode dependency, blocked native HealthKit T107 without blocking the goal, and created T017 as the full synthetic server-side Task 8 ingestion package with T018 as its audit boundary."
+      evidence:
+        - "T015 commit c425bdc contains all declared product files and passes fresh three-migration PostgreSQL reset, 12 API privacy tests, 3 worker privacy tests, full repository checks, zero migration drift, clean audit, and scope guard."
+        - "T015 receipt preserves retention, object storage, worker scheduling, external privacy volume, dedicated DB role, native UX, and GitHub Actions as explicit residual risks."
+        - "T105 now names only native consent/settings work and cannot be mistaken for completed implementation Task 5."
+        - "T107 records the full-Xcode/HealthKit blocker; T017 accepts synthetic day aggregates only and explicitly excludes native or true-device claims."
+        - "T017 has exact source, migration, contract, worker, PostgreSQL verification, consent/primary-device/idempotency invariants, and stop conditions."
+      risks_remaining:
+        - "Full Xcode, simulator, Apple/HealthKit entitlement, and true-device evidence remain unavailable."
+        - "The synthetic backend contract may need generated-client adjustments after T107/T108 native work becomes executable."
+        - "Remote GitHub Actions remain blocked by billing; provider and named medical/privacy decisions remain pending."
+      next: "Activate T017 and implement synthetic server-side health ingestion, immutable daily facts, freshness, atomic domain outbox, and idempotent worker dispatch."
+      harness: codex
+  - id: T017
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: xhigh
+    objective: "Implement the complete server-side half of Task 8 using synthetic day-level aggregates: authenticated health batch ingestion, current health-processing consent and primary-device enforcement, idempotent replay, server sequences, immutable fact revisions/current projection, source-vector conflict handling, freshness, atomic domain outbox, and idempotent worker consumer dispatch."
+    inputs:
+      - "T103 persistence constraints and publication patterns"
+      - "T013 authenticated device ownership"
+      - "T015 consent epochs, processing freeze, and domain-outbox requirements"
+      - "Implementation plan Task 8 backend cases"
+      - "Technical design HealthKit server contract and revision semantics"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711033000_health_ingestion/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/health/**"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/health/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/health-ingestion.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:health"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/worker test:health"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would accept raw HealthKit samples, real user data, production credentials, or unapproved metrics beyond the day-level V1 contract."
+      - "A missing or stale health-processing consent, deleting user, non-owned device, or non-primary device could upload facts."
+      - "A duplicate idempotency key with changed content could create a second run or mutate prior facts."
+      - "Daily facts would overwrite history rather than append revisions, or server sequence/source-vector conflict resolution would be nondeterministic."
+      - "Fact revisions and the profile-projection domain outbox would not commit atomically with consent requirements."
+      - "Worker retry could process one domain event more than once or bypass the consumer inbox."
+      - "Implementation needs files outside allowed_files."
+    expected_output:
+      - "OpenAPI rejects impossible values, unknown metrics, raw sample payloads, malformed dates/timezones, and batches without stable idempotency/device/anchor fields."
+      - "The API derives user ownership from the access token and verifies active user, current health-processing grant epoch, and the single primary health device."
+      - "One accepted batch receives a monotonic server sequence; exact replay returns the same result and changed-payload reuse conflicts."
+      - "Each changed day/metric creates an immutable revision; identical input is not duplicated and the current projection resolves deterministically from server sequence and source vector."
+      - "Accepted revisions and one profile-projection domain event with required consent epoch commit in one transaction."
+      - "The worker claims domain events with leases, records ConsumerInbox idempotency, and schedules bounded reconciliation without duplicate side effects."
+      - "Freshness reports distinguish current, stale, partial, and absent synthetic coverage without making medical interpretations."
+      - "No native HealthKit, generated Swift client, entitlement, or true-device behavior is claimed complete."
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711033000_health_ingestion/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/health/daily-fact-projector.ts
+        - apps/api/src/health/dto/health-sync-batch.dto.ts
+        - apps/api/src/health/freshness.service.ts
+        - apps/api/src/health/health-ingestion.integration.spec.ts
+        - apps/api/src/health/health-ingestion.service.ts
+        - apps/api/src/health/health-types.ts
+        - apps/api/src/health/health.controller.ts
+        - apps/api/src/health/health.module.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/health/health-projection-dispatcher.integration.spec.ts
+        - apps/worker/src/jobs/health/health-projection-dispatcher.ts
+        - infra/runbooks/health-ingestion.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "fresh PostgreSQL 17 cluster on 127.0.0.1:55432; prisma migrate deploy"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api exec prisma validate --schema prisma/schema.prisma"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api exec prisma migrate status --schema prisma/schema.prisma"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url <ephemeral-shadow> --exit-code"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T017.json <T017 allowlist>"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Implemented the server-side HealthKit aggregate ingestion boundary: authenticated and consent-gated idempotent batches, primary-device enforcement, monotonic server sequences, immutable fact revisions and current projection, timezone-aware freshness, reconciliation events, atomic consent-aware domain outbox, and fenced idempotent worker dispatch."
+      evidence:
+        - "Commit 48bd1cc (feat: add health ingestion and fact projections)"
+        - "Initial API and worker integration invocations lacked DATABASE_URL and failed before exercising behavior; both were superseded by the passing fresh-PostgreSQL runs recorded above."
+        - "Initial migrate diff used unsupported Prisma option --to-schema and failed without changing the database; the corrected --to-schema-datamodel command passed."
+        - "Fresh PostgreSQL 17 database applied all four migrations from zero"
+        - "API health ingestion integration suite passed 9/9"
+        - "Worker health projection dispatcher suite passed 3/3"
+        - "Migration history and Prisma schema reported: No difference detected"
+        - "OpenAPI contract exposes authenticated /health/sync and /health/freshness without a caller-supplied user_id"
+        - "Synthetic day-level aggregate fixtures only; no real health data or provider credentials used"
+      risks_remaining:
+        - "Native HealthKit authorization, encrypted local queue, BGTask scheduling, and true-device verification remain blocked until full Xcode is installed and belong to T107/T108."
+        - "The dispatcher domain class is integration-tested; production polling/scheduler composition remains a later worker/runtime task."
+        - "Real Apple Developer, HealthKit entitlement, APNs, and TestFlight evidence remains an external readiness gate."
+        - "GitHub-hosted CI execution remains externally blocked by the repository billing state."
+      next: "T018 PM audit: reconcile Task 8 server-side evidence, leave native subtasks blocked truthfully, and activate the next largest dependency-safe backend package."
+  - id: T018
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T017 health-ingestion evidence, update the remaining Task 8 iOS/generated-client scope, and select the next safe backend package while Xcode and provider gates remain pending."
+    inputs:
+      - "T017 receipt"
+      - "Implementation plan Tasks 7-10"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T108 done before generated Swift client and synthetic local-API sync evidence pass."
+      - "Do not infer HealthKit entitlement, true-device, object-storage, medical, or provider approval."
+      - "Continue the largest safe backend package if native or provider work remains blocked."
+    expected_output:
+      - "T017 evidence audit"
+      - "Updated T108 residual scope"
+      - "Next executable Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T018.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T017 as a complete server-side Task 8 package, narrowed T108 to generated Swift client and native synthetic-sync proof, deferred provider-dependent Task 9, and defined T019 as the complete synthetic server-side Task 10 profile-ledger package."
+      evidence:
+        - "T017 receipt proves fresh-database migration, API 9/9, worker 3/3, deterministic idempotency, consent checks, and migration/schema parity."
+        - "T108 now explicitly retains only generated Swift client, local native batch/replay, and visible freshness evidence; it is not marked done."
+        - "Task 9 requires object storage, approved OCR/parsing provider ports, a medically reviewed corpus, and iOS confirmation evidence that are not currently available."
+        - "Task 10 can execute with synthetic typed events on the existing PostgreSQL, DomainOutbox, ConsumerInbox, consent, and identity foundations."
+        - "T019 includes database immutability, deterministic replay, canonical hashes, late-event/correction/withdrawal behavior, free-text confirmation boundaries, and worker fencing."
+      risks_remaining:
+        - "T107 and T108 remain blocked in practice by missing full Xcode, simulator frameworks, entitlements, and later true-device evidence."
+        - "T109 remains queued until object storage, provider, medical-corpus, and confirmation-UI gates become real."
+        - "GitHub-hosted CI remains externally blocked by the repository billing state."
+      next: "T019 implements the complete server-side profile event ledger and deterministic versioned snapshot pipeline with synthetic data."
+  - id: T019
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: xhigh
+    objective: "Implement the complete server-side Task 10 profile ledger and deterministic snapshot pipeline using synthetic data: append-only allowlisted events, pending free-text candidates with explicit confirmation, monotonic ordered projection, immutable versioned snapshots and canonical hashes, consent-aware outbox/inbox delivery, correction and withdrawal semantics, replay from zero, and fenced idempotent worker execution."
+    inputs:
+      - "T015 consent/privacy lifecycle"
+      - "T017 health ingestion and health.facts.accepted dispatch"
+      - "Implementation plan Task 10"
+      - "Technical design sections 7, 8, 10, 14, and 17"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711052000_profile_projection/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/profile/**"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/health/**"
+      - "apps/worker/src/jobs/profile/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/profile-projection.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "pnpm --filter @healthos/api prisma:generate"
+      - "pnpm --filter @healthos/api exec prisma validate --schema prisma/schema.prisma"
+      - "Apply every Prisma migration to a fresh ephemeral PostgreSQL 17 database"
+      - "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:profile"
+      - "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:profile"
+      - "Replay the same ordered synthetic event ledger twice and assert identical snapshot hashes and version sequence"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "Prisma migrate diff from all migrations to schema returns no difference"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires real health data, production credentials, an OCR/LLM provider, or medical interpretation."
+      - "An unsupported or unconfirmed free-text value would enter profile_events or a usable snapshot."
+      - "Events or snapshots can be mutated or deleted through the ordinary application role."
+      - "Projection order or snapshot hashing depends on wall-clock timing, database row order, or nondeterministic JSON serialization."
+      - "Consent withdrawal can race a worker into publishing a newly usable snapshot."
+      - "Implementation requires files outside allowed_files."
+    expected_output:
+      - "Database-enforced append-only profile event and immutable snapshot ledger"
+      - "Allowlisted typed-event ingestion and explicit candidate confirmation boundary"
+      - "Monotonic snapshot versions with canonical content hashes"
+      - "Fenced, consent-aware, idempotent profile projection worker"
+      - "Deterministic replay, late-event, correction, withdrawal, duplicate-delivery, and unsupported-free-text tests"
+      - "Operational replay and failure-recovery runbook"
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711052000_profile_projection/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/profile/canonical-json.ts
+        - apps/api/src/profile/dto/profile-candidate.dto.ts
+        - apps/api/src/profile/profile-candidate.service.ts
+        - apps/api/src/profile/profile-event.service.ts
+        - apps/api/src/profile/profile-snapshot.service.ts
+        - apps/api/src/profile/profile.controller.ts
+        - apps/api/src/profile/profile.integration.spec.ts
+        - apps/api/src/profile/profile.module.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/health/health-projection-dispatcher.integration.spec.ts
+        - apps/worker/src/jobs/health/health-projection-dispatcher.ts
+        - apps/worker/src/jobs/profile/canonical-json.ts
+        - apps/worker/src/jobs/profile/profile-projection-worker.integration.spec.ts
+        - apps/worker/src/jobs/profile/profile-projection-worker.ts
+        - infra/runbooks/profile-projection.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "fresh PostgreSQL 17 database: apply all five Prisma migrations from zero"
+          status: pass
+        - cmd: "historical upgrade: apply first four migrations, seed legacy profile event/snapshot, then apply 20260711052000_profile_projection"
+          status: pass
+        - cmd: "non-CREATEROLE healthos_migrator: apply all five migrations and run Prisma migrate diff"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:profile"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:profile"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/worker test:privacy"
+          status: pass
+        - cmd: "DATABASE_URL=<ephemeral-postgres> pnpm --filter @healthos/api test:integration"
+          status: pass
+        - cmd: "prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url <ephemeral-shadow> --exit-code"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "Ruby OpenAPI parse and local-reference resolution"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T019.json <T019 allowlist>"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Implemented the complete server-side Task 10 profile ledger: database-enforced append-only typed events, immutable confirmed candidates and versioned snapshots, canonical SHA-256 replay, Health-to-Profile transactional outbox chaining, consent-epoch read gates, fenced idempotent projection, API contracts, and operational recovery guidance."
+      evidence:
+        - "Commit ef98aed (feat: add deterministic profile projections)"
+        - "API profile suite passed 9/9, including restricted-role GUC bypass rejection, candidate immutability, cross-user provenance rejection, consent read gate, and authorized privacy deletion."
+        - "Profile worker suite passed 8/8, including inverse delivery, late correction, concurrent workers, future/expired leases, rollback atomicity, and both real PostgreSQL user-lock withdrawal linearizations."
+        - "Health ingestion passed 9/9 and Health-to-Profile dispatcher passed 3/3 with a transactional secondary profile.event.appended outbox."
+        - "Privacy worker passed 3/3 and database invariant suite passed 9/9."
+        - "Historical event/snapshot upgrade returned historical-upgrade-pass; SQL backfill hashes exactly matched Node canonical SHA-256 and append-only triggers were restored."
+        - "healthos_migrator had rolsuper=false, rolcreaterole=false, rolcreatedb=false; five migrations and migration diff still passed."
+        - "Prisma migration history and schema reported No difference detected."
+        - "OpenAPI parsed with 17 paths and 91 resolved references, including three authenticated profile paths."
+        - "Independent three-round specification review ended with no remaining P0/P1 and made no repository changes."
+        - "Synthetic fixtures only; no real health data, OCR/LLM provider, Apple credential, or production secret was used."
+      risks_remaining:
+        - "A DBA must provision healthos_privacy_worker and worker-login membership before production migration/deploy; the migration intentionally does not require CREATEROLE."
+        - "The profile projector is implemented and integration-tested as a job class; production polling/scheduler composition and runtime observability remain later worker/operations scope."
+        - "Lab-derived events remain inactive until Task 9 provider, corpus, medical-review, object-storage, and user-confirmation gates pass."
+        - "Native iOS, Apple/HealthKit, true-device, and GitHub-hosted CI billing gates remain external pending work."
+      next: "T020 PM audit maps T019 to plan Task 10/T110 and defines the largest safe Task 11 rules/safety package without claiming medical approval."
+  - id: T020
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T019 profile-ledger evidence, reconcile implementation plan Task 10/T110, and define the largest safe Task 11 rules/safety Worker package without fabricating medical approval or publishing an unapproved rule bundle."
+    inputs:
+      - "T019 receipt"
+      - "Implementation plan Tasks 10-12"
+      - "Technical design safety, rule versioning, and review-gate sections"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T110 done unless append-only, replay, consent, migration, and independent-review evidence is complete."
+      - "Do not infer medical reviewer approval; rules and cases may remain draft/unpublished pending named sign-off."
+      - "Keep provider-dependent Labs and native iOS work deferred while their gates remain unavailable."
+    expected_output:
+      - "T019 evidence audit and T110 reconciliation"
+      - "Task 11 authority boundary"
+      - "Explicit Worker scope, tests, and stop conditions for deterministic rules and safety cases"
+      - "Next active Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T020.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T019 as complete implementation-plan Task 10 evidence, marked T110 done with receipt-backed proof, and converted T111 into an executable draft-only deterministic rules/safety package with 50 golden and 30 adversarial synthetic cases."
+      evidence:
+        - "T019 commit ef98aed and receipt cover every Task 10 behavior, migration, privacy, replay, and independent-review requirement."
+        - "T110 now has a compact evidence receipt and no longer remains a queued plan-coverage shell."
+        - "T111 has an explicit write allowlist, test commands, 80-case corpus requirement, 100 percent safety-code branch coverage target, and conservative outcome taxonomy."
+        - "T111 explicitly forbids publishing or claiming medical approval and requires distinct named medical and technical actors for any future publishable state."
+        - "Labs, native iOS, provider, Apple, and real-data work remain deferred to their existing gates."
+      risks_remaining:
+        - "The medical-content owner and backup remain unconfirmed; T111 output must remain draft_unapproved."
+        - "Clinical thresholds beyond already authorized product-plan constraints cannot be invented by engineering."
+        - "GitHub-hosted CI remains externally blocked by the account billing state."
+      next: "T111 implements the deterministic draft rule engine, action catalog, executable safety policy, dual-approval bundle state machine, and 80 synthetic evaluation cases."
+  - id: T021
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: xhigh
+    objective: "Audit T111 rules/safety evidence, reconcile implementation plan Task 11/T111, and define the largest safe Task 12 recommendation-run, immutable-snapshot, and rule-publishing Worker package while keeping all unapproved bundles unpublished."
+    inputs:
+      - "T111 receipt and commit"
+      - "Implementation plan Tasks 11-13"
+      - "Technical design sections 7, 8, 11, 14, 15, and 18"
+      - "Current profile ledger, privacy controls, API, worker, and migration contracts"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T111 done without 100 percent safety-critical branch coverage, exactly 50 golden and 30 adversarial unique cases, scope proof, and independent no-P0/P1 review."
+      - "Do not infer medical approval or make a draft bundle publishable in product state."
+      - "Task 12 must preserve exact canonical rule inputs, immutable outputs, transactional outbox publication, consent/deletion fencing, and distinct technical/medical approval requirements."
+    expected_output:
+      - "T111 evidence audit and implementation-plan Task 11 reconciliation"
+      - "Explicit T112 database, API, worker, rule-bundle, and test scope"
+      - "Publishing and rollback state-machine invariants"
+      - "Next active Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T021.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T111 as complete implementation-plan Task 11 evidence and converted the T112 shell into a production-grade synthetic recommendation pipeline package with explicit database, API, worker, admin-read-view, migration, safety, privacy, replay, approval, rollback, and verification boundaries."
+      evidence:
+        - "T111 commit e578826 and receipt prove strict fail-closed inputs, deeply immutable catalog metadata, substitute revalidation, exact-content dual approvals, 36 tests, and 100 percent safety-critical branch coverage."
+        - "The checked-in eval runner proves exactly 50 golden and 30 adversarial unique scenarios with schema, fallback, provenance, forbidden-output, and result-shape validation."
+        - "Independent final review concluded no P0/P1 and made no worktree changes."
+        - "T112 now includes current Prisma recommendation placeholders, the existing publication repository, profile/consent/privacy/outbox contracts, worker lease fencing, a new migration, database constraints, and safe read-only admin views in one bounded scope."
+        - "T112 explicitly covers every Task 12 plan case: duplicate daily runs, no data, conflict, Alpha/Beta routing, deterministic sampling, caution/doctor/blocked handling, review edits, supersession, SLA, approvals, rollback, outbox reconciliation, kill switch, and exact replay."
+        - "T112 forbids real medical-approval claims and forbids exposing admin mutation endpoints before Task 20 MFA/RBAC."
+      risks_remaining:
+        - "Named medical and technical authorities have not approved a production rule bundle; all real bundle publication must remain blocked."
+        - "Task 12 must replace or harden the existing permissive PublicationRepository rather than preserve its current incomplete checks."
+        - "GitHub-hosted CI remains externally blocked by account billing; local fresh-database and migration evidence remains mandatory."
+      next: "T112 implements the complete synthetic recommendation-run, immutable-snapshot, review-routing, gated publication, rollback, reconciliation, and worker pipeline with safe read-only admin views."
+  - id: T022
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: xhigh
+    objective: "Audit T112 recommendation-pipeline evidence against implementation plan Task 12, reconcile the completion proof, and turn T113 into the largest safe executable Task 13 Today feature package without claiming medical approval or bypassing native iOS gates."
+    inputs:
+      - "T112 receipt and commit"
+      - "Implementation plan Tasks 12-14"
+      - "Technical design Today, recommendation retrieval, offline, privacy, and observability sections"
+      - "Current recommendation snapshot, action assignment, profile, consent, and outbox contracts"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T112 done unless fresh/historical/non-superuser migrations, replay, publication atomicity, privacy deletion, adversarial tests, scope proof, and independent no-P0/P1 review are complete."
+      - "Do not infer medical approval; all production rule bundles remain unpublished until named medical and technical actors approve exact content."
+      - "Separate server Today work from native iOS work that remains blocked on an available Xcode/Apple environment."
+    expected_output:
+      - "T112 evidence audit and implementation-plan Task 12 reconciliation"
+      - "Explicit T113 server/native boundary, file scope, tests, and stop conditions"
+      - "Today retrieval, current-action, empty/error/offline, privacy, and observability invariants"
+      - "Next active Worker package"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "Read T112 receipt, implementation plan Tasks 12-14, and technical design Today/state/cache/SLO contracts"
+          status: pass
+        - cmd: "xcodebuild -version"
+          status: fail
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T022.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T112 as complete implementation-plan Task 12 evidence, preserved T113 as the honest full native Today completion task, and created T023 as the largest safe server-only Today package because this machine has no usable Xcode environment and apps/ios currently contains only a README."
+      evidence:
+        - "T112 commit db4b27c and receipt cover fresh/historical/non-superuser migrations, immutable replay, atomic publication, consent/privacy deletion, approvals/rollback, adversarial tests, and zero scope violations."
+        - "Independent fifth-round review explicitly concluded no P0/P1 after directly reproducing qualification, lock-order, manifest-timing, deletion, digest, and sampling defenses."
+        - "Implementation Task 13 requires both server Today and native Swift unit/UI tests plus 390x844 state captures."
+        - "xcodebuild reports that only Command Line Tools are active; apps/ios has no Xcode project or production Swift source yet."
+        - "T023 is restricted to the API and shared contract, cannot modify schema/recommendation behavior, and cannot be mistaken for full Task 13 completion."
+        - "T113 remains queued for native store/view/cache/components, native tests, and design captures when an available Xcode/Apple environment exists."
+      risks_remaining:
+        - "Native iOS Today remains incomplete and cannot be truthfully verified on the current machine."
+        - "No production rule bundle has named medical and technical approval; Today server tests must use synthetic published fixtures only."
+        - "GitHub-hosted CI remains externally blocked by account billing; local verification remains mandatory."
+        - "Task 14 action mutations are outside T023; T023 may expose command availability but must not implement feedback transitions."
+      next: "T023 implements the authenticated versioned Today API/read model from stored published snapshots and actions, while explicitly leaving native T113 incomplete."
+  - id: T023
+    type: worker
+    assignee: Worker
+    status: blocked
+    reasoning_hint: high
+    objective: "Implement the production server tranche of implementation Task 13: an authenticated, consent- and privacy-gated, versioned Today read model that returns exactly one published current action or one explicit recovery state without rerunning rules/LLMs, with synthetic integration tests and a stable iOS-facing contract. This auxiliary task does not mark plan Task 13/T113 complete."
+    inputs:
+      - "T112 immutable published recommendation snapshots, action assignments, provenance, and consent/privacy fences"
+      - "Implementation plan Task 13"
+      - "Technical design sections 8.1, 9.3, 12.1, 16.2, 17, and 18"
+      - "Existing identity/authenticated-user and OpenAPI conventions"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/today/**"
+      - "packages/contracts/src/index.ts"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=<fresh-six-migration-postgres> pnpm --filter @healthos/api test:today"
+      - "Assert cross-user reads fail and current active user, health-processing consent epoch, and ready privacy reconciliation are required"
+      - "Assert Today reads a stored published snapshot/action and never invokes recommendation generation, rules, or an LLM"
+      - "Assert exactly one primary action is returned; completed/rejected/expired/no-published-snapshot/stale-data states return one explicit recovery state and no phantom action"
+      - "Assert the versioned TodayViewModel includes local date, freshness/coverage, MoMo state/copy key, action duration/reason/signal, allowed commands, action status, cache identity, and correlation ID without health payload logging"
+      - "Assert conditional retry/cache identity is stable for unchanged data and changes for a newer immutable snapshot/action state"
+      - "Assert synthetic concurrent revision fixtures cannot mix snapshot, action, or provenance from different runs/users"
+      - "pnpm --filter @healthos/api typecheck"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "env -u DATABASE_URL pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires changing Prisma schema, migrations, recommendation publication behavior, or files outside the allowlist."
+      - "Implementation requires a real health record, production credential, external provider, or production-published rule bundle."
+      - "Today can expose another user's snapshot/action, bypass current consent/privacy state, or rerun decision logic on page read."
+      - "The server contract invents medical copy or exposes raw health payloads instead of stable copy/source keys."
+      - "The task would be declared as full Task 13 completion without native iOS store/view/cache/UI tests and 390x844 state captures."
+    expected_output:
+      - "Versioned authenticated Today API and contract"
+      - "Deterministic stored-snapshot/action projection with explicit recovery states"
+      - "Consent/privacy/cross-user and concurrent-revision integration coverage"
+      - "Stable cache identity and correlation propagation"
+      - "Receipt explicitly leaving T113/native iOS incomplete"
+    receipt:
+      result: blocked
+      changed_files:
+        - apps/api/package.json
+        - apps/api/src/app.module.ts
+        - apps/api/src/today/today.controller.ts
+        - apps/api/src/today/today.integration.spec.ts
+        - apps/api/src/today/today.module.ts
+        - apps/api/src/today/today.service.ts
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "DATABASE_URL=postgresql://pete@127.0.0.1:55439/healthos_t112_fresh NODE_ENV=test pnpm --filter @healthos/api test:today"
+          status: pass
+        - cmd: "Independent specification review round 2"
+          status: fail
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T023.json --allow apps/api/package.json --allow apps/api/src/app.module.ts --allow apps/api/src/today/** --allow packages/contracts/src/index.ts"
+          status: fail
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Preserved a functional authenticated Today read-model implementation with 11 passing synthetic integration cases, but did not claim completion because its consent-epoch proof ultimately trusts mutable health_sync_runs identity fields."
+      evidence:
+        - "Daily health fact revisions and recommendation run inputs are append-only, but health_sync_runs user_id, consent_epoch, server_sequence identity relation, status, and completed_at have no database immutability/state-transition trigger."
+        - "Changing an old sync row's consent_epoch can make an old immutable fact revision appear authorized for a newer recommendation run unless the database freezes the sync identity and Today validates the full fact/sync relationship."
+        - "T023 stop_if explicitly forbids Prisma schema or migration changes, so closing the P1 inside the current allowlist would violate task authority."
+        - "The scope guard also reports apps/admin/.next/cache/tsconfig.tsbuildinfo as a generated out-of-scope change after full-repository typechecking against the modified shared contract; it is not a staged product change and must remain visible to the recovery package."
+      risks_remaining:
+        - "P1: mutable health-sync authorization evidence can bypass the current-epoch Today withdrawal fence."
+        - "The preserved Today implementation is uncommitted and must be taken over explicitly by the recovery Worker."
+        - "Native iOS Today remains incomplete under T113."
+      blocked_reason: "The required fix needs a new database migration and ingestion invariant tests outside T023 allowed_files, which matches its explicit stop condition."
+      next: "T024 PM defines and activates one recovery Worker package that owns the preserved Today files plus the narrow health-sync integrity migration and adversarial tests."
+  - id: T024
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: xhigh
+    objective: "Audit the T023 stop condition caused by mutable health-sync authorization evidence, preserve its partial Today implementation, and define one bounded recovery Worker package that closes the database integrity dependency before completing the server Today tranche."
+    inputs:
+      - "T023 blocked receipt and preserved working tree"
+      - "Independent Today API review finding on mutable health_sync_runs consent identity"
+      - "Existing append-only daily fact, recommendation input, publication, consent, and privacy constraints"
+      - "Implementation plan Task 13 and technical-design privacy/safety contracts"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T023 or implementation Task 13 complete."
+      - "Do not weaken consent, privacy, append-only, publication, or authorized deletion behavior."
+      - "The recovery package must take explicit ownership of the preserved uncommitted Today files and add only the narrow database/ingestion integrity scope required by the review."
+      - "Keep native iOS T113 queued and incomplete."
+    expected_output:
+      - "Root-cause and threat-path audit"
+      - "Narrow migration and Today recovery Worker scope"
+      - "Fresh/historical/non-superuser migration and mutation-adversarial verification"
+      - "Activated recovery Worker task"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "Audit append-only facts, recommendation sidecars, health sync rows, health outbox, and privacy-delete triggers"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T024.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Confirmed the P1 root cause, preserved T023 honestly, and defined T025 as one bounded recovery package owning both the partial Today implementation and the narrow forward-only health-sync integrity migration it requires."
+      evidence:
+        - "Daily health fact revisions and recommendation fact-input sidecars are append-only and publication identity is immutable."
+        - "health_sync_runs currently lacks an identity/state-transition trigger, so consent_epoch and the fact-to-sync server-sequence proof can be rewritten after ingestion."
+        - "A forward-only trigger can freeze sync identity, permit only pending-to-completed, and use the existing exact healthos_private.privacy_delete_authorizations capability for cascade deletion."
+        - "T025 requires full user/epoch/sequence/status/completed_at checks plus old-epoch, pending, failed, cross-user, mismatch, future, and mutation adversarial tests."
+        - "T025 includes fresh, historical, non-superuser, migration-diff, integration, full-workspace, scope, and independent-review gates."
+      risks_remaining:
+        - "T025 must prove the trigger does not break authorized user deletion or historical migration."
+        - "The generated admin TypeScript cache remains a visible baseline artifact and must not be committed."
+        - "Native iOS Today remains queued under T113."
+      next: "T025 implements and verifies the health-sync integrity migration and completes the server Today read model from the preserved working tree."
+  - id: T025
+    type: worker
+    assignee: Worker
+    status: done
+    reasoning_hint: xhigh
+    objective: "Recover and complete the production server Today tranche by adding database-enforced immutable health-sync authorization evidence, validating the full fact/sync/publication identity chain, and finishing the preserved versioned Today API with adversarial synthetic tests. This auxiliary task still does not complete native iOS Task 13/T113."
+    inputs:
+      - "T023 preserved uncommitted Today implementation and blocked receipt"
+      - "T024 root-cause audit"
+      - "Append-only daily health fact revisions and recommendation run fact inputs"
+      - "Current privacy-delete authorization mechanism and six-migration history"
+      - "Implementation plan Task 13 and technical-design privacy/safety contracts"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/migrations/20260711083000_health_sync_integrity/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/health/health-ingestion.integration.spec.ts"
+      - "apps/api/src/today/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "packages/contracts/src/index.ts"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/api prisma validate"
+      - "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/api prisma migrate deploy"
+      - "Assert migration diff is empty after all seven migrations on a fresh database"
+      - "Assert the complete migration history upgrades the existing six-migration database without data loss"
+      - "Assert a non-superuser, non-CREATEROLE, non-CREATEDB migrator can apply the complete migration history"
+      - "Assert health-sync user, device, anchor, idempotency, request hash, timezone, consent epoch, server sequence, started time, and correlation identity cannot change"
+      - "Assert the only ordinary sync transition is pending to completed with a non-null completed_at, completed rows cannot reopen, and exact authorized privacy deletion still succeeds"
+      - "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/api test:health"
+      - "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/api test:today"
+      - "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/api test:integration"
+      - "Assert Today rejects old-epoch, null/empty sync, pending/failed sync, cross-user sync, mismatched server sequence, mutable-row attack, future fact, stale fact, and mixed-run provenance"
+      - "Assert Today returns only an exact stored published current primary action or one explicit recovery state and never runs rules or an LLM"
+      - "Assert ETag/body identity is stable for unchanged data, changes for material state, and does not let response-only correlation metadata corrupt cache semantics"
+      - "pnpm --filter @healthos/api typecheck"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "env -u DATABASE_URL pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "The migration requires rewriting existing migration history, superuser, CREATEROLE, CREATEDB, disabling privacy deletion fences, or destructive data repair."
+      - "The integrity trigger blocks the exact SECURITY DEFINER privacy-delete transaction or permits any completed sync identity to mutate."
+      - "Today can expose a publication using a fact whose immutable user, sync ID, server sequence, completion proof, or consent epoch differs from the recommendation run."
+      - "Implementation requires real health data, production credentials, external providers, production rule approval, or files outside allowed_files."
+      - "The task would be declared as full Task 13 completion without native iOS store/view/cache/UI tests and 390x844 captures."
+    expected_output:
+      - "Forward-only health-sync integrity migration with privacy-delete compatibility"
+      - "Full immutable fact/sync/publication authorization validation in Today"
+      - "Adversarial database and Today integration proof"
+      - "Fresh, historical, non-superuser, migration-diff, full workspace, scope, and independent no-P0/P1 review evidence"
+      - "Receipt explicitly leaving T113/native iOS incomplete"
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711083000_health_sync_integrity/migration.sql
+        - apps/api/src/app.module.ts
+        - apps/api/src/health/health-ingestion.integration.spec.ts
+        - apps/api/src/today/today.controller.ts
+        - apps/api/src/today/today.integration.spec.ts
+        - apps/api/src/today/today.module.ts
+        - apps/api/src/today/today.service.ts
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "Fresh PostgreSQL: prisma validate and apply all seven migrations"
+          status: pass
+        - cmd: "Prisma migrate diff from seven migrations to datamodel with fresh shadow database"
+          status: pass
+        - cmd: "Historical PostgreSQL: apply first six migrations, preserve a completed sync row, then apply migration seven"
+          status: pass
+        - cmd: "Historical invalid completion evidence must block migration seven before trigger installation"
+          status: pass
+        - cmd: "NOSUPERUSER NOCREATEROLE NOCREATEDB owner applies all seven migrations and validates completion constraint"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/api test:health"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/api test:today"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/api test:integration"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-seven-migration-postgres> pnpm --filter @healthos/worker test:health"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "Independent targeted re-review after completion-time and historical-validation fixes"
+          status: pass
+        - cmd: "T025 hash scope guard"
+          status: pass
+      summary: "Completed the production server Today tranche with an authenticated versioned read model, explicit recovery states, immutable health-sync authorization evidence, full fact/sync/publication identity validation, stable weak ETags, and synthetic adversarial coverage. Native iOS Task 13 remains incomplete under T113."
+      evidence:
+        - "Commit 95484b1 (feat: add versioned Today read model)."
+        - "Today integration suite passes 19/19, including current user/consent/privacy gates, exact publication/action projection, cross-user isolation, all terminal states, stale/future/profile/incident withdrawal, old epoch, missing sync, pending/failed sync, cross-user sync, sequence mismatch, immutable-row mutation, post-run completion non-revival, and HTTP ETag behavior."
+        - "Health ingestion passes 10/10 and proves all sync identity fields immutable, only pending-to-completed with completed_at is accepted, and completed rows cannot reopen."
+        - "Database invariants pass 11/11, including exact authorized privacy deletion with a health sync row; health worker integration passes 3/3."
+        - "Today requires fact user, sync ID, fact/sync server sequence, sync user, recommendation consent epoch, completed status, non-null completed_at, and completed_at no later than recommendation run creation."
+        - "Fresh seven-migration deploy and Prisma diff pass with no difference; valid six-to-seven historical upgrade preserves data and blocks mutation; invalid historical completion evidence fails migration explicitly; restricted migrator flags are false/false/false and all seven migrations pass with convalidated=true."
+        - "Full workspace lint, typecheck, tests, dependency audit, diff check, and T025 scope guard pass."
+        - "The first independent review found one P1: a sync completed after recommendation-run creation could later revive the action. T025 added the completed_at <= run.created_at fence and a permanent-withdrawal regression before final acceptance."
+        - "Independent final targeted re-review concluded no P0/P1 and made no repository changes."
+        - "Only synthetic fixtures were used; no real health record, production credential, external provider, LLM, or production rule bundle was used."
+      risks_remaining:
+        - "T113 remains queued: no native iOS Today store/view/cache/components, Swift tests, offline behavior, or 390x844 captures exist on this machine because usable Xcode/Apple tooling remains unavailable."
+        - "The request correlation ID remains response metadata inside the 200 body and the current request header on 304; the weak ETag intentionally represents business projection equivalence rather than byte identity."
+        - "The canonical OpenAPI Today path/client generation remains part of later generated-client/native scope because T025 did not own the OpenAPI file."
+        - "No real production rule bundle has named medical and technical approval; tests use synthetic approved fixtures only."
+        - "GitHub-hosted CI remains externally blocked by account billing; all evidence here is local."
+      next: "T026 audits T025 against implementation Task 13, keeps native T113 incomplete, and selects the next largest safe executable package."
+  - id: T026
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: xhigh
+    objective: "Audit T025 recovery evidence against the server portion of implementation Task 13, reconcile T023/T025 without marking native T113 complete, and select the next largest safe executable package while Xcode, medical approval, and GitHub billing gates remain pending."
+    inputs:
+      - "T023 blocked receipt, T024 recovery plan, and T025 completion receipt"
+      - "Implementation plan Tasks 13-15"
+      - "Technical design Today, action-feedback, Coach, privacy, and safety contracts"
+      - "Current native, provider, governance, and infrastructure gate state"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T113 or full implementation Task 13 complete without native Swift store/view/cache tests and 390x844 captures."
+      - "Do not infer medical, Apple, provider, WeCom, security-owner, or GitHub billing readiness."
+      - "Choose a coherent vertical or server tranche with executable dependencies, explicit allowed_files, verification, and stop conditions."
+      - "Preserve T025 migration, privacy, authorization, and no-P0/P1 evidence accurately."
+    expected_output:
+      - "T025 evidence and commit audit"
+      - "T023/T025/T113 reconciliation"
+      - "Next safe implementation package or exact external wait condition"
+      - "Updated board with one active task"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "Audit T023, T024, and T025 receipts plus commit 95484b1 against implementation Task 13"
+          status: pass
+        - cmd: "Inspect Task 14 plan, action/feedback schema, state machine, deterministic rules API, and current native/provider gates"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T026.json --allow docs/goals/healthos-v1/**"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+      summary: "Audited T025 as a complete production server Today tranche, kept native implementation Task 13/T113 explicitly incomplete, and defined T027 as the next largest safe server action-feedback package with database, API, rules, Today, OpenAPI, migration, concurrency, and review gates."
+      evidence:
+        - "T025 commit 95484b1 and receipt prove 19 Today cases, 10 health-ingestion cases, 11 database invariants, 3 health-worker cases, seven-migration fresh/historical/restricted evidence, no schema drift, full workspace checks, and independent no-P0/P1 review."
+        - "T023 remains truthfully blocked by its original narrow scope; T025 is the recovery task that completed its intended server outcome without claiming native completion."
+        - "Implementation Task 13 still requires Swift store/view/cache behavior, native unit/UI tests, offline rendering, and 390x844 captures; T113 remains queued because usable Xcode is unavailable."
+        - "Task 14 action feedback is the next dependency-ordered package that can proceed entirely with synthetic data and existing approved deterministic catalog metadata."
+        - "Existing action_assignments and feedback_events lack client idempotency, assignment action-code/version identity, explicit transitions, replacement integrity, and canonical endpoint contracts; T027 owns the narrow migration and all affected server surfaces."
+        - "T027 requires exact replay, concurrent-tap, stale-version, cross-user, current-consent/privacy, deterministic restriction revalidation, and no-safe-alternative proof while preserving old assignments and feedback."
+      risks_remaining:
+        - "Native Today and native feedback outbox/UI remain blocked on an available Xcode/Apple environment under T113/T114."
+        - "No production rule bundle has named medical and technical approval; T027 must use only synthetic published fixtures and existing deterministic action metadata."
+        - "GitHub-hosted CI remains blocked by account billing, so local fresh-database evidence remains mandatory."
+        - "Task 15 Coach/provider work remains gated and must not be pulled into T027."
+      next: "T027 implements the complete production server action-feedback, lighter/swap replacement, idempotency, migration, Today projection, and OpenAPI tranche while leaving native T114 incomplete."
+  - id: T027
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the production server tranche of implementation Task 14: authenticated and consent/privacy-gated action feedback with an explicit versioned state machine, transactional idempotency, deterministic lighter/swap replacement revalidation, immutable feedback/replacement history, updated Today projection, and canonical OpenAPI/contracts. This auxiliary task does not complete native offline/UI Task 14/T114."
+    inputs:
+      - "T025 authenticated Today read model and immutable current-action evidence"
+      - "T111 deterministic action catalog, contraindications, lighter variants, and safety input validation"
+      - "T112 published recommendation snapshots, immutable profile/run provenance, and action assignments"
+      - "Implementation plan Task 14 and technical design sections 4.2, 7.3, 8.1, 12.1, 18, and 23"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711100000_action_feedback/**"
+      - "apps/api/src/actions/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/today/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/rules/src/action-catalog.ts"
+      - "packages/rules/src/index.ts"
+      - "packages/rules/src/rules.spec.ts"
+      - "packages/rules/src/types.ts"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "Write failing API/database/rules tests before implementation"
+      - "DATABASE_URL=<fresh-eight-migration-postgres> pnpm --filter @healthos/api prisma validate"
+      - "DATABASE_URL=<fresh-eight-migration-postgres> pnpm --filter @healthos/api prisma migrate deploy"
+      - "Assert migration diff is empty, a valid seven-migration historical database upgrades without data loss, and a NOSUPERUSER NOCREATEROLE NOCREATEDB owner applies all eight migrations"
+      - "DATABASE_URL=<fresh-eight-migration-postgres> pnpm --filter @healthos/api test:actions"
+      - "DATABASE_URL=<fresh-eight-migration-postgres> pnpm --filter @healthos/api test:today"
+      - "DATABASE_URL=<fresh-eight-migration-postgres> pnpm --filter @healthos/api test:integration"
+      - "Assert complete, double complete, too hard, no time, tired, uncomfortable, weather, explicit swap, neutral skip, exact offline replay, stale expected version, rapid concurrent taps, unavailable lighter, and no-safe-alternative behavior"
+      - "Assert one immutable feedback event and at most one replacement for a client idempotency key; exact replay returns the original result and changed reuse fails"
+      - "Assert action ownership, current active user, current health-processing consent epoch, ready privacy reconciliation, publication/profile provenance, and same-day current primary action before mutation"
+      - "Assert replacements preserve the old assignment, use only the deterministic rules package, recheck rejected actions and contraindications from the immutable run profile, and record a neutral skip when no safe replacement exists"
+      - "Assert Today reads the latest active/replaced/terminal assignment and its assignment-level action code without rerunning rules or an LLM"
+      - "Assert OpenAPI parses with resolved references and covers Today plus action feedback request/replay/conflict/error contracts"
+      - "pnpm --filter @healthos/rules test --coverage"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "env -u DATABASE_URL pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires inventing a new clinical threshold, action, contraindication, production rule approval, or LLM decision path."
+      - "An action can be mutated for another user, an old consent epoch, a stale version, a non-current date, a non-primary assignment, or a withdrawn/unpublished recommendation."
+      - "A duplicate tap/replay can create two feedback events, two replacements, or a different response for the same idempotency key."
+      - "A replacement bypasses profile restrictions, user rejected actions, current active bundle status, or deterministic rule-package validation."
+      - "Migration rewrites history, requires elevated cluster roles, blocks exact privacy deletion, loses existing assignments/feedback, or needs files outside allowed_files."
+      - "The task would be declared as full Task 14/T114 without native Swift feedback outbox, offline replay, unit/UI tests, and D3 E2E evidence."
+    expected_output:
+      - "Versioned authenticated action-feedback API and canonical contract"
+      - "Database-enforced assignment transitions, immutable feedback identity, and replacement-chain integrity"
+      - "Deterministic safe lighter/swap resolution and neutral no-alternative outcome"
+      - "Today projection of the latest assignment-level action and terminal/replacement states"
+      - "Fresh/historical/restricted migration, concurrency/idempotency, OpenAPI, full-workspace, scope, and independent no-P0/P1 evidence"
+      - "Receipt explicitly leaving native T114 incomplete"
+    receipt: null
   - id: T003
     type: worker
     assignee: Worker
@@ -328,89 +1780,476 @@ tasks:
   - id: T101
     type: worker
     assignee: Worker
-    status: queued
-    reasoning_hint: high
-    objective: "Execute implementation plan Task 1: establish the repository baseline."
-    allowed_files: []
-    verify: []
-    stop_if: []
-    receipt: null
-
+    status: done
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 1 for synthetic development: establish the modular-monolith workspace, local PostgreSQL/object storage, CI contract, and provider-neutral Terraform foundation without selecting or provisioning a production region."
+    inputs:
+      - "T007 receipt and docs/product/preflight-gates.json"
+      - "Implementation plan Task 1"
+      - "Technical design sections 5.1-5.3 and 22"
+    allowed_files:
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "pnpm-lock.yaml"
+      - ".gitignore"
+      - ".editorconfig"
+      - ".env.example"
+      - "docker-compose.yml"
+      - "apps/**/README.md"
+      - "packages/**/README.md"
+      - "infra/docker/**"
+      - "infra/terraform/**"
+      - ".github/workflows/ci.yml"
+      - "docs/adr/0001-modular-monolith.md"
+      - "docs/adr/0002-production-data-region.md"
+      - "scripts/check-workspace.mjs"
+      - "scripts/check-workspace.test.mjs"
+    verify:
+      - "node --test scripts/check-workspace.test.mjs"
+      - "node scripts/check-workspace.mjs"
+      - "pnpm install --lockfile-only --frozen-lockfile=false"
+      - "docker compose config --quiet"
+      - "terraform fmt -check -recursive infra/terraform"
+      - "terraform -chdir=infra/terraform/environments/staging-synthetic init -backend=false -input=false"
+      - "terraform -chdir=infra/terraform/environments/staging-synthetic validate"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would select or provision a production data region before the production_data_region gate is approved."
+      - "Implementation would use real health data, production credentials, or a real provider account."
+      - "Implementation needs files outside allowed_files."
+      - "A required local verifier is unavailable and cannot be installed without unrelated repository or user configuration changes."
+      - "Verification fails twice without a confirmed root cause."
+    expected_output:
+      - "The planned apps and packages exist as explicit module boundaries."
+      - "Local PostgreSQL and S3-compatible storage configuration validates without secrets."
+      - "Synthetic Terraform foundation enforces encryption, private database networking, secret-manager placeholders, and backup policy inputs without choosing a production cloud."
+      - "CI can run workspace, preflight, long-goal, and prototype checks once GitHub billing is restored."
+      - "ADRs record modular-monolith acceptance and a deliberately pending production-region decision."
+    receipt:
+      result: done
+      changed_files:
+        - .env.example
+        - .github/workflows/ci.yml
+        - .gitignore
+        - apps/admin/README.md
+        - apps/api/README.md
+        - apps/ios/README.md
+        - apps/worker/README.md
+        - docker-compose.yml
+        - docs/adr/0001-modular-monolith.md
+        - docs/adr/0002-production-data-region.md
+        - infra/docker/postgres-init.sql
+        - infra/terraform/environments/staging-synthetic/main.tf
+        - infra/terraform/modules/foundation/main.tf
+        - infra/terraform/modules/foundation/outputs.tf
+        - infra/terraform/modules/foundation/variables.tf
+        - package.json
+        - packages/contracts/README.md
+        - packages/evals/README.md
+        - packages/observability/README.md
+        - packages/rules/README.md
+        - packages/test-fixtures/README.md
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - scripts/check-workspace.mjs
+        - scripts/check-workspace.test.mjs
+      commands:
+        - cmd: "node --test scripts/check-workspace.test.mjs"
+          status: pass
+        - cmd: "node scripts/check-workspace.mjs"
+          status: pass
+        - cmd: "pnpm install --lockfile-only --frozen-lockfile=false"
+          status: pass
+        - cmd: "docker compose config --quiet"
+          status: pass
+        - cmd: "terraform fmt -check -recursive infra/terraform"
+          status: pass
+        - cmd: "terraform -chdir=infra/terraform/environments/staging-synthetic init -backend=false -input=false"
+          status: pass
+        - cmd: "terraform -chdir=infra/terraform/environments/staging-synthetic validate"
+          status: pass
+        - cmd: "git diff --cached --check"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T101.json with all declared allowed paths"
+          status: pass
+      summary: "Established the HealthOS modular-monolith workspace, explicit app/package boundaries, pinned pnpm lockfile, secret-safe synthetic environment, validated PostgreSQL/MinIO Compose configuration, provider-neutral Terraform control module, CI workflow, and architecture/data-region ADRs. Terraform creates only a synthetic control contract and cannot select a production region. Commit 243678d contains only T101 scope."
+      deviations:
+        - "The required goal_worker dispatch produced no allowed-file changes within one wait window and was terminated per GoalBuddy recovery policy; PM fallback completed the declared Worker scope."
+        - "Terraform 1.15.8 was installed as a local verification tool because it was absent."
+        - "An extra Docker runtime smoke could not start any new container, including hello-world, although manifests and Compose validation passed. Existing unrelated containers were not restarted; HealthOS test containers and volumes were removed."
+      remaining_blockers:
+        - "Repeat the optional local container-health smoke after the host Docker Desktop can start new containers."
+        - "Remote CI cannot execute until the T006 GitHub billing lock is cleared."
+        - "All production data-region and professional governance gates remain pending."
+      verification_attempts: 2
+      stopped_because: null
+      commit: 243678d
   - id: T102
     type: worker
     assignee: Worker
-    status: queued
-    reasoning_hint: high
-    objective: "Execute implementation plan Task 2: scaffold API, worker, admin, and shared contracts."
-    allowed_files: []
-    verify: []
-    stop_if: []
-    receipt: null
-
+    status: done
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 2: build runnable NestJS/Fastify API and worker skeletons, a minimal Next.js admin readiness page, the HealthOS V1 OpenAPI health contract, and tested correlation/error/health behavior."
+    inputs:
+      - "T101 receipt and commit 243678d"
+      - "Implementation plan Task 2"
+      - "Technical design sections 5 and 6"
+    allowed_files:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "tsconfig.base.json"
+      - "eslint.config.mjs"
+      - "apps/api/package.json"
+      - "apps/api/tsconfig.json"
+      - "apps/api/src/**"
+      - "apps/api/test/health.e2e-spec.ts"
+      - "apps/api/jest.config.mjs"
+      - "apps/worker/package.json"
+      - "apps/worker/tsconfig.json"
+      - "apps/worker/src/**"
+      - "apps/admin/package.json"
+      - "apps/admin/tsconfig.json"
+      - "apps/admin/next-env.d.ts"
+      - "apps/admin/next.config.ts"
+      - "apps/admin/app/layout.tsx"
+      - "apps/admin/app/page.tsx"
+      - "apps/admin/app/globals.css"
+      - "packages/contracts/package.json"
+      - "packages/contracts/tsconfig.json"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/observability/package.json"
+      - "packages/observability/tsconfig.json"
+      - "packages/observability/jest.config.mjs"
+      - "packages/observability/src/correlation.ts"
+      - "packages/observability/src/correlation.spec.ts"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm --filter @healthos/api test:e2e -- health.e2e-spec.ts"
+      - "pnpm --filter @healthos/observability test"
+      - "pnpm --filter @healthos/admin build"
+      - "git diff --check"
+    stop_if:
+      - "Implementation would add a real database, object-storage, AI, OCR, Apple, APNs, or WeCom credential or provider call."
+      - "Readiness would report a dependency healthy without a real check."
+      - "Logging or error envelopes would expose request bodies, health payloads, credentials, or provider responses."
+      - "Implementation needs files outside allowed_files."
+      - "Verification fails twice without a confirmed root cause."
+    expected_output:
+      - "GET /health/live returns status ok and a correlation ID."
+      - "GET /health/ready reports database, object storage, and worker lease separately and fails closed while they are not configured."
+      - "Incoming x-correlation-id is validated and echoed; absent IDs are generated."
+      - "API validation and errors use a stable redacted envelope."
+      - "Worker boots without feature jobs."
+      - "Admin renders only an environment badge and live API readiness state."
+      - "OpenAPI defines the implemented health endpoints and error contract."
+    receipt:
+      result: done
+      changed_files:
+        - package.json
+        - pnpm-lock.yaml
+        - tsconfig.base.json
+        - eslint.config.mjs
+        - apps/api/package.json
+        - apps/api/tsconfig.json
+        - apps/api/jest.config.mjs
+        - apps/api/src/main.ts
+        - apps/api/src/app.module.ts
+        - apps/api/src/health.controller.ts
+        - apps/api/src/common/readiness.service.ts
+        - apps/api/src/common/redacted-exception.filter.ts
+        - apps/api/test/health.e2e-spec.ts
+        - apps/worker/package.json
+        - apps/worker/tsconfig.json
+        - apps/worker/src/main.ts
+        - apps/worker/src/main.spec.ts
+        - apps/worker/src/worker.module.ts
+        - apps/admin/package.json
+        - apps/admin/tsconfig.json
+        - apps/admin/next-env.d.ts
+        - apps/admin/next.config.ts
+        - apps/admin/app/layout.tsx
+        - apps/admin/app/page.tsx
+        - apps/admin/app/globals.css
+        - packages/contracts/package.json
+        - packages/contracts/tsconfig.json
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - packages/observability/package.json
+        - packages/observability/tsconfig.json
+        - packages/observability/jest.config.mjs
+        - packages/observability/src/correlation.ts
+        - packages/observability/src/correlation.spec.ts
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm --filter @healthos/api test:e2e -- health.e2e-spec.ts"
+          status: pass
+        - cmd: "pnpm --filter @healthos/observability test"
+          status: pass
+        - cmd: "pnpm --filter @healthos/admin build"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "curl /health/live and /health/ready against a real API process on port 3101"
+          status: pass
+        - cmd: "git diff --cached --check"
+          status: pass
+        - cmd: "scope-guard T102 with declared files plus ignored node_modules output"
+          status: pass
+      summary: "Built runnable NestJS/Fastify API and worker skeletons, a minimal Next.js operations page, OpenAPI and TypeScript contracts, validated correlation IDs, redacted error envelopes, graceful startup/shutdown, and fail-closed readiness. The final suite passes 21 tests, lint, typecheck, Admin production build, real API process smoke, and a zero-known-vulnerability audit. Commit 9b6acb3 contains only service-contract scope."
+      deviations:
+        - "The required goal_worker dispatch produced no allowed-file changes within one wait window and was terminated per GoalBuddy recovery policy; PM fallback completed the Worker scope."
+        - "Added explicit package/config files required to make the planned source files runnable and verifiable."
+        - "The scope guard hashes Git-ignored node_modules changes; final verification explicitly allowed only that generated directory in addition to the board source paths, after deleting .next and dist outputs."
+        - "Pinned PostCSS 8.5.10 and esbuild 0.28.1 overrides after audit found one moderate and one low transitive advisory; final audit reports no known vulnerabilities."
+      remaining_blockers:
+        - "Readiness correctly remains 503 until Task 3 and later object-storage/worker-lease checks exist."
+        - "Remote CI remains unavailable until T006 GitHub billing lock is cleared."
+        - "A pre-existing static fake API-key string in check-workspace.test.mjs should be rewritten before secret-scan CI is restored to avoid scanner false positives."
+      verification_attempts: 3
+      stopped_because: null
+      commit: 9b6acb3
   - id: T103
     type: worker
     assignee: Worker
-    status: queued
-    reasoning_hint: high
-    objective: "Execute implementation plan Task 3: create the production database schema and migration discipline."
-    allowed_files: []
-    verify: []
-    stop_if: []
-    receipt: null
-
+    status: done
+    reasoning_hint: xhigh
+    objective: "Execute implementation plan Task 3: implement the complete PostgreSQL/Prisma V1 schema, first reproducible migration, database module, restricted publication transaction, constraint tests, and migration runbook."
+    inputs:
+      - "T102 receipt and OpenAPI/service skeleton"
+      - "Implementation plan Task 3"
+      - "Technical design sections 7, 8, 16, 17, and 23"
+    allowed_files:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/tsconfig.json"
+      - "apps/api/jest.config.mjs"
+      - "apps/api/prisma/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/common/readiness.service.ts"
+      - "apps/api/src/health.controller.ts"
+      - "apps/api/src/database/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "infra/runbooks/database-migration.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+      - "test -x \"$(brew --prefix postgresql@17)/bin/pg_ctl\""
+      - "rm -rf /tmp/healthos-pg17 && \"$(brew --prefix postgresql@17)/bin/initdb\" -D /tmp/healthos-pg17 --auth=trust --no-locale -E UTF8"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 -l /tmp/healthos-pg17.log -o '-p 55432 -k /tmp' start"
+      - "\"$(brew --prefix postgresql@17)/bin/createuser\" -h /tmp -p 55432 healthos && \"$(brew --prefix postgresql@17)/bin/createdb\" -h /tmp -p 55432 -O healthos healthos"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+      - "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:integration -- database-constraints.e2e-spec.ts"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "\"$(brew --prefix postgresql@17)/bin/pg_ctl\" -D /tmp/healthos-pg17 stop"
+      - "git diff --check"
+    stop_if:
+      - "A migration would use real data, production credentials, a production database, or a non-PostgreSQL substitute for constraint proof."
+      - "A cross-table safety invariant is represented only in application code when the plan requires a restricted transaction or database trigger."
+      - "Recommendation snapshots, events, audits, or fact revisions become mutable history."
+      - "Implementation needs files outside allowed_files."
+      - "Database verification fails twice without a confirmed root cause and no local PostgreSQL path is available."
+    expected_output:
+      - "All V1 entities from the technical design exist with explicit enums, timestamps, indexes, foreign keys, and minimum necessary payload fields."
+      - "One active primary action per user/local date and global outbox idempotency are database-enforced."
+      - "Recommendation snapshots are append-only; corrections use higher revision and supersedes_id."
+      - "Restricted publication rejects canonical inputs that reference unconfirmed lab observations."
+      - "Tenant-scoped channel lookup HMAC is unique while recoverable identifiers remain encrypted."
+      - "Business mutation and domain_outbox insertion are proven atomic."
+      - "Migration reset rebuilds the database from zero and the runbook records expand/contract, rollback, backup, and recovery rules."
+    receipt:
+      result: done
+      changed_files:
+        - package.json
+        - pnpm-lock.yaml
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/migration_lock.toml
+        - apps/api/prisma/migrations/20260710192000_initial/migration.sql
+        - apps/api/src/app.module.ts
+        - apps/api/src/common/readiness.service.ts
+        - apps/api/src/health.controller.ts
+        - apps/api/src/database/database.module.ts
+        - apps/api/src/database/prisma.service.ts
+        - apps/api/src/database/publication.repository.ts
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - infra/runbooks/database-migration.md
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma validate"
+          status: pass
+        - cmd: "test -x $(brew --prefix postgresql@17)/bin/pg_ctl"
+          status: pass
+        - cmd: "fresh initdb in /tmp/healthos-pg17"
+          status: pass
+        - cmd: "start isolated PostgreSQL 17.10 on port 55432 and create synthetic role/database"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api prisma migrate reset --force"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos pnpm --filter @healthos/api test:integration -- database-constraints.e2e-spec.ts"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "stop isolated PostgreSQL cluster"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "scope-guard T103 for declared files plus ignored node_modules"
+          status: pass
+      summary: "Implemented the complete V1 PostgreSQL/Prisma model, first replayable migration, real database readiness, restricted publication transaction, and migration runbook. Nine PostgreSQL integration tests prove active-action uniqueness, global idempotency, append-only revisions, controlled privacy deletion, confirmed-lab publication, tenant HMAC uniqueness, atomic outbox writes, and real readiness. The final dependency audit reports no known vulnerabilities. Commit 1da634c contains the product-file scope."
+      deviations:
+        - "The required goal_worker produced no changes within one wait window; PM fallback completed the declared Worker scope."
+        - "Docker Desktop could inspect and pull images but repeatedly could not start any new container, including hello-world. The PM replaced that non-executable verifier with a fresh isolated Homebrew PostgreSQL 17.10 cluster; no SQLite or in-memory substitute was used."
+        - "The schema-generated migration was extended with PostgreSQL partial indexes, append-only and privacy-delete triggers, revision checks, current-fact view, and confirmed-lab publication trigger that Prisma cannot express."
+        - "Prisma CLI introduced a high-severity vulnerable effect transitive dependency; effect 3.21.4 is pinned by root override and the final audit is clean."
+      remaining_blockers:
+        - "Object-storage and worker-lease readiness remain not_configured until their planned implementations land."
+        - "Remote CI remains unavailable until T006 GitHub billing lock is cleared."
+        - "Host Docker Desktop runtime smoke remains an external machine issue, but it does not weaken the real PostgreSQL evidence."
+      verification_attempts: 4
+      stopped_because: null
+      commit: 1da634c
   - id: T104
     type: worker
     assignee: Worker
-    status: queued
+    status: blocked
     reasoning_hint: high
-    objective: "Execute implementation plan Task 4: implement Sign in with Apple, sessions, and device registration."
+    objective: "Complete the remaining native iOS half of implementation Task 4: Sign in with Apple client flow, Keychain-only refresh-token storage, logout cache clearing, onboarding retry persistence, entitlement/signing evidence, and APNs-capable device registration. Backend identity is complete in T013."
     allowed_files: []
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: blocked
+      blocked_reason: "The backend half is verified in T013, but this machine has only Command Line Tools selected and no available Xcode/simctl. Real Apple account, client ID, entitlement, signing, Keychain, APNs, and distribution evidence also remains pending."
+      changed_files: []
+      commands:
+        - cmd: "xcodebuild -version"
+          status: fail
+        - cmd: "xcrun simctl list devices available"
+          status: fail
+      summary: "Preserved Task 4 as incomplete at the real native-platform boundary; no Apple or iOS evidence was fabricated."
+      evidence:
+        - "xcode-select reports /Library/Developer/CommandLineTools and rejects xcodebuild because it is not a full Xcode developer directory."
+        - "No /Applications/Xcode.app or /Applications/Xcode-beta.app is present."
+        - "T013 receipt proves only the synthetic backend identity/session/device slice."
+      risks_remaining:
+        - "Native authentication and secure local token lifecycle are untested."
+        - "Apple release authority and account readiness are pending."
+      next: "Install/select full Xcode and provide the applicable Apple platform evidence before reactivating T104."
 
   - id: T105
     type: worker
     assignee: Worker
-    status: queued
+    status: blocked
     reasoning_hint: high
-    objective: "Execute implementation plan Task 5: implement consent, settings, export, and deletion state machines."
+    objective: "Complete the remaining native iOS half of Task 5: consent onboarding, privacy settings, export/deletion status UX, secure deletion-status token persistence, and native tests. The server lifecycle is complete in T015."
     allowed_files: []
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: blocked
+      blocked_reason: "The server half is verified in T015, but native consent/settings implementation requires the Task 6 iOS shell plus full Xcode and simulator support, which are unavailable on this machine."
+      changed_files: []
+      commands:
+        - cmd: "xcodebuild -version"
+          status: fail
+      summary: "Preserved Task 5 as incomplete at the native UX boundary; no SwiftUI, Keychain, accessibility, or simulator evidence is claimed."
+      evidence:
+        - "T015 receipt proves only authenticated server APIs and backend/worker privacy state machines."
+        - "T106 records the missing full-Xcode and simulator blocker."
+      risks_remaining:
+        - "A user cannot yet grant/withdraw consent or monitor export/deletion from the native app."
+      next: "Reactivate after T106 and full Xcode are available."
 
   - id: T106
     type: worker
     assignee: Worker
-    status: queued
+    status: blocked
     reasoning_hint: high
     objective: "Execute implementation plan Task 6: build the native iOS shell and formal design system."
     allowed_files: []
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: blocked
+      blocked_reason: "Task 6 requires simulator navigation, accessibility, and snapshot verification, but full Xcode and simctl are unavailable on this machine."
+      changed_files: []
+      commands:
+        - cmd: "xcodebuild -version"
+          status: fail
+        - cmd: "xcrun simctl list devices available"
+          status: fail
+      summary: "Deferred the native shell without generating untestable SwiftUI or claiming visual fidelity from the web prototype."
+      evidence:
+        - "Active developer directory is /Library/Developer/CommandLineTools."
+        - "No Xcode application is installed under /Applications."
+      risks_remaining:
+        - "Four-tab native navigation, Dynamic Type, Reduce Motion, and 390x844 visual baselines remain unimplemented."
+      next: "Reactivate after full Xcode and an iPhone simulator runtime are available."
 
   - id: T107
     type: worker
     assignee: Worker
-    status: queued
+    status: blocked
     reasoning_hint: high
     objective: "Execute implementation plan Task 7: implement HealthKit authorization, aggregation, and offline sync outbox."
     allowed_files: []
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: blocked
+      blocked_reason: "Task 7 is native HealthKit work and cannot be implemented or tested without full Xcode, simulator frameworks, entitlements, and later true-device evidence."
+      changed_files: []
+      commands:
+        - cmd: "xcodebuild -version"
+          status: fail
+        - cmd: "xcrun simctl list devices available"
+          status: fail
+      summary: "Deferred native HealthKit while allowing its synthetic day-aggregate server contract to proceed independently in T017."
+      evidence:
+        - "Active developer directory remains /Library/Developer/CommandLineTools."
+        - "No Xcode application or simulator runtime is installed."
+      risks_remaining:
+        - "HealthKit authorization, anchored queries, deletion handling, source precedence, offline outbox, background refresh, and true-device behavior remain unimplemented."
+      next: "Install/select full Xcode and satisfy Apple/HealthKit gates before reactivation."
 
   - id: T108
     type: worker
     assignee: Worker
     status: queued
     reasoning_hint: high
-    objective: "Execute implementation plan Task 8: implement health ingestion and daily fact projections."
+    objective: "Complete the residual client-side scope of implementation plan Task 8: generate and check in the Swift API client from OpenAPI, sync one synthetic day-level batch from the native app to the local API, prove idempotent replay, and expose a visible last-sync/freshness state. The server ingestion, immutable fact projection, outbox, and worker dispatch are complete in T017."
+    inputs:
+      - "T017 receipt and commit 48bd1cc"
+      - "T106 native app shell"
+      - "T107 HealthKit/offline outbox"
     allowed_files: []
     verify: []
-    stop_if: []
+    stop_if:
+      - "Full Xcode, an iPhone simulator runtime, or generated-client compilation is unavailable."
+      - "The test would require real HealthKit data or Apple production credentials."
     receipt: null
 
   - id: T109
@@ -427,42 +2266,320 @@ tasks:
   - id: T110
     type: worker
     assignee: Worker
-    status: queued
+    status: done
     reasoning_hint: high
     objective: "Execute implementation plan Task 10: implement profile events and versioned profile snapshots."
-    allowed_files: []
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711052000_profile_projection/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/profile/**"
+      - "apps/worker/package.json"
+      - "apps/worker/src/jobs/health/**"
+      - "apps/worker/src/jobs/profile/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/runbooks/profile-projection.md"
     verify: []
     stop_if: []
-    receipt: null
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711052000_profile_projection/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/profile/canonical-json.ts
+        - apps/api/src/profile/dto/profile-candidate.dto.ts
+        - apps/api/src/profile/profile-candidate.service.ts
+        - apps/api/src/profile/profile-event.service.ts
+        - apps/api/src/profile/profile-snapshot.service.ts
+        - apps/api/src/profile/profile.controller.ts
+        - apps/api/src/profile/profile.integration.spec.ts
+        - apps/api/src/profile/profile.module.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/health/health-projection-dispatcher.integration.spec.ts
+        - apps/worker/src/jobs/health/health-projection-dispatcher.ts
+        - apps/worker/src/jobs/profile/canonical-json.ts
+        - apps/worker/src/jobs/profile/profile-projection-worker.integration.spec.ts
+        - apps/worker/src/jobs/profile/profile-projection-worker.ts
+        - infra/runbooks/profile-projection.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "Audit T019 receipt against implementation plan Task 10 Steps 1-4"
+          status: pass
+        - cmd: "Verify fresh and historical PostgreSQL migration evidence, canonical replay, consent withdrawal, outbox/inbox idempotency, and independent review"
+          status: pass
+      summary: "T019 fully implements implementation plan Task 10: append-only allowlisted profile events, explicit free-text candidate confirmation, deterministic immutable versioned snapshots, consent-aware outbox/inbox projection, and replay from zero."
+      evidence:
+        - "T019 commit ef98aed and receipt cover the complete Task 10 file and behavior surface."
+        - "API profile integration passed 9/9 and profile worker integration passed 8/8."
+        - "Historical upgrade, non-CREATEROLE migration, fresh migration, migration diff, privacy deletion, and independent three-round review all passed."
+        - "No real health data, provider, medical approval, or production credential was used or inferred."
+      risks_remaining:
+        - "Production worker scheduler/observability remains later operations scope."
+        - "Lab-origin profile events remain gated on Task 9."
+        - "DBA privacy-worker role provisioning remains a deployment precondition."
+      next: "Execute T111 as a draft-only deterministic rules and safety package; do not publish without distinct medical and technical approvals."
 
   - id: T111
     type: worker
     assignee: Worker
-    status: queued
+    status: done
     reasoning_hint: xhigh
-    objective: "Execute implementation plan Task 11: implement rules, action catalog, safety policy, and 50 golden cases."
-    allowed_files: []
-    verify: []
-    stop_if: []
-    receipt: null
-
+    objective: "Execute implementation plan Task 11 as a synthetic, draft-only deterministic policy package: typed profile inputs, eligibility gates, one-risk/one-action selection, action catalog with contraindications and lighter/swap variants, executable safety policy, dual-approval bundle state machine, 50 golden cases, and 30 adversarial cases. No rule bundle may be published or described as medically approved."
+    inputs:
+      - "T019/T110 deterministic profile snapshot contract"
+      - "Implementation plan Task 11"
+      - "Technical design sections 5, 10, 11, 12, 17, and 18"
+      - "docs/product/medical-content-governance.md pending authority state"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "packages/rules/**"
+      - "packages/evals/**"
+      - "docs/product/safety-taxonomy.md"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "pnpm --filter @healthos/rules test --coverage"
+      - "pnpm --filter @healthos/rules typecheck"
+      - "pnpm --filter @healthos/evals typecheck"
+      - "pnpm --filter @healthos/evals eval:rules"
+      - "Assert exactly 50 golden and 30 adversarial synthetic fixtures execute"
+      - "Assert every case yields one of action, insufficient_data, doctor, or blocked with an explicit safety class and provenance"
+      - "Assert no bundle reaches publishable/published without distinct named technical and medical approvals"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires inventing medical-review approval, clinical thresholds not already authorized by the plan, or claims of diagnosis/treatment."
+      - "An LLM, external provider, real health record, or production credential is required."
+      - "A normal/caution action can bypass eligibility, contraindication, stale/missing/conflicting-data, or fixed doctor/blocked fallback rules."
+      - "A rule bundle can publish with one actor filling both medical and technical approvals."
+      - "Golden/adversarial fixtures include identifying or real-user health data."
+      - "Implementation requires files outside allowed_files."
+    expected_output:
+      - "Typed deterministic risk engine and action catalog"
+      - "Executable safety policy with conservative fallbacks"
+      - "Draft-only versioned bundle and distinct-approver state machine"
+      - "50 golden and 30 adversarial synthetic cases with a deterministic runner"
+      - "100 percent branch coverage for safety-critical rule code"
+      - "Safety taxonomy documenting normal, caution, doctor, and blocked behavior"
+    receipt:
+      result: done
+      changed_files:
+        - pnpm-lock.yaml
+        - docs/product/safety-taxonomy.md
+        - packages/rules/package.json
+        - packages/rules/tsconfig.json
+        - packages/rules/jest.config.mjs
+        - packages/rules/src/action-catalog.ts
+        - packages/rules/src/index.ts
+        - packages/rules/src/input-validator.ts
+        - packages/rules/src/risk-engine.ts
+        - packages/rules/src/rule-bundle.ts
+        - packages/rules/src/rules.spec.ts
+        - packages/rules/src/safety-policy.ts
+        - packages/rules/src/types.ts
+        - packages/evals/package.json
+        - packages/evals/tsconfig.json
+        - packages/evals/src/generate-rule-fixtures.ts
+        - packages/evals/src/run-rule-cases.ts
+        - packages/evals/cases/golden/cases.json
+        - packages/evals/cases/adversarial/cases.json
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules test --coverage"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules typecheck"
+          status: pass
+        - cmd: "pnpm --filter @healthos/evals typecheck"
+          status: pass
+        - cmd: "pnpm --filter @healthos/evals eval:rules"
+          status: pass
+        - cmd: "pnpm lint"
+          status: pass
+        - cmd: "pnpm typecheck"
+          status: pass
+        - cmd: "pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T111.json --allow pnpm-lock.yaml --allow packages/rules/** --allow packages/evals/** --allow docs/product/safety-taxonomy.md --allow **/node_modules/**"
+          status: pass
+      summary: "Implemented the synthetic draft-only deterministic advisor policy package: strict fail-closed runtime input validation, eligibility and fixed safety fallbacks, one-risk/one-action selection, deeply immutable action catalog with revalidated substitutes, bundle-content-bound dual approvals, and a schema-enforced corpus of 50 golden plus 30 adversarial unique cases. No published state or medical-approval claim was added."
+      evidence:
+        - "Commit e578826 (feat: add deterministic advisor rules and safety cases)."
+        - "Jest reports 36 passing tests and 100 percent statements, branches, functions, and lines across all safety-critical rule modules."
+        - "The eval runner reports PASS 50 golden and 30 adversarial unique rule cases and validates exact fixture/result schema, fallback, provenance, forbidden output, unique IDs, and unique scenarios."
+        - "Malformed, incomplete, extra, and unsupported runtime fields fail closed as blocked / INVALID_INPUT."
+        - "Rule bundles and approvals are frozen trusted instances; each approval digest binds the exact version and content hash; forged or altered plain objects are not publishable."
+        - "All action substitutes are rechecked against user rejection and contraindications; the public catalog and nested safety metadata are runtime-frozen."
+        - "Independent read-only re-review concluded no P0/P1 after all findings were fixed."
+        - "Full workspace lint, typecheck, tests, dependency audit, diff check, and T111 scope guard pass."
+      risks_remaining:
+        - "The rule package remains draft_unapproved; a named medical reviewer and a distinct technical approver have not approved a production bundle."
+        - "Task 12 must authenticate and RBAC-check normalized approver identities and persist approval evidence transactionally."
+        - "GitHub-hosted CI remains unavailable until the external account billing lock is cleared."
+      next: "T021 PM audits T111 against implementation Task 11 and defines an executable T112 package for recommendation runs, immutable snapshots, and gated publishing."
   - id: T112
     type: worker
     assignee: Worker
-    status: queued
+    status: done
     reasoning_hint: xhigh
-    objective: "Execute implementation plan Task 12: implement recommendation runs, immutable snapshots, and rule publishing."
-    allowed_files: []
-    verify: []
-    stop_if: []
-    receipt: null
-
+    objective: "Execute implementation plan Task 12 as a synthetic production-grade recommendation pipeline: one run per user/local date, deterministic rule replay, immutable provenance-complete snapshot revisions, Alpha/Beta review routing, fixed doctor/blocked handling, consent- and deletion-fenced transactional publication/outboxes, authenticated-identity-ready dual bundle approvals and rollback, leased idempotent worker execution, and safe read-only admin queue/rule views. All real bundles remain draft/unpublished until named medical and technical authority exists."
+    inputs:
+      - "T111 deterministic rules, safety taxonomy, and 80-case eval corpus"
+      - "T019/T110 immutable profile snapshots and replay contract"
+      - "T015 privacy consent epochs, processing freeze, no-send reconciliation, and outbox suppression contract"
+      - "Implementation plan Task 12"
+      - "Technical design sections 7.3, 7.4, 8.3, 11, 14, 15, and 18"
+    allowed_files:
+      - "pnpm-lock.yaml"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711070000_recommendation_pipeline/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/database/database.module.ts"
+      - "apps/api/src/database/publication.repository.ts"
+      - "apps/api/src/recommendations/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/recommendations/**"
+      - "apps/admin/package.json"
+      - "apps/admin/app/rules/**"
+      - "apps/admin/app/recommendations/**"
+      - "packages/contracts/src/index.ts"
+      - "**/node_modules/**"
+    verify:
+      - "pnpm install --frozen-lockfile"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/api prisma validate"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/api prisma migrate deploy"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/api test:recommendations"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/worker test:recommendations"
+      - "DATABASE_URL=<fresh-ephemeral-postgres> pnpm --filter @healthos/api test:integration"
+      - "Assert migration diff is empty after applying every migration to a fresh database"
+      - "Assert a non-superuser, non-CREATEROLE, non-CREATEDB migrator can apply the complete migration history"
+      - "Assert one run per user/local date, duplicate-job idempotency, immutable revisions, exact replay, and no duplicate active action or outbox"
+      - "Assert Alpha always reviews; Beta only auto-publishes explicitly allowlisted normal rules after policy gates and deterministic sampling; caution reviews; doctor uses fixed fallback plus review; blocked never publishes"
+      - "Assert snapshot provenance includes canonical rule input, exact profile snapshot and daily fact revision identities/hashes, bundle identities, prompt/provider metadata or explicit deterministic-null markers, exact rendered payload, review history, and generation timestamp"
+      - "Assert publication, action assignment, domain/channel outboxes, consent requirements, and audit evidence commit atomically or all roll back"
+      - "Assert withdrawn consent, deleting/deleted user state, no-send reconciliation, stale worker lease, missed SLA, global LLM kill switch, and rolled-back bundle cannot publish"
+      - "Assert bundle approval requires two distinct normalized actor IDs in medical and technical roles, exact content digest binding, append-only approval evidence, and audited rollback"
+      - "pnpm --filter @healthos/rules test --coverage"
+      - "pnpm --filter @healthos/evals eval:rules"
+      - "pnpm --filter @healthos/admin typecheck"
+      - "pnpm --filter @healthos/admin build"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires inventing medical approval, clinical thresholds, real reviewer identities, or a production-published rule bundle."
+      - "A real health record, production credential, external LLM/provider, or identifying fixture is required."
+      - "Any user-facing recommendation can publish without a current usable profile snapshot, deterministic safety result, current consent epoch, active user state, and ready privacy reconciliation."
+      - "Alpha can auto-publish, or Beta can auto-publish caution/doctor/blocked output, a non-allowlisted rule, an unsampled ineligible normal result, or a bundle without distinct bound medical and technical approvals."
+      - "A mutable snapshot, overwritten review edit, duplicate daily run/active action/outbox, stale lease commit, or non-atomic publication path remains possible."
+      - "Rendered payload or provenance can omit exact source identities/hashes, rule and safety bundle identity, review action/edit history, or deterministic replay evidence."
+      - "A public/admin mutation endpoint would be exposed before Task 20 administrator identity, MFA, and RBAC controls exist."
+      - "Migration requires superuser, CREATEROLE, CREATEDB, disabling privacy fences, destructive history rewrite, or files outside allowed_files."
+    expected_output:
+      - "Recommendation-run and immutable revision schema with executable database invariants"
+      - "Deterministic run/replay, review-routing, publication, rollback, and reconciliation services"
+      - "Fenced idempotent recommendation worker with duplicate and stale-lease protection"
+      - "Exact stored rendered payload and provenance sufficient to retrieve and replay what was shown"
+      - "Synthetic dual-approval and rollback evidence without any claim of real medical approval"
+      - "Safe read-only operations views for rules and recommendation queues pending Task 20 authenticated mutations"
+      - "Fresh-database, historical-migration, non-superuser migrator, API, worker, database-invariant, admin-build, eval, and full-workspace evidence"
+    receipt:
+      result: done
+      changed_files:
+        - apps/admin/app/recommendations/page.tsx
+        - apps/admin/app/rules/operations-shell.tsx
+        - apps/admin/app/rules/operations.module.css
+        - apps/admin/app/rules/page.tsx
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711070000_recommendation_pipeline/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/database/publication.repository.ts
+        - apps/api/src/recommendations/recommendation-policy.spec.ts
+        - apps/api/src/recommendations/recommendation-policy.ts
+        - apps/api/src/recommendations/recommendation-run.service.ts
+        - apps/api/src/recommendations/recommendations.integration.spec.ts
+        - apps/api/src/recommendations/recommendations.module.ts
+        - apps/api/src/recommendations/rule-bundle.service.ts
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/recommendations/recommendation-worker.integration.spec.ts
+        - apps/worker/src/jobs/recommendations/recommendation-worker.ts
+        - apps/worker/src/worker.module.ts
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-postgres> pnpm --filter @healthos/api prisma validate && prisma migrate deploy"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-postgres> pnpm --filter @healthos/api test:recommendations"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-postgres> pnpm --filter @healthos/worker test:recommendations"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-postgres> pnpm --filter @healthos/api test:integration"
+          status: pass
+        - cmd: "Prisma migrate diff from fresh database to schema"
+          status: pass
+        - cmd: "Historical five-migration fixture plus recommendation migration"
+          status: pass
+        - cmd: "Complete migration history as NOSUPERUSER NOCREATEROLE NOCREATEDB owner"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules test --coverage"
+          status: pass
+        - cmd: "pnpm --filter @healthos/evals eval:rules"
+          status: pass
+        - cmd: "pnpm --filter @healthos/admin typecheck && pnpm --filter @healthos/admin build"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "T112 fifth-round independent read-only review"
+          status: pass
+        - cmd: "T112 scope guard and git diff --check"
+          status: pass
+      summary: "Implemented and independently verified a synthetic production-grade daily recommendation pipeline with one run per user/date, source-bound immutable manifests, deterministic replay, immutable reviewed revisions, Alpha/Beta routing, exact published-evidence qualification, fixed doctor/blocked behavior, consent/deletion-fenced atomic publication, dual bundle approvals and rollback, leased worker execution, and read-only admin views."
+      evidence:
+        - "Commit db4b27c (feat: publish reproducible daily recommendations)."
+        - "Fresh six-migration database passed; Prisma reported No difference detected."
+        - "Historical legacy bundle downgraded to draft_unapproved, pending/active/failed null-manifest runs all became suppressed, and legacy published snapshot became blocked."
+        - "NOSUPERUSER/NOCREATEROLE/NOCREATEDB migrator applied all six migrations."
+        - "API recommendation suite passed 15/15; Worker suite passed 11/11; database invariant suite passed 11/11."
+        - "Worker tests include 100 complete synthetic reviewed publications, duplicate-approval rejection, DB-recomputed beta sampling, forged-bucket rollback, safety-incident revocation, user-to-rule lock-order concurrency, lease expiry, consent withdrawal, doctor fallback, and blocked no-publication."
+        - "Manifest tests reject profile/rule-input forgery and SET CONSTRAINTS immediate plus late sidecar insertion."
+        - "Rules package passed 36/36 with 100 percent statements, branches, functions, and lines; evals passed 50 golden plus 30 adversarial unique cases."
+        - "Admin /rules and /recommendations routes typechecked and built as static read-only operations views."
+        - "Independent fifth-round review explicitly concluded no P0/P1 and independently reproduced qualification, lock-order, manifest-timing, privacy-deletion, digest, and sampling defenses."
+        - "Scope guard reported zero violations; only synthetic fixtures were used and no real bundle, health data, provider, Apple credential, or production secret was introduced."
+      risks_remaining:
+        - "No named medical and technical authorities have approved a production rule bundle; real bundles must remain unpublished."
+        - "Task 19 delivery must recheck exact-rule safety incidents before actual channel send and suppress already queued outboxes after a new incident."
+        - "Rules artifact digest binds current source; build configuration, compiler, and dependency provenance should be added to the release attestation in later supply-chain work."
+        - "Native iOS/Xcode, Apple/HealthKit, true-device, and GitHub-hosted CI billing gates remain external pending work."
+      next: "T022 PM audits T112 against implementation Task 12 and defines the executable T113 Today package with a truthful server/native boundary."
   - id: T113
     type: worker
     assignee: Worker
     status: queued
     reasoning_hint: high
-    objective: "Execute implementation plan Task 13: build the real Today feature."
+    objective: "Complete implementation plan Task 13 after T023 by building and verifying the native iOS Today store/view/cache/components, every required state, and 390x844 design captures against the approved target. Do not mark complete until an available Xcode/Apple environment runs the native unit/UI suite."
     allowed_files: []
     verify: []
     stop_if: []

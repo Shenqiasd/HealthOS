@@ -12,7 +12,7 @@ Implement the complete first version of HealthOS as a real product rather than a
 
 - Input shape: `existing_plan`
 - Audience: HealthOS product, engineering, medical-review, operations, and release owners
-- Authority: `approved` for GoalBuddy setup and durable execution control; `needs_approval` before entering implementation Task 0, with additional named human approval where Task 0 and release gates require it
+- Authority: product owner approved entering implementation Task 0 on 2026-07-10 and continuing later engineering tasks after their listed dependencies pass; named legal, privacy, medical, Apple, WeCom, provider, security, incident-response, backup, and release approvals remain separately required where the plan calls for them
 - Proof type: `test`, `artifact`, `metric`, `review`, and `decision`
 - Completion proof: Task 27 release gates and the plan's Definition of Done pass with traceable receipts, including TestFlight, safety, privacy, security, performance, recovery, operations, rollback, and SLO evidence
 - Goal oracle: the current executable release-gate suite and final Judge/PM evidence audit against the original V1 outcome

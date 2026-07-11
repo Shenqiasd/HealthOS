@@ -1,0 +1,1845 @@
+[
+  {
+    "id": "golden-sleep-1",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-sleep-2",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated",
+        "fatty_liver": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-sleep-3",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated",
+        "fatty_liver": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-sleep-4",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated",
+        "uric_acid": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-sleep-5",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated",
+        "uric_acid": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-sleep-6",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated",
+        "waist_weight": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-sleep-7",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated",
+        "waist_weight": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-sleep-8",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated",
+        "fatty_liver": "normal",
+        "uric_acid": "unknown",
+        "waist_weight": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-liver-1",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-liver-2",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated",
+        "sleep_recovery": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-liver-3",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated",
+        "sleep_recovery": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-liver-4",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated",
+        "uric_acid": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-liver-5",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated",
+        "uric_acid": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-liver-6",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated",
+        "waist_weight": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-liver-7",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated",
+        "waist_weight": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-liver-8",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated",
+        "sleep_recovery": "normal",
+        "uric_acid": "unknown",
+        "waist_weight": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-uric-1",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "uric_acid": "elevated"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "uric_acid",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "uric_acid",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-uric-2",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "uric_acid": "elevated",
+        "sleep_recovery": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "uric_acid",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "uric_acid",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-uric-3",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "uric_acid": "elevated",
+        "sleep_recovery": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "uric_acid",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "uric_acid",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-uric-4",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "uric_acid": "elevated",
+        "fatty_liver": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "uric_acid",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "uric_acid",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-uric-5",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "uric_acid": "elevated",
+        "fatty_liver": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "uric_acid",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "uric_acid",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-uric-6",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "uric_acid": "elevated",
+        "waist_weight": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "uric_acid",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "uric_acid",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-uric-7",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "uric_acid": "elevated",
+        "waist_weight": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "uric_acid",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "uric_acid",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-uric-8",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "uric_acid": "elevated",
+        "sleep_recovery": "normal",
+        "fatty_liver": "unknown",
+        "waist_weight": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "uric_acid",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "uric_acid",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-waist-1",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-waist-2",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated",
+        "sleep_recovery": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-waist-3",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated",
+        "sleep_recovery": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-waist-4",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated",
+        "fatty_liver": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-waist-5",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated",
+        "fatty_liver": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-waist-6",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated",
+        "uric_acid": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-waist-7",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated",
+        "uric_acid": "unknown"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-waist-8",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated",
+        "sleep_recovery": "normal",
+        "fatty_liver": "unknown",
+        "uric_acid": "normal"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "normal",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "POST_MEAL_WALK"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-missing",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "missing",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "insufficient_data",
+      "safety_class": "caution",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "DATA_MISSING",
+      "fallback_code": "DATA_MISSING",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-stale",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "stale",
+      "signals": {
+        "sleep_recovery": "elevated"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "insufficient_data",
+      "safety_class": "caution",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "DATA_STALE",
+      "fallback_code": "DATA_STALE",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-conflicting",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "conflicting",
+      "signals": {
+        "uric_acid": "elevated"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "insufficient_data",
+      "safety_class": "caution",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "DATA_CONFLICTING",
+      "fallback_code": "DATA_CONFLICTING",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-no-signal",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "insufficient_data",
+      "safety_class": "caution",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "NO_ELIGIBLE_SIGNAL",
+      "fallback_code": "NO_ELIGIBLE_SIGNAL",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-minor",
+    "input": {
+      "age_group": "minor",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-pregnant",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "pregnant",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-trying",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "trying",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-serious-renal",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [
+        "synthetic_serious_renal_condition"
+      ],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-serious-cardiac",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [
+        "synthetic_serious_cardiac_condition"
+      ],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-serious-liver",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [
+        "synthetic_serious_liver_condition"
+      ],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-diabetes",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": true,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-medication",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": true,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-gate-eating",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": true,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "doctor",
+      "safety_class": "doctor",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "fallback_code": "ELIGIBILITY_REQUIRES_CLINICIAN",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-acute-1",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": true,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {},
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "blocked",
+      "safety_class": "blocked",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "ACUTE_SYMPTOMS",
+      "fallback_code": "ACUTE_SYMPTOMS",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  },
+  {
+    "id": "golden-mobility-1",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": true,
+      "freshness": "current",
+      "signals": {
+        "fatty_liver": "elevated"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "caution",
+      "risk_area": "fatty_liver",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "fatty_liver",
+        "adjusted": true
+      }
+    }
+  },
+  {
+    "id": "golden-mobility-2",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": true,
+      "freshness": "current",
+      "signals": {
+        "waist_weight": "elevated"
+      },
+      "rejected_action_codes": []
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "caution",
+      "risk_area": "waist_weight",
+      "allowed_action_codes": [
+        "SUGARY_DRINK_SWAP"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "waist_weight",
+        "adjusted": true
+      }
+    }
+  },
+  {
+    "id": "golden-reject-1",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated"
+      },
+      "rejected_action_codes": [
+        "SLEEP_WIND_DOWN"
+      ]
+    },
+    "expected": {
+      "outcome": "action",
+      "safety_class": "caution",
+      "risk_area": "sleep_recovery",
+      "allowed_action_codes": [
+        "SLEEP_WIND_DOWN_LIGHT"
+      ],
+      "reason_code": "ACTION_SELECTED",
+      "fallback_code": null,
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": "sleep_recovery",
+        "adjusted": true
+      }
+    }
+  },
+  {
+    "id": "golden-reject-2",
+    "input": {
+      "age_group": "adult",
+      "pregnancy_state": "none",
+      "serious_conditions": [],
+      "diabetes_treatment": false,
+      "medication_affects_advice": false,
+      "eating_disorder_risk": false,
+      "acute_symptoms": false,
+      "mobility_limited": false,
+      "freshness": "current",
+      "signals": {
+        "sleep_recovery": "elevated"
+      },
+      "rejected_action_codes": [
+        "SLEEP_WIND_DOWN",
+        "SLEEP_WIND_DOWN_LIGHT"
+      ]
+    },
+    "expected": {
+      "outcome": "insufficient_data",
+      "safety_class": "caution",
+      "risk_area": null,
+      "allowed_action_codes": [],
+      "reason_code": "NO_ACCEPTABLE_ACTION",
+      "fallback_code": "NO_ACCEPTABLE_ACTION",
+      "forbidden_output": [
+        "diagnosis",
+        "medication_change"
+      ],
+      "provenance": {
+        "engine": "deterministic-rules-v1",
+        "signal": null,
+        "adjusted": false
+      }
+    }
+  }
+]

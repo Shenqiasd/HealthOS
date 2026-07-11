@@ -1,0 +1,892 @@
+openapi: 3.1.0
+info:
+  title: HealthOS API
+  version: 1.0.0
+  description: HealthOS V1 client and operations contract.
+servers:
+  - url: http://127.0.0.1:3000
+    description: Local synthetic development only
+paths:
+  /health/live:
+    get:
+      operationId: getLiveness
+      summary: Process liveness
+      responses:
+        "200":
+          description: The API process is alive.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LivenessResponse"
+  /health/ready:
+    get:
+      operationId: getReadiness
+      summary: Dependency readiness
+      responses:
+        "200":
+          description: Every required dependency is ready.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
+          description: One or more required dependencies are not ready.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+  /health/sync:
+    post:
+      operationId: ingestHealthSyncBatch
+      summary: Ingest consented day-level health aggregates from the primary device
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthSyncRequest"
+      responses:
+        "200":
+          description: The accepted run or its idempotent replay result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthSyncResponse"
+        "400":
+          description: Batch schema or metric bounds are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Consent, active-user, device ownership, or primary-device check failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /health/freshness:
+    get:
+      operationId: getHealthFreshness
+      summary: Read aggregate availability and freshness without interpretation
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current aggregate freshness state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthFreshnessResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /profile/candidates:
+    post:
+      operationId: proposeProfileCandidate
+      summary: Store a typed pending candidate without retaining source free text
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileCandidateRequest"
+      responses:
+        "200":
+          description: A pending typed candidate; source free text is never returned or persisted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileCandidateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current health-processing consent is absent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /profile/candidates/{id}/confirm:
+    post:
+      operationId: confirmProfileCandidate
+      summary: Confirm an immutable typed candidate into the append-only profile ledger
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: The confirmed candidate and its unique profile event.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileCandidateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current health-processing consent is absent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /profile/snapshot:
+    get:
+      operationId: getCurrentProfileSnapshot
+      summary: Read the latest immutable snapshot authorized by the current consent epoch
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: The current deterministic profile projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileSnapshotResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current health-processing consent is absent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /identity/apple/nonce:
+    post:
+      operationId: issueAppleNonce
+      summary: Issue a single-use nonce for Sign in with Apple
+      responses:
+        "200":
+          description: A short-lived nonce was issued.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NonceResponse"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /identity/apple:
+    post:
+      operationId: authenticateWithApple
+      summary: Exchange a verified Apple identity token and nonce for a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppleAuthenticationRequest"
+      responses:
+        "200":
+          description: The Apple identity was authenticated.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /identity/refresh:
+    post:
+      operationId: rotateRefreshToken
+      summary: Atomically rotate a refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: A new access and refresh token pair was issued.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionTokensResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /identity/logout:
+    post:
+      operationId: logoutSessionFamily
+      summary: Revoke the refresh-token family
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: The operation is complete, including for an unknown token.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutResponse"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /identity/devices:
+    post:
+      operationId: registerDevice
+      summary: Idempotently register a device owned by the authenticated user
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceRegistrationRequest"
+      responses:
+        "200":
+          description: The device was registered or updated.
+          headers:
+            x-correlation-id:
+              $ref: "#/components/headers/CorrelationId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceRegistrationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/IdentityUnavailable"
+  /consents:
+    get:
+      operationId: getConsentSettings
+      summary: Read current consent state by independent purpose
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current consent settings derived from append-only records.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentSettingsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: writeConsent
+      summary: Append a versioned consent grant or withdrawal
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentWriteRequest"
+      responses:
+        "200":
+          description: The idempotent consent record and global epoch.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentRecordResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /privacy/exports:
+    post:
+      operationId: requestPrivacyExport
+      summary: Idempotently request a machine-readable export
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivacyRequestBody"
+      responses:
+        "200":
+          description: The existing or newly requested export job.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/PrivacyUnavailable"
+  /privacy/exports/{id}:
+    get:
+      operationId: getPrivacyExport
+      summary: Read an export job owned by the authenticated user
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Current export status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /privacy/deletions:
+    post:
+      operationId: requestPrivacyDeletion
+      summary: Freeze processing and request deletion
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivacyRequestBody"
+      responses:
+        "200":
+          description: Processing is frozen and a scoped status token is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletionRequestResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/PrivacyUnavailable"
+  /privacy/deletions/{id}:
+    get:
+      operationId: getPrivacyDeletion
+      summary: Read deletion progress using the scoped status token
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - name: x-deletion-status-token
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 64
+            maxLength: 128
+      responses:
+        "200":
+          description: Current deletion status without restoring ordinary access.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletionStatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  headers:
+    CorrelationId:
+      description: Validated incoming identifier or a server-generated UUID.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthorized:
+      description: Authentication failed or the session is no longer active.
+      headers:
+        x-correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    IdentityUnavailable:
+      description: Identity configuration is unavailable or incomplete.
+      headers:
+        x-correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    PrivacyUnavailable:
+      description: Privacy control storage or required key configuration is unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Conflict:
+      description: The requested transition or idempotency key conflicts with current state.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFound:
+      description: The resource is absent or not owned by the caller.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+  schemas:
+    LivenessResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          const: ok
+    DependencyHealth:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [not_configured, ok, error]
+    ReadinessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, dependencies]
+      properties:
+        status:
+          type: string
+          enum: [not_ready, ready]
+        dependencies:
+          type: object
+          additionalProperties: false
+          required: [database, object_storage, worker_lease]
+          properties:
+            database:
+              $ref: "#/components/schemas/DependencyHealth"
+            object_storage:
+              $ref: "#/components/schemas/DependencyHealth"
+            worker_lease:
+              $ref: "#/components/schemas/DependencyHealth"
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, correlation_id]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            correlation_id:
+              type: string
+    NonceResponse:
+      type: object
+      additionalProperties: false
+      required: [nonce, expires_at]
+      properties:
+        nonce:
+          type: string
+          minLength: 32
+        expires_at:
+          type: string
+          format: date-time
+    AppleAuthenticationRequest:
+      type: object
+      additionalProperties: false
+      required: [identity_token, nonce]
+      properties:
+        identity_token:
+          type: string
+          minLength: 32
+        nonce:
+          type: string
+          minLength: 32
+    RefreshTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          minLength: 32
+    SessionTokensResponse:
+      type: object
+      additionalProperties: false
+      required: [access_token, refresh_token]
+      properties:
+        access_token:
+          type: string
+          minLength: 32
+        refresh_token:
+          type: string
+          minLength: 32
+    AuthenticationResponse:
+      type: object
+      additionalProperties: false
+      required: [user_id, access_token, refresh_token]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        access_token:
+          type: string
+          minLength: 32
+        refresh_token:
+          type: string
+          minLength: 32
+    LogoutResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          const: revoked
+    DeviceRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [device_id, app_version]
+      properties:
+        device_id:
+          type: string
+          minLength: 8
+          maxLength: 128
+        app_version:
+          type: string
+          minLength: 1
+          maxLength: 32
+        apns_token:
+          type: string
+          minLength: 16
+          maxLength: 512
+    DeviceRegistrationResponse:
+      type: object
+      additionalProperties: false
+      required: [id, device_id, app_version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+        app_version:
+          type: [string, "null"]
+    ConsentPurpose:
+      type: string
+      enum: [privacy_terms, health_processing, notifications, external_ai]
+    ConsentWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [purpose, document_version, granted]
+      properties:
+        purpose:
+          $ref: "#/components/schemas/ConsentPurpose"
+        document_version:
+          type: string
+          minLength: 1
+          maxLength: 64
+        granted:
+          type: boolean
+    ConsentRecordResponse:
+      type: object
+      additionalProperties: false
+      required: [id, purpose, document_version, granted, epoch, recorded_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        purpose:
+          $ref: "#/components/schemas/ConsentPurpose"
+        document_version:
+          type: string
+        granted:
+          type: boolean
+        epoch:
+          type: integer
+          minimum: 1
+        recorded_at:
+          type: string
+          format: date-time
+    ConsentPurposeState:
+      type: object
+      additionalProperties: false
+      required: [granted, document_version, epoch, recorded_at]
+      properties:
+        granted:
+          type: boolean
+        document_version:
+          type: string
+        epoch:
+          type: integer
+          minimum: 1
+        recorded_at:
+          type: string
+          format: date-time
+    ConsentSettingsResponse:
+      type: object
+      additionalProperties: false
+      required: [consent_epoch, purposes]
+      properties:
+        consent_epoch:
+          type: integer
+          minimum: 0
+        purposes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ConsentPurposeState"
+    PrivacyRequestBody:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key]
+      properties:
+        idempotency_key:
+          type: string
+          format: uuid
+    ExportJobResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status, artifact_available, expires_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [requested, generating, ready, expired, failed_retryable]
+        artifact_available:
+          type: boolean
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+    DeletionRequestResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status, status_token]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [requested, frozen, deleting, completed, failed_retryable]
+        status_token:
+          type: string
+          minLength: 64
+    DeletionStatusResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status, completed_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [requested, frozen, deleting, completed, failed_retryable]
+        completed_at:
+          type: [string, "null"]
+          format: date-time
+    HealthMetric:
+      type: string
+      enum:
+        - steps
+        - active_energy_kcal
+        - exercise_minutes
+        - sleep_minutes
+        - resting_heart_rate_bpm
+        - hrv_ms
+        - workout_minutes
+        - weight_kg
+        - vo2_max
+    HealthSourceContributionRequest:
+      type: object
+      additionalProperties: false
+      required: [source_id, kind, contribution]
+      properties:
+        source_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        kind:
+          type: string
+          enum: [phone, watch, third_party, user]
+        contribution:
+          type: number
+          minimum: 0
+          maximum: 1
+    DailyHealthFactRequest:
+      type: object
+      additionalProperties: false
+      required: [local_date, metric, value, coverage, source_vector]
+      properties:
+        local_date:
+          type: string
+          format: date
+        metric:
+          $ref: "#/components/schemas/HealthMetric"
+        value:
+          type: number
+        coverage:
+          type: number
+          minimum: 0
+          maximum: 1
+        source_vector:
+          type: array
+          minItems: 1
+          maxItems: 16
+          items:
+            $ref: "#/components/schemas/HealthSourceContributionRequest"
+    HealthSyncRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, device_id, anchor_epoch, timezone, facts]
+      properties:
+        idempotency_key:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        anchor_epoch:
+          type: integer
+          minimum: 0
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        facts:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/DailyHealthFactRequest"
+    HealthSyncResponse:
+      type: object
+      additionalProperties: false
+      required: [sync_run_id, server_sequence, created_revision_ids]
+      properties:
+        sync_run_id:
+          type: string
+          format: uuid
+        server_sequence:
+          type: string
+          pattern: "^[1-9][0-9]*$"
+        created_revision_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    HealthFreshnessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, latest_local_date]
+      properties:
+        status:
+          type: string
+          enum: [absent, partial, current, stale]
+        latest_local_date:
+          type: [string, "null"]
+          format: date
+    MobilityLimitationValue:
+      type: object
+      additionalProperties: false
+      required: [code, active]
+      properties:
+        code:
+          type: string
+          pattern: "^[a-z][a-z0-9_]{1,63}$"
+        active:
+          type: boolean
+    ProfileCandidateRequest:
+      type: object
+      additionalProperties: false
+      required: [candidate_type, structured_value, source_text, idempotency_key]
+      properties:
+        candidate_type:
+          const: mobility_limitation
+        structured_value:
+          $ref: "#/components/schemas/MobilityLimitationValue"
+        source_text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: Used only to compute a one-way hash; never retained in the profile ledger.
+        idempotency_key:
+          type: string
+          format: uuid
+    ProfileCandidateResponse:
+      type: object
+      additionalProperties: false
+      required: [id, candidate_type, structured_value, status, confirmed_event_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        candidate_type:
+          const: mobility_limitation
+        structured_value:
+          $ref: "#/components/schemas/MobilityLimitationValue"
+        status:
+          type: string
+          enum: [pending, confirmed, rejected]
+        confirmed_event_id:
+          type: [string, "null"]
+          format: uuid
+    ProfileSnapshotResponse:
+      type: object
+      additionalProperties: false
+      required: [version, facts, source_sequence, snapshot_hash]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        facts:
+          type: object
+          description: Canonically projected typed facts; unsupported free text is excluded.
+        source_sequence:
+          type: string
+          pattern: "^[1-9][0-9]*$"
+        snapshot_hash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"

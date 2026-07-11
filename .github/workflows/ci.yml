@@ -1,0 +1,42 @@
+name: HealthOS CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: healthos-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foundation:
+    name: Foundation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:foundation
+      - run: pnpm check:workspace
+      - run: pnpm check:preflight:structure
+      - run: pnpm check:preflight:blocked
+      - run: docker compose config --quiet
+      - run: terraform fmt -check -recursive infra/terraform
+      - run: terraform -chdir=infra/terraform/environments/staging-synthetic init -backend=false -input=false
+      - run: terraform -chdir=infra/terraform/environments/staging-synthetic validate
