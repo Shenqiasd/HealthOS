@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T033
+active_task: T035
 
 tasks:
   - id: T001
@@ -1958,7 +1958,7 @@ tasks:
   - id: T033
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the production server tranche of implementation Task 18: asynchronously generate immutable, provenance-bound weekly review snapshots at an explicit cutoff from current consent-qualified signal/action/feedback history; expose authenticated current Review and deterministic private/default-redacted share payloads with expiry and deletion fencing. Do not call an LLM, invent health meaning or actions, render final image assets, or complete native T118."
     inputs:
@@ -2015,6 +2015,205 @@ tasks:
       - "Fixed semantic conclusion/evidence/friction/next-action logic with no provider or new clinical logic"
       - "Fresh/historical/restricted migration, cutoff/retry/idempotency, privacy/deletion, OpenAPI, full-workspace, scope, and independent no-P0/P1 evidence"
       - "Receipt explicitly leaving native/visual Task 18/T118 incomplete"
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/20260711160000_weekly_reviews/migration.sql
+        - apps/api/src/app.module.ts
+        - apps/api/src/reviews/dto/review-generation.dto.ts
+        - apps/api/src/reviews/openapi-contract.spec.ts
+        - apps/api/src/reviews/review-view.spec.ts
+        - apps/api/src/reviews/review-view.ts
+        - apps/api/src/reviews/reviews.controller.ts
+        - apps/api/src/reviews/reviews.integration.spec.ts
+        - apps/api/src/reviews/reviews.module.ts
+        - apps/api/src/reviews/reviews.service.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/reviews/weekly-review-dispatcher.ts
+        - apps/worker/src/jobs/reviews/weekly-review-projector.spec.ts
+        - apps/worker/src/jobs/reviews/weekly-review-projector.ts
+        - apps/worker/src/jobs/reviews/weekly-review-worker.integration.spec.ts
+        - apps/worker/src/jobs/reviews/weekly-review-worker.ts
+        - apps/worker/src/worker.module.ts
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "Fresh ten-migration Prisma validate/deploy/status and zero schema diff"
+          status: pass
+        - cmd: "Nine-to-ten migration upgrade preserving an arbitrary legacy weekly-review row"
+          status: pass
+        - cmd: "Ten-migration deploy by a NOSUPERUSER NOCREATEROLE NOCREATEDB database owner"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-ten-migration-postgres> pnpm --filter @healthos/worker test:reviews"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-ten-migration-postgres> pnpm --filter @healthos/api test:reviews"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-ten-migration-postgres> pnpm --filter @healthos/worker test:signals"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-ten-migration-postgres> pnpm --filter @healthos/api test:signals"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-ten-migration-postgres> pnpm --filter @healthos/api test:today"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-ten-migration-postgres> pnpm --filter @healthos/api test:actions"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-ten-migration-postgres> pnpm --filter @healthos/api test:integration"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules test --coverage"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "T033 scope guard and git diff --check"
+          status: pass
+      summary: "Implemented the production server weekly-Review tranche: asynchronous immutable cutoff-bound snapshots, fixed non-clinical semantic projection, authenticated current Review, and exact expiring private/default-redacted share contracts with database-enforced provenance and privacy deletion."
+      evidence:
+        - "Product commit 52ec74d"
+        - "Worker Review 8/8 passed across projector and database integration, including cutoff isolation, retries, exact replay, immutable semantics, and privacy deletion"
+        - "API Review/OpenAPI 6/6 passed, including owner-only access, expiry, cross-user denial, discriminated redacted/private payloads, and internal-reference resolution"
+        - "Signals 11/11 worker and 9/9 API, Today 19/19, Actions 22/22, database invariants 11/11, rules 36/36 with 100% coverage, and full workspace tests passed"
+        - "Historical upgrade preserved arbitrary legacy conclusion, evidence, actions, provenance, coverage, and revision while new production fields remained null"
+        - "Restricted migrator flags were rolsuper=false, rolcreaterole=false, rolcreatedb=false and all ten migrations applied"
+        - "Independent final review: no P0/P1/P2"
+      risks_remaining:
+        - "Native implementation Task 18/T118 remains incomplete: Swift Review store/UI, all eight states, VoiceOver, deterministic final image rendering, visual comparison, and D7 device E2E are still required."
+        - "Only synthetic health data and local PostgreSQL evidence were used."
+        - "No production medical/rule approval, Apple entitlement, provider/channel approval, or real-user readiness is implied."
+        - "GitHub Actions remains externally blocked by the account billing state tracked in T006."
+      next: "Activate T034 to audit the server tranche and select the next largest safe production package without closing native/visual T118."
+  - id: T034
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T033 server weekly-Review evidence, preserve native/visual T118 as incomplete, and select the next largest production package that can proceed with synthetic data without inventing Apple, medical, provider, channel, or real-user approval."
+    inputs:
+      - "T033 receipt and product commit"
+      - "Implementation plan Tasks 9, 15, and 17-22 plus current T100-T127 dependency state"
+      - "Technical design contracts for operations, admin authorization, audit, safety incidents, channels, providers, and native Review"
+      - "Current governance blockers, local toolchain evidence, and GitHub Actions billing state"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T118 done without native Swift Review store/UI, eight-state tests, VoiceOver, deterministic final rendering, visual comparison, and D7 E2E."
+      - "Do not choose work that requires a real provider, production rule/medical approval, Apple entitlement, official channel credential, personal WeChat bridge, or real health data."
+      - "Keep T006 and every named professional governance gate truthfully blocked."
+      - "Populate exact dependencies, allowed_files, verify commands, and stop conditions before activating a Worker."
+    expected_output:
+      - "T033 evidence audit against its server-only contract"
+      - "Explicit residual scope for native/visual T118"
+      - "One next largest safe Worker package or a truthful dependency decision"
+      - "Updated board, next-task scope baseline, and PM receipt"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "Audit T033 receipt, product commit 52ec74d, full regression evidence, and independent no-P0/P1/P2 review"
+          status: pass
+        - cmd: "Read implementation Tasks 9, 15, and 17-22 plus technical operations/admin/audit/safety contracts"
+          status: pass
+        - cmd: "Audit T100-T127 status and unresolved governance dependencies"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked"
+          status: pass
+        - cmd: "xcode-select -p and xcodebuild -version environment audit"
+          status: pass
+        - cmd: "T034 scope guard for docs/goals/healthos-v1 only"
+          status: pass
+      summary: "Audited T033 as a complete production server weekly-Review tranche while preserving native/visual T118 as queued. Selected a provider-neutral operations-control tranche of Task 20 as the next largest safe package because it can establish fail-closed admin auth, RBAC, versioned workflows, atomic audit, and an API-backed synthetic console without real provider credentials, medical approval, Apple entitlements, channels, or real data."
+      evidence:
+        - "T033 commit 52ec74d and receipt include fresh/historical/restricted migration, Worker Review 8/8, API Review/OpenAPI 6/6, Signals 11/11 and 9/9, Today 19/19, Actions 22/22, database 11/11, rules 36/36 at 100%, full workspace, scope, and independent no-P0/P1/P2 evidence."
+        - "Implementation Task 18 still requires native Swift Review, deterministic final rendering, visual comparison, VoiceOver, and D7 E2E, so T118 remains queued."
+        - "Preflight readiness remains truthfully blocked on twelve professional/production decisions, including clinical, Apple, provider, channel, incident-response, and backup ownership."
+        - "The local developer path is /Library/Developer/CommandLineTools and xcodebuild reports full Xcode unavailable, so native lanes cannot currently produce their required acceptance evidence."
+        - "Task 20's provider-neutral authorization, RBAC, queue concurrency, audit, and synthetic admin view can proceed without exercising medical approval or production identity-provider authority."
+        - "T035 has explicit files, migration compatibility, fail-closed identity, resource scope, optimistic concurrency, atomic audit, and full-T120 exclusion."
+      risks_remaining:
+        - "Native T118 and all other native lanes remain incomplete while full Xcode and Apple readiness are absent."
+        - "T035 will not complete real admin IdP/MFA integration, lab/provider workflows, channels, export/delete dual approval, staffing simulation, or named medical/operations authority."
+        - "Production medical/rule approval, provider choices, channel readiness, incident/backup owners, and GitHub Actions billing remain unresolved."
+      next: "Activate T035 and implement the synthetic-only provider-neutral operations-control tranche without closing full T120."
+  - id: T035
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the provider-neutral operations-control tranche of implementation Task 20: fail-closed administrator authentication adapter, MFA and role enforcement, cursor-paginated review/safety queues, optimistic-concurrency workflow mutations with mandatory reasons, and transactionally reconstructable audit records, plus a dense API-backed admin surface. Use synthetic actors only and do not complete full T120."
+    inputs:
+      - "T103 production schema and database constraint foundation"
+      - "T013 user identity patterns, while keeping administrator identity provider-neutral and separately fail-closed"
+      - "T112 immutable recommendation publications, review tasks, draft rule approvals, and existing read-only operations pages"
+      - "T033 weekly Review evidence and current synthetic-only operational state"
+      - "Implementation plan Task 20 and technical design sections 6, 7.4, 9, 15, 17, 18, 22, and 23"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260711190000_operations_control/**"
+      - "apps/api/src/admin/**"
+      - "apps/api/src/audit/**"
+      - "apps/api/src/safety-incidents/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/admin/package.json"
+      - "apps/admin/app/(authenticated)/**"
+      - "apps/admin/app/globals.css"
+      - "apps/admin/app/layout.tsx"
+      - "apps/admin/app/page.tsx"
+      - "apps/admin/app/recommendations/**"
+      - "apps/admin/app/rules/**"
+      - "apps/admin/components/**"
+      - "apps/admin/lib/api/**"
+      - "apps/admin/tests/**"
+      - "apps/admin/jest.config.mjs"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+      - "apps/admin/.next/**"
+    verify:
+      - "pnpm install --frozen-lockfile after any lockfile update"
+      - "Write failing API, database, contract, and admin component/view-model tests before implementation"
+      - "Fresh eleven-migration Prisma validate/deploy and zero migration diff"
+      - "Valid ten-migration historical upgrade preserving existing review tasks, audit logs, and safety incidents, plus full eleven-migration deploy by a NOSUPERUSER NOCREATEROLE NOCREATEDB owner"
+      - "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:admin"
+      - "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:integration"
+      - "pnpm --filter @healthos/admin test"
+      - "pnpm --filter @healthos/admin build"
+      - "Assert no configured administrator verifier denies every request and no user access token is accepted as an administrator token"
+      - "Assert reviewer/operator/admin/medical-approver role boundaries, MFA requirement, inactive actor denial, resource-level authorization, and no cross-tenant/subject leakage"
+      - "Assert stable cursor pagination, claim/reassign/backup takeover, SLA ordering, optimistic version conflicts, required mutation reason, and immutable original draft/history"
+      - "Assert every successful mutation atomically writes actor, role, reason, correlation ID, before/after reconstructable payloads and hashes; failed mutations write no success audit"
+      - "Assert safety incident state transitions are allowlisted and cannot silently publish a recommendation, rule bundle, health action, or external delivery"
+      - "Assert canonical OpenAPI parses with every internal reference resolved and matches TypeScript plus runtime DTO/query contracts"
+      - "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/worker test:reviews"
+      - "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:reviews"
+      - "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:signals"
+      - "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:today"
+      - "DATABASE_URL=<fresh-eleven-migration-postgres> pnpm --filter @healthos/api test:actions"
+      - "pnpm --filter @healthos/rules test --coverage"
+      - "pnpm lint"
+      - "pnpm typecheck"
+      - "env -u DATABASE_URL pnpm test"
+      - "pnpm audit --audit-level low"
+      - "git diff --check"
+    stop_if:
+      - "Implementation requires selecting or configuring a real administrator identity/MFA provider, granting production access, using real health data, or fabricating a named reviewer/medical approver."
+      - "A synthetic admin action can publish or medically approve a production rule, recommendation, health action, lab fact, share, delivery, export, or deletion request."
+      - "Any mutation can bypass MFA/role/resource/version/reason checks, write state without its audit record, alter immutable source payloads, or expose health details outside the minimum queue/detail view."
+      - "A queue can leak across an actor's allowed scope or pagination can duplicate/skip rows under a stable snapshot."
+      - "Migration rewrites existing operational meaning, requires elevated cluster roles, weakens append-only/privacy deletion behavior, or needs files outside allowed_files."
+      - "The task would be declared as full Task 20/T120 without real identity-provider integration, lab/channel/export-delete workflows, staffing/SLA simulation, complete E2E, and named operational/medical authority."
+    expected_output:
+      - "Fail-closed provider adapter and synthetic-only administrator principal with MFA, status, role, and scope enforcement"
+      - "Versioned review/safety workflow APIs with stable pagination and mandatory reasoned mutations"
+      - "Atomic reconstructable append-only audit evidence for every successful mutation"
+      - "Dense accessible admin queue/detail UI backed by typed API contracts, with honest unavailable/empty/error states"
+      - "Fresh/historical/restricted migration, RBAC/adversarial/privacy, OpenAPI, admin build/tests, full-workspace, scope, and independent no-P0/P1 evidence"
+      - "Receipt explicitly leaving full Task 20/T120 incomplete"
     receipt: null
   - id: T003
     type: worker
