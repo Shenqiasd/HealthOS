@@ -8,6 +8,7 @@ import type {
   TodayViewModel,
 } from "@healthos/contracts";
 import type { Prisma } from "@prisma/client";
+import { getAction, type ActionCode } from "@healthos/rules";
 
 import { DatabaseService } from "../database/prisma.service";
 
@@ -57,6 +58,13 @@ function jsonObject(value: Prisma.JsonValue): Prisma.JsonObject | null {
 
 function cacheIdentity(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function hasLighterVariant(code: string): boolean {
+  if (!["SLEEP_WIND_DOWN", "SLEEP_WIND_DOWN_LIGHT", "POST_MEAL_WALK", "SUGARY_DRINK_SWAP"].includes(code)) {
+    return false;
+  }
+  return getAction(code as ActionCode).lighterVariant !== null;
 }
 
 function recovery(code: Exclude<TodayState, "active_action">): TodayRecoveryViewModel {
@@ -110,7 +118,6 @@ export class TodayService {
           },
         },
         include: {
-          actionAssignment: true,
           snapshot: { include: { run: { include: { ruleBundle: true } } } },
         },
         orderBy: { createdAt: "desc" },
@@ -171,6 +178,26 @@ export class TodayService {
           row.completed_at <= publication.snapshot.run.createdAt
         )
       );
+      const activeAssignment = publication ? await tx.actionAssignment.findFirst({
+        where: {
+          userId,
+          localDate: date,
+          recommendationSnapshotId: publication.snapshot.id,
+          isPrimary: true,
+          status: "active",
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      }) : null;
+      const latestAssignment = activeAssignment ?? (publication ? await tx.actionAssignment.findFirst({
+        where: {
+          userId,
+          localDate: date,
+          recommendationSnapshotId: publication.snapshot.id,
+          isPrimary: true,
+          status: { not: "proposed" },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      }) : null);
 
       let state: TodayState;
       if (!latestProfile) {
@@ -195,28 +222,30 @@ export class TodayService {
           : true;
         if (incidentExists) {
           state = "recommendation_withdrawn";
-        } else if (!publication.actionAssignment || !publication.actionAssignment.isPrimary) {
+        } else if (!latestAssignment) {
           state = "clinical_follow_up";
         } else {
-          state = this.actionState(publication.actionAssignment.status);
+          state = this.actionState(latestAssignment.status);
         }
       }
 
       const snapshot = publication?.snapshot ?? null;
-      const assignment = state === "active_action" ? publication?.actionAssignment ?? null : null;
+      const assignment = state === "active_action" ? latestAssignment : null;
       const provenance = snapshot ? jsonObject(snapshot.provenanceJson) : null;
       const ruleResult = provenance ? jsonObject(provenance.rule_result ?? null) : null;
-      const action = assignment && snapshot?.actionCode ? {
+      const actionCode = assignment?.actionCode ?? snapshot?.actionCode ?? null;
+      const action = assignment && actionCode ? {
         id: assignment.id,
-        code: snapshot.actionCode,
-        status: assignment.status as "proposed" | "active",
-        duration_minutes: ACTION_DURATION_MINUTES[snapshot.actionCode] ?? 5,
+        code: actionCode,
+        version: assignment.version,
+        status: "active" as const,
+        duration_minutes: ACTION_DURATION_MINUTES[actionCode] ?? 5,
         difficulty: assignment.difficulty === "light" ? "light" as const : "standard" as const,
         reason_key: `reason.${typeof ruleResult?.reasonCode === "string" ? ruleResult.reasonCode.toLowerCase() : "action_selected"}`,
-        signal_key: `signal.${snapshot.riskArea ?? "general"}`,
+        signal_key: `signal.${snapshot?.riskArea ?? "general"}`,
         commands: {
           complete: true,
-          lighter: assignment.difficulty !== "light",
+          lighter: hasLighterVariant(actionCode),
           swap: true,
           skip: true,
           why: true,
@@ -271,7 +300,7 @@ export class TodayService {
   }
 
   private actionState(status: string): TodayState {
-    if (status === "active" || status === "proposed") return "active_action";
+    if (status === "active") return "active_action";
     if (status === "completed") return "action_completed";
     if (status === "skipped") return "action_skipped";
     if (status === "rejected") return "action_rejected";

@@ -161,6 +161,7 @@ model User {
   profileCandidates  ProfileCandidate[]
   recommendationRuns RecommendationRun[]
   actions            ActionAssignment[]
+  feedbackEvents     FeedbackEvent[]
   signals            SignalSnapshot[]
   weeklyReviews      WeeklyReviewSnapshot[]
   coachThreads       CoachThread[]
@@ -727,9 +728,11 @@ model ActionAssignment {
   recommendationSnapshotId String                 @map("recommendation_snapshot_id") @db.Uuid
   localDate                DateTime               @map("local_date") @db.Date
   difficulty               String
+  actionCode               String?                @map("action_code")
+  version                  Int                    @default(1)
   status                   ActionStatus           @default(proposed)
   isPrimary                Boolean                @default(true) @map("is_primary")
-  replacedById             String?                @map("replaced_by_id") @db.Uuid
+  replacedById             String?                @unique @map("replaced_by_id") @db.Uuid
   createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   user                     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   recommendationSnapshot   RecommendationSnapshot @relation(fields: [recommendationSnapshotId], references: [id], onDelete: Cascade)
@@ -739,20 +742,27 @@ model ActionAssignment {
   publication              RecommendationPublication?
 
   @@index([userId, localDate, status])
+  @@unique([recommendationSnapshotId, actionCode])
   @@map("action_assignments")
 }
 
 model FeedbackEvent {
   id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String           @map("user_id") @db.Uuid
   actionAssignmentId String           @map("action_assignment_id") @db.Uuid
   type               String
   reasonCode         String?          @map("reason_code")
   text               String?
   source             String
+  idempotencyKey     String           @map("idempotency_key")
+  requestHash        String           @map("request_hash")
+  resultJson         Json             @map("result_json") @db.JsonB
   occurredAt         DateTime         @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   actionAssignment   ActionAssignment @relation(fields: [actionAssignmentId], references: [id], onDelete: Cascade)
 
   @@index([actionAssignmentId, occurredAt])
+  @@unique([userId, idempotencyKey])
   @@map("feedback_events")
 }
 

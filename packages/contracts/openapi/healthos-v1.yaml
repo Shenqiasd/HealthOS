@@ -94,6 +94,82 @@ paths:
                 $ref: "#/components/schemas/HealthFreshnessResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /today:
+    get:
+      operationId: getToday
+      summary: Read one published current action or one explicit recovery state
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The current versioned Today projection.
+          headers:
+            ETag:
+              description: Weak validator for the stable business projection.
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                const: private, no-cache
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodayViewModel"
+        "304":
+          description: The business projection is unchanged.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current active-user, consent, or privacy reconciliation gate failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /actions/{id}/feedback:
+    post:
+      operationId: applyActionFeedback
+      summary: Idempotently apply one versioned command to the current primary action
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionFeedbackRequest"
+      responses:
+        "200":
+          description: The committed transition or its exact idempotent replay.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionFeedbackResponse"
+        "400":
+          description: Command, reason, version, or idempotency identity is malformed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The action is not owned by the caller or current processing authorization is absent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /profile/candidates:
     post:
       operationId: proposeProfileCandidate
@@ -890,3 +966,170 @@ components:
         snapshot_hash:
           type: string
           pattern: "^[a-f0-9]{64}$"
+    TodayFreshness:
+      type: object
+      additionalProperties: false
+      required: [status, coverage, latest_local_date]
+      properties:
+        status:
+          type: string
+          enum: [absent, partial, current, stale]
+        coverage:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 1
+        latest_local_date:
+          type: [string, "null"]
+          format: date
+    TodayMomo:
+      type: object
+      additionalProperties: false
+      required: [state, copy_key]
+      properties:
+        state:
+          type: string
+          enum: [ready, waiting, care, celebrate, reset]
+        copy_key:
+          type: string
+          pattern: "^today\\.momo\\.[a-z0-9_.-]+$"
+    TodayActionCommands:
+      type: object
+      additionalProperties: false
+      required: [complete, lighter, swap, skip, why]
+      properties:
+        complete: { type: boolean }
+        lighter: { type: boolean }
+        swap: { type: boolean }
+        skip: { type: boolean }
+        why: { type: boolean }
+    TodayAction:
+      type: object
+      additionalProperties: false
+      required: [id, code, version, status, duration_minutes, difficulty, reason_key, signal_key, commands]
+      properties:
+        id: { type: string, format: uuid }
+        code:
+          $ref: "#/components/schemas/ActionCode"
+        version: { type: integer, minimum: 1 }
+        status: { type: string, enum: [active] }
+        duration_minutes: { type: integer, minimum: 1 }
+        difficulty: { type: string, enum: [light, standard] }
+        reason_key: { type: string }
+        signal_key: { type: string }
+        commands:
+          $ref: "#/components/schemas/TodayActionCommands"
+    TodayRecovery:
+      type: object
+      additionalProperties: false
+      required: [code, copy_key, primary_command]
+      properties:
+        code:
+          type: string
+          enum: [first_launch, awaiting_recommendation, stale_data, profile_changed, recommendation_withdrawn, clinical_follow_up, action_completed, action_skipped, action_rejected, action_expired, action_replaced]
+        copy_key: { type: string }
+        primary_command: { type: string, enum: [refresh, open_permissions, open_coach, none] }
+    TodayViewModel:
+      type: object
+      additionalProperties: false
+      required: [schema_version, state, local_date, generated_at, cache_identity, correlation_id, freshness, momo, action, recovery]
+      properties:
+        schema_version: { const: 1 }
+        state:
+          type: string
+          enum: [active_action, first_launch, awaiting_recommendation, stale_data, profile_changed, recommendation_withdrawn, clinical_follow_up, action_completed, action_skipped, action_rejected, action_expired, action_replaced]
+        local_date: { type: string, format: date }
+        generated_at: { type: [string, "null"], format: date-time }
+        cache_identity: { type: string, pattern: "^[a-f0-9]{64}$" }
+        correlation_id: { type: string }
+        freshness:
+          $ref: "#/components/schemas/TodayFreshness"
+        momo:
+          $ref: "#/components/schemas/TodayMomo"
+        action:
+          oneOf:
+            - $ref: "#/components/schemas/TodayAction"
+            - type: "null"
+        recovery:
+          oneOf:
+            - $ref: "#/components/schemas/TodayRecovery"
+            - type: "null"
+    ActionCode:
+      type: string
+      enum: [SLEEP_WIND_DOWN, SLEEP_WIND_DOWN_LIGHT, POST_MEAL_WALK, SUGARY_DRINK_SWAP]
+    ActionFeedbackReason:
+      type: string
+      enum: [too_hard, no_time, tired, uncomfortable, weather, neutral]
+    ActionFeedbackRequest:
+      oneOf:
+        - $ref: "#/components/schemas/ActionCompleteRequest"
+        - $ref: "#/components/schemas/ActionSkipRequest"
+        - $ref: "#/components/schemas/ActionLighterRequest"
+        - $ref: "#/components/schemas/ActionSwapRequest"
+    ActionCompleteRequest:
+      type: object
+      additionalProperties: false
+      required: [command, expected_version, idempotency_key]
+      properties:
+        command: { const: complete }
+        expected_version: { type: integer, minimum: 1 }
+        idempotency_key: { type: string, format: uuid }
+    ActionSkipRequest:
+      type: object
+      additionalProperties: false
+      required: [command, reason_code, expected_version, idempotency_key]
+      properties:
+        command: { const: skip }
+        reason_code: { type: string, enum: [no_time, tired, uncomfortable, weather, neutral] }
+        expected_version: { type: integer, minimum: 1 }
+        idempotency_key: { type: string, format: uuid }
+    ActionLighterRequest:
+      type: object
+      additionalProperties: false
+      required: [command, reason_code, expected_version, idempotency_key]
+      properties:
+        command: { const: lighter }
+        reason_code: { const: too_hard }
+        expected_version: { type: integer, minimum: 1 }
+        idempotency_key: { type: string, format: uuid }
+    ActionSwapRequest:
+      type: object
+      additionalProperties: false
+      required: [command, expected_version, idempotency_key]
+      properties:
+        command: { const: swap }
+        reason_code:
+          $ref: "#/components/schemas/ActionFeedbackReason"
+        expected_version: { type: integer, minimum: 1 }
+        idempotency_key: { type: string, format: uuid }
+    ActionFeedbackAssignment:
+      type: object
+      additionalProperties: false
+      required: [id, code, status, version, difficulty]
+      properties:
+        id: { type: string, format: uuid }
+        code:
+          $ref: "#/components/schemas/ActionCode"
+        status: { type: string, enum: [active, completed, skipped, replaced] }
+        version: { type: integer, minimum: 1 }
+        difficulty: { type: string, enum: [light, standard] }
+    ActionFeedbackResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, feedback_event_id, idempotency_key, outcome, reason_code, original_action, current_action, recovery_key]
+      properties:
+        schema_version: { const: 1 }
+        feedback_event_id: { type: string, format: uuid }
+        idempotency_key: { type: string, format: uuid }
+        outcome: { type: string, enum: [completed, skipped, replaced, no_safe_alternative] }
+        reason_code:
+          oneOf:
+            - $ref: "#/components/schemas/ActionFeedbackReason"
+            - const: no_safe_alternative
+            - type: "null"
+        original_action:
+          $ref: "#/components/schemas/ActionFeedbackAssignment"
+        current_action:
+          oneOf:
+            - $ref: "#/components/schemas/ActionFeedbackAssignment"
+            - type: "null"
+        recovery_key: { type: [string, "null"] }

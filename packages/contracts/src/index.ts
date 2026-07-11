@@ -197,7 +197,8 @@ export interface TodayActionCommands {
 export interface TodayActionViewModel {
   id: string;
   code: string;
-  status: "proposed" | "active";
+  version: number;
+  status: "active";
   duration_minutes: number;
   difficulty: "light" | "standard";
   reason_key: string;
@@ -229,4 +230,39 @@ export interface TodayViewModel {
   };
   action: TodayActionViewModel | null;
   recovery: TodayRecoveryViewModel | null;
+}
+
+export type ActionFeedbackCommand = "complete" | "skip" | "lighter" | "swap";
+export type ActionFeedbackReason = "too_hard" | "no_time" | "tired" | "uncomfortable" | "weather" | "neutral";
+export type ActionFeedbackOutcome = "completed" | "skipped" | "replaced" | "no_safe_alternative";
+
+interface ActionFeedbackRequestIdentity {
+  expected_version: number;
+  idempotency_key: string;
+}
+
+export type ActionFeedbackRequest = ActionFeedbackRequestIdentity & (
+  | { command: "complete"; reason_code?: never }
+  | { command: "skip"; reason_code: Exclude<ActionFeedbackReason, "too_hard"> }
+  | { command: "lighter"; reason_code: "too_hard" }
+  | { command: "swap"; reason_code?: ActionFeedbackReason }
+);
+
+export interface ActionFeedbackAssignment {
+  id: string;
+  code: string;
+  status: "active" | "completed" | "skipped" | "replaced";
+  version: number;
+  difficulty: "light" | "standard";
+}
+
+export interface ActionFeedbackResponse {
+  schema_version: 1;
+  feedback_event_id: string;
+  idempotency_key: string;
+  outcome: ActionFeedbackOutcome;
+  reason_code: ActionFeedbackReason | "no_safe_alternative" | null;
+  original_action: ActionFeedbackAssignment;
+  current_action: ActionFeedbackAssignment | null;
+  recovery_key: string | null;
 }

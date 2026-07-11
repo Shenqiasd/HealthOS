@@ -26,7 +26,7 @@ describe("database invariants", () => {
     await database.$connect();
   });
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await database.$executeRawUnsafe(`
       TRUNCATE TABLE
         domain_outbox,
@@ -157,32 +157,21 @@ describe("database invariants", () => {
     return { run, snapshot, user };
   }
 
-  test("allows only one active primary action per user and local date", async () => {
+  test("rejects action assignment provenance from an unpublished snapshot", async () => {
     const { snapshot, user } = await createPublishedSnapshot();
     const localDate = new Date("2026-07-10T00:00:00.000Z");
-    await database.actionAssignment.create({
-      data: {
-        userId: user.id,
-        recommendationSnapshotId: snapshot.id,
-        localDate,
-        difficulty: "standard",
-        status: "active",
-        isPrimary: true,
-      },
-    });
-
     await expect(
       database.actionAssignment.create({
         data: {
           userId: user.id,
           recommendationSnapshotId: snapshot.id,
           localDate,
-          difficulty: "lighter",
+          difficulty: "standard",
           status: "active",
           isPrimary: true,
         },
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/provenance/i);
   });
 
   test("enforces global outbox idempotency", async () => {

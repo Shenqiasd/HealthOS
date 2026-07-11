@@ -10,6 +10,7 @@ import { PrivacyModule } from "./privacy/privacy.module";
 import { ProfileModule } from "./profile/profile.module";
 import { RecommendationsModule } from "./recommendations/recommendations.module";
 import { TodayModule } from "./today/today.module";
+import { ActionsModule } from "./actions/actions.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TodayModule } from "./today/today.module";
     ProfileModule,
     RecommendationsModule,
     TodayModule,
+    ActionsModule,
   ],
   controllers: [HealthController],
   providers: [ReadinessService],
