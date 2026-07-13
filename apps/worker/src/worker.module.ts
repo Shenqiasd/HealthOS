@@ -2,6 +2,9 @@ import { Module } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 
 import { RecommendationWorker } from "./jobs/recommendations/recommendation-worker";
+import { ChannelDeliveryDispatcher } from "./jobs/channels/channel-delivery-dispatcher";
+import { ChannelDeliveryWorker } from "./jobs/channels/channel-delivery-worker";
+import { SyntheticLocalChannelProvider } from "./jobs/channels/local-channel-provider";
 import { SignalProjectionWorker } from "./jobs/signals/signal-projection-worker";
 import { SignalProjectionDispatcher } from "./jobs/signals/signal-projection-dispatcher";
 import { WeeklyReviewDispatcher } from "./jobs/reviews/weekly-review-dispatcher";
@@ -10,10 +13,33 @@ import { RespectfulScheduler } from "./jobs/scheduling/respectful-scheduler";
 import { RespectfulSchedulerDispatcher } from "./jobs/scheduling/respectful-scheduler-dispatcher";
 import { WorkerTelemetry } from "./telemetry/worker-telemetry";
 
+const syntheticChannelDeliveryEnabled = () =>
+  process.env.NODE_ENV !== "production" && process.env.HEALTHOS_CHANNEL_MODE === "synthetic";
+
 @Module({
   providers: [
     { provide: PrismaClient, useFactory: () => new PrismaClient() },
     { provide: WorkerTelemetry, useFactory: () => new WorkerTelemetry() },
+    { provide: SyntheticLocalChannelProvider, useFactory: () => new SyntheticLocalChannelProvider() },
+    {
+      provide: ChannelDeliveryWorker,
+      inject: [PrismaClient, SyntheticLocalChannelProvider],
+      useFactory: (database: PrismaClient, provider: SyntheticLocalChannelProvider) =>
+        new ChannelDeliveryWorker(
+          database,
+          { apns: provider, wecom: provider },
+          { enabled: syntheticChannelDeliveryEnabled() },
+        ),
+    },
+    {
+      provide: ChannelDeliveryDispatcher,
+      inject: [PrismaClient, ChannelDeliveryWorker],
+      useFactory: (database: PrismaClient, worker: ChannelDeliveryWorker) =>
+        new ChannelDeliveryDispatcher(database, worker, {
+          enabled: syntheticChannelDeliveryEnabled(),
+          pollMilliseconds: 5_000,
+        }),
+    },
     {
       provide: RecommendationWorker,
       inject: [PrismaClient, WorkerTelemetry],
@@ -65,6 +91,8 @@ import { WorkerTelemetry } from "./telemetry/worker-telemetry";
   ],
   exports: [
     RecommendationWorker,
+    ChannelDeliveryWorker,
+    ChannelDeliveryDispatcher,
     SignalProjectionWorker,
     SignalProjectionDispatcher,
     WeeklyReviewWorker,

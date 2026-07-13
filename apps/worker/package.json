@@ -15,6 +15,7 @@
     "test:signals": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/signals/signal-projection-worker.integration.spec.ts",
     "test:reviews": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/reviews/weekly-review-projector.spec.ts && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/reviews/weekly-review-worker.integration.spec.ts",
     "test:scheduling": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/scheduling/*.spec.ts",
+    "test:channels": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/channels/*.spec.ts",
     "test:telemetry": "TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/telemetry/*.spec.ts"
   },
   "dependencies": {

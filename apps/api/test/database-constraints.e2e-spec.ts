@@ -441,6 +441,331 @@ describe("database invariants", () => {
     ).rejects.toThrow();
   });
 
+  test("allows only one current device owner for each APNs token fingerprint", async () => {
+    const first = await database.user.create({ data: {} });
+    const second = await database.user.create({ data: {} });
+    const fingerprint = "f".repeat(64);
+    await database.device.create({ data: {
+      userId: first.id,
+      deviceId: "synthetic-apns-owner-first",
+      apnsTokenEncrypted: "synthetic-ciphertext-first",
+      apnsTokenFingerprint: fingerprint,
+      apnsTokenEpoch: 1,
+    } });
+
+    await expect(database.device.create({ data: {
+      userId: second.id,
+      deviceId: "synthetic-apns-owner-second",
+      apnsTokenEncrypted: "synthetic-ciphertext-second",
+      apnsTokenFingerprint: fingerprint,
+      apnsTokenEpoch: 1,
+    } })).rejects.toThrow();
+  });
+
+  test("rejects every non-exact external notification template tuple", async () => {
+    const user = await database.user.create({ data: { timezone: "UTC", consentEpoch: 1 } });
+    await database.consentRecord.create({ data: {
+      userId: user.id,
+      consentType: "notifications",
+      documentVersion: "synthetic-notifications-v1",
+      granted: true,
+      epoch: 1,
+      correlationId: randomUUID(),
+      requestHash: randomUUID(),
+      source: "synthetic",
+    } });
+    const device = await database.device.create({ data: {
+      userId: user.id,
+      deviceId: "synthetic-template-device",
+      apnsTokenEncrypted: "synthetic-ciphertext",
+      apnsTokenFingerprint: "e".repeat(64),
+      apnsTokenEpoch: 1,
+    } });
+    await database.reminderPreference.create({ data: {
+      userId: user.id,
+      version: 1,
+      enabled: true,
+      intensity: "standard",
+      quietStartMinute: 1320,
+      quietEndMinute: 420,
+      advisorMinute: 540,
+      behaviorMinute: 900,
+      weeklyDay: 1,
+      weeklyMinute: 540,
+      createdAt: new Date("2026-07-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+    } });
+    await database.reminderPreferenceRevision.create({ data: {
+      userId: user.id,
+      version: 1,
+      enabled: true,
+      intensity: "standard",
+      timezone: "UTC",
+      quietStartMinute: 1320,
+      quietEndMinute: 420,
+      advisorMinute: 540,
+      behaviorMinute: 900,
+      weeklyDay: 1,
+      weeklyMinute: 540,
+      effectiveAt: new Date("2026-07-01T00:00:00.000Z"),
+    } });
+    const malformedPayloads = [
+      {
+        schema_version: { nested: 1 },
+        template: "daily_advisor_v1",
+        copy_key: "notification.daily_advisor",
+        action_key: "open_today",
+        deeplink_path: "/today",
+      },
+      {
+        schema_version: 1,
+        template: "behavior_reminder_v1",
+        copy_key: "notification.behavior_reminder",
+        action_key: "open_today",
+        deeplink_path: "/today",
+      },
+      {
+        schema_version: 1,
+        template: "daily_advisor_v1",
+        copy_key: "ZhangSan HbA1c 7.8",
+        action_key: "open_today",
+        deeplink_path: "/today",
+      },
+      {
+        schema_version: 1,
+        template: "daily_advisor_v1",
+        copy_key: "notification.daily_advisor",
+        action_key: { device_token: "synthetic-secret" },
+        deeplink_path: "/today",
+      },
+      {
+        schema_version: 1,
+        template: "daily_advisor_v1",
+        copy_key: "notification.daily_advisor",
+        action_key: "open_today",
+        deeplink_path: "/today?user_id=synthetic-user&token=synthetic-secret",
+      },
+    ];
+
+    for (const [index, payload] of malformedPayloads.entries()) {
+      const periodStart = new Date(Date.UTC(2026, 6, 2 + index));
+      const scheduledAt = new Date(periodStart.getTime() + 9 * 60 * 60_000);
+      const plan = await database.schedulePlan.create({ data: {
+        userId: user.id,
+        kind: "daily_advisor",
+        localDate: periodStart,
+        periodStart,
+        timezone: "UTC",
+        scheduledAt,
+        cutoffAt: new Date(scheduledAt.getTime() + 120 * 60_000),
+        evaluatedAt: scheduledAt,
+        requestedMinute: 540,
+        resolvedLocalMinute: 540,
+        utcOffsetMinutes: 0,
+        preferenceVersion: 1,
+        notificationConsentEpoch: null,
+        status: "suppressed",
+        suppressionReason: "missed_cutoff",
+      } });
+      await expect(database.channelOutbox.create({ data: {
+        userId: user.id,
+        channel: "apns",
+        template: "daily_advisor_v1",
+        payload,
+        idempotencyKey: `malformed-template-${index}-${randomUUID()}`,
+        destinationId: device.id,
+        destinationFingerprint: device.apnsTokenFingerprint,
+        destinationEpoch: device.apnsTokenEpoch,
+        schedulePlanId: plan.id,
+        consentRequirements: { create: { purpose: "notifications", grantEpoch: 1 } },
+      } })).rejects.toThrow();
+    }
+  });
+
+  test("freezes channel outbox identity and append-only delivery evidence while preserving privacy deletion", async () => {
+    const user = await database.user.create({ data: {} });
+    const outbox = await database.channelOutbox.create({ data: {
+      userId: user.id,
+      channel: "in_app",
+      template: "recommendation_snapshot",
+      payload: { recommendation_snapshot_id: randomUUID() },
+      idempotencyKey: randomUUID(),
+    } });
+    await expect(database.channelOutbox.update({
+      where: { id: outbox.id },
+      data: { payload: { recommendation_snapshot_id: randomUUID() } },
+    })).rejects.toThrow(/immutable/i);
+    await expect(database.channelOutbox.update({
+      where: { id: outbox.id },
+      data: { status: "sent" },
+    })).rejects.toThrow(/transition/i);
+
+    const leaseToken = randomUUID();
+    await database.channelOutbox.update({
+      where: { id: outbox.id },
+      data: { status: "leased", leaseToken, leaseUntil: new Date(Date.now() + 60_000) },
+    });
+    await expect(database.channelOutbox.update({
+      where: { id: outbox.id },
+      data: { leaseToken: randomUUID(), leaseUntil: new Date(Date.now() + 120_000) },
+    })).rejects.toThrow(/lease/i);
+    const attempt = await database.deliveryAttempt.create({ data: {
+      outboxId: outbox.id,
+      attempt: 1,
+      providerMessageId: "synthetic-provider-id",
+      status: "sent",
+      sentAt: new Date(),
+    } });
+    await expect(database.deliveryAttempt.update({
+      where: { id: attempt.id },
+      data: { providerMessageId: "forged-provider-id" },
+    })).rejects.toThrow(/append-only/i);
+    await expect(database.deliveryAttempt.delete({ where: { id: attempt.id } }))
+      .rejects.toThrow(/append-only/i);
+    await expect(database.channelOutbox.update({
+      where: { id: outbox.id },
+      data: { status: "sent" },
+    })).rejects.toThrow(/lease token/i);
+    const sent = await database.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('healthos.channel_lease_token', ${leaseToken}, true)`;
+      return tx.channelOutbox.update({
+        where: { id: outbox.id },
+        data: { status: "sent" },
+      });
+    });
+    expect(sent.leaseToken).toBeNull();
+    expect(sent.leaseUntil).toBeNull();
+
+    const expired = await database.channelOutbox.create({ data: {
+      userId: user.id,
+      channel: "apns",
+      template: "daily_ready",
+      payload: { template_data: "synthetic" },
+      idempotencyKey: randomUUID(),
+    } });
+    const expiredToken = randomUUID();
+    await database.channelOutbox.update({
+      where: { id: expired.id },
+      data: {
+        status: "leased",
+        leaseToken: expiredToken,
+        leaseUntil: new Date(Date.now() - 1),
+      },
+    });
+    await expect(database.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('healthos.channel_lease_token', ${expiredToken}, true)`;
+      await tx.channelOutbox.update({ where: { id: expired.id }, data: { status: "sent" } });
+    })).rejects.toThrow(/expired/i);
+
+    const deliveryUser = await database.user.create({ data: { timezone: "UTC", consentEpoch: 1 } });
+    await database.consentRecord.create({ data: {
+      userId: deliveryUser.id,
+      consentType: "notifications",
+      documentVersion: "synthetic-notifications-v1",
+      granted: true,
+      epoch: 1,
+      correlationId: randomUUID(),
+      requestHash: randomUUID(),
+      source: "synthetic",
+    } });
+    await database.privacyReconciliation.update({ where: { id: "global" }, data: { status: "ready" } });
+    const device = await database.device.create({ data: {
+      userId: deliveryUser.id,
+      deviceId: "database-fence-ios",
+      apnsTokenEncrypted: "synthetic-ciphertext",
+      apnsTokenFingerprint: "a".repeat(64),
+      apnsTokenEpoch: 1,
+      lastSeenAt: new Date(),
+    } });
+    const scheduledAt = new Date();
+    scheduledAt.setUTCSeconds(0, 0);
+    const minute = scheduledAt.getUTCHours() * 60 + scheduledAt.getUTCMinutes();
+    const preferenceAt = new Date(scheduledAt.getTime() - 60_000);
+    const preference = await database.reminderPreference.create({ data: {
+      userId: deliveryUser.id,
+      version: 1,
+      enabled: true,
+      intensity: "standard",
+      quietStartMinute: (minute + 60) % 1440,
+      quietEndMinute: (minute + 120) % 1440,
+      advisorMinute: minute,
+      behaviorMinute: minute,
+      weeklyDay: 1,
+      weeklyMinute: 540,
+      createdAt: preferenceAt,
+      updatedAt: preferenceAt,
+    } });
+    await database.reminderPreferenceRevision.create({ data: {
+      userId: deliveryUser.id,
+      version: 1,
+      enabled: true,
+      intensity: "standard",
+      timezone: "UTC",
+      quietStartMinute: preference.quietStartMinute,
+      quietEndMinute: preference.quietEndMinute,
+      advisorMinute: preference.advisorMinute,
+      behaviorMinute: preference.behaviorMinute,
+      weeklyDay: preference.weeklyDay,
+      weeklyMinute: preference.weeklyMinute,
+      effectiveAt: preferenceAt,
+    } });
+    const date = new Date(`${scheduledAt.toISOString().slice(0, 10)}T00:00:00.000Z`);
+    const plan = await database.schedulePlan.create({ data: {
+      userId: deliveryUser.id,
+      kind: "daily_advisor",
+      localDate: date,
+      periodStart: date,
+      timezone: "UTC",
+      scheduledAt,
+      cutoffAt: new Date(scheduledAt.getTime() + 120 * 60_000),
+      evaluatedAt: new Date(),
+      requestedMinute: minute,
+      resolvedLocalMinute: minute,
+      utcOffsetMinutes: 0,
+      preferenceVersion: 1,
+      notificationConsentEpoch: 1,
+      status: "planned",
+    } });
+    const deliverable = await database.channelOutbox.create({ data: {
+      userId: deliveryUser.id,
+      channel: "apns",
+      template: "daily_advisor_v1",
+      payload: {
+        schema_version: 1,
+        template: "daily_advisor_v1",
+        copy_key: "notification.daily_advisor",
+        action_key: "open_today",
+        deeplink_path: "/today",
+      },
+      idempotencyKey: randomUUID(),
+      destinationId: device.id,
+      destinationFingerprint: device.apnsTokenFingerprint,
+      destinationEpoch: device.apnsTokenEpoch,
+      schedulePlanId: plan.id,
+      consentRequirements: { create: { purpose: "notifications", grantEpoch: 1 } },
+    } });
+    const deliverableLease = randomUUID();
+    await database.channelOutbox.update({
+      where: { id: deliverable.id },
+      data: { status: "leased", leaseToken: deliverableLease, leaseUntil: new Date(Date.now() + 60_000) },
+    });
+    await expect(database.channelOutbox.update({
+      where: { id: deliverable.id }, data: { status: "suppressed" },
+    })).rejects.toThrow(/lease/i);
+    await database.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('healthos.channel_lease_token', ${deliverableLease}, true)`;
+      await tx.channelOutbox.update({ where: { id: deliverable.id }, data: { status: "suppressed" } });
+    });
+
+    await database.user.update({
+      where: { id: user.id },
+      data: { status: "deleting", deletedAt: new Date() },
+    });
+    await database.$queryRaw`SELECT "healthos_delete_frozen_user"(${user.id}::uuid)`;
+    expect(await database.channelOutbox.count({ where: { id: outbox.id } })).toBe(0);
+    expect(await database.deliveryAttempt.count({ where: { id: attempt.id } })).toBe(0);
+  });
+
   test("readiness reports the real database separately", async () => {
     let app: INestApplication | undefined;
     try {

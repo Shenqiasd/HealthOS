@@ -225,6 +225,113 @@ describe("identity integration", () => {
     expect(stored[0]?.apnsTokenEncrypted).not.toContain(apnsToken);
     expect(deviceCipher.decrypt(stored[0]?.apnsTokenEncrypted ?? "")).toBe(apnsToken);
     expect(stored[0]?.apnsTokenFingerprint).toBeTruthy();
+    expect(stored[0]?.apnsTokenEpoch).toBe(1);
     expect(stored[0]?.appVersion).toBe("1.0.1");
+  });
+
+  test("atomically transfers one APNs token to the newly authenticated account", async () => {
+    const first = await login("apple-subject-device-owner-first");
+    const second = await login("apple-subject-device-owner-second");
+    const apnsToken = "synthetic-shared-apns-token";
+    const fingerprint = deviceCipher.fingerprint(apnsToken);
+
+    await devices.register(first.userId, {
+      apnsToken,
+      appVersion: "1.0.0",
+      deviceId: "synthetic-first-account-device",
+    });
+    await devices.register(second.userId, {
+      apnsToken,
+      appVersion: "1.0.0",
+      deviceId: "synthetic-second-account-device",
+    });
+
+    const firstDevice = await database.device.findUniqueOrThrow({
+      where: {
+        userId_deviceId: {
+          userId: first.userId,
+          deviceId: "synthetic-first-account-device",
+        },
+      },
+    });
+    const secondDevice = await database.device.findUniqueOrThrow({
+      where: {
+        userId_deviceId: {
+          userId: second.userId,
+          deviceId: "synthetic-second-account-device",
+        },
+      },
+    });
+    expect(firstDevice.apnsTokenEncrypted).toBeNull();
+    expect(firstDevice.apnsTokenFingerprint).toBeNull();
+    expect(secondDevice.apnsTokenFingerprint).toBe(fingerprint);
+    expect(secondDevice.apnsTokenEpoch).toBe(1);
+    expect(await database.device.count({ where: { apnsTokenFingerprint: fingerprint } })).toBe(1);
+  });
+
+  test("serializes concurrent cross-account claims to one current APNs owner", async () => {
+    const first = await login("apple-subject-concurrent-device-first");
+    const second = await login("apple-subject-concurrent-device-second");
+    const apnsToken = "synthetic-concurrent-shared-token";
+    const fingerprint = deviceCipher.fingerprint(apnsToken);
+
+    await Promise.all([
+      devices.register(first.userId, {
+        apnsToken,
+        appVersion: "1.0.0",
+        deviceId: "synthetic-concurrent-first",
+      }),
+      devices.register(second.userId, {
+        apnsToken,
+        appVersion: "1.0.0",
+        deviceId: "synthetic-concurrent-second",
+      }),
+    ]);
+
+    const stored = await database.device.findMany({ orderBy: { deviceId: "asc" } });
+    expect(stored).toHaveLength(2);
+    expect(stored.filter((device) => device.apnsTokenFingerprint === fingerprint)).toHaveLength(1);
+    expect(stored.filter((device) => device.apnsTokenFingerprint === null)).toHaveLength(1);
+  });
+
+  test("serializes concurrent two-device APNs token swaps without deadlock or lost ownership", async () => {
+    const first = await login("apple-subject-token-swap-first");
+    const second = await login("apple-subject-token-swap-second");
+    const firstToken = "synthetic-swap-token-first";
+    const secondToken = "synthetic-swap-token-second";
+    const firstFingerprint = deviceCipher.fingerprint(firstToken);
+    const secondFingerprint = deviceCipher.fingerprint(secondToken);
+
+    await devices.register(first.userId, {
+      apnsToken: firstToken,
+      appVersion: "1.0.0",
+      deviceId: "synthetic-swap-device-first",
+    });
+    await devices.register(second.userId, {
+      apnsToken: secondToken,
+      appVersion: "1.0.0",
+      deviceId: "synthetic-swap-device-second",
+    });
+
+    const outcomes = await Promise.allSettled([
+      devices.register(first.userId, {
+        apnsToken: secondToken,
+        appVersion: "1.0.1",
+        deviceId: "synthetic-swap-device-first",
+      }),
+      devices.register(second.userId, {
+        apnsToken: firstToken,
+        appVersion: "1.0.1",
+        deviceId: "synthetic-swap-device-second",
+      }),
+    ]);
+
+    expect(outcomes.every((outcome) => outcome.status === "fulfilled")).toBe(true);
+    const stored = await database.device.findMany({ orderBy: { deviceId: "asc" } });
+    expect(stored).toHaveLength(2);
+    expect(stored.find((device) => device.deviceId === "synthetic-swap-device-first"))
+      .toMatchObject({ apnsTokenFingerprint: secondFingerprint, apnsTokenEpoch: 2 });
+    expect(stored.find((device) => device.deviceId === "synthetic-swap-device-second"))
+      .toMatchObject({ apnsTokenFingerprint: firstFingerprint, apnsTokenEpoch: 2 });
   });
 });
