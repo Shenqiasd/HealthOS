@@ -138,6 +138,9 @@ importers:
       '@healthos/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@healthos/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@healthos/rules':
         specifier: workspace:*
         version: link:../../packages/rules

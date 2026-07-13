@@ -1,0 +1,38 @@
+schema_version: 1
+status: provider_neutral_synthetic_only
+production_exporter_configured: false
+slos:
+  - id: api_availability
+    objective: 0.999
+    window: 30d
+    numerator: api_requests_successful
+    denominator: api_requests_total
+  - id: recommendation_success
+    objective: 0.99
+    window: 7d
+    numerator: recommendation_runs_completed
+    denominator: recommendation_runs_eligible
+  - id: weekly_review_generation
+    objective: 0.99
+    window: 28d
+    numerator: weekly_reviews_generated_on_time
+    denominator: weekly_reviews_due
+  - id: channel_provider_acceptance
+    objective: 0.99
+    window: 7d
+    numerator: consented_delivery_attempts_accepted
+    denominator: consented_delivery_attempts_invoked
+    separate_states: [unknown_after_send]
+  - id: unauthorized_health_access
+    objective: 0
+    window: 30d
+    numerator: unauthorized_health_access_events
+    denominator: 1
+  - id: prohibited_medical_output_sent
+    objective: 0
+    window: 30d
+    numerator: prohibited_medical_output_delivery_events
+    denominator: 1
+notes:
+  - Metric production authority remains pending Task 0 governance and Task 22 production integration.
+  - Definitions require approved metrics-contract windows and exclusions before release use.

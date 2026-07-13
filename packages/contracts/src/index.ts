@@ -504,3 +504,52 @@ export interface ReminderPreferenceUpdateRequest extends Omit<ReminderPreference
   expected_version: number;
   idempotency_key: string;
 }
+
+export type SafetyControlType = "feature_flag" | "kill_switch";
+export type SafetyControlKey =
+  | "global.proactive_messages"
+  | "channel.delivery"
+  | "llm.generation"
+  | "rule.bundle"
+  | "user.recommendations"
+  | "review.share"
+  | "feature.daily_recommendations"
+  | "feature.weekly_review_share"
+  | "feature.channel_delivery";
+export type SafetyControlScopeType = "global" | "channel" | "rule_bundle" | "user";
+export type SafetyControlReasonCode =
+  | "incident_containment"
+  | "incident_recovery"
+  | "staged_rollout"
+  | "rollout_pause"
+  | "privacy_containment"
+  | "safety_review"
+  | "synthetic_test";
+
+export interface AdminSafetyControl {
+  schema_version: 1;
+  control_type: SafetyControlType;
+  control_key: SafetyControlKey;
+  scope_type: SafetyControlScopeType;
+  scope_id: string;
+  active: boolean;
+  version: number;
+  reason: SafetyControlReasonCode;
+  updated_at: string;
+}
+
+export interface AdminSafetyControlPage {
+  schema_version: 1;
+  controls: AdminSafetyControl[];
+}
+
+export interface AdminSafetyControlActionRequest {
+  control_type: SafetyControlType;
+  control_key: SafetyControlKey;
+  scope_type: SafetyControlScopeType;
+  scope_id: string;
+  active: boolean;
+  expected_version: number;
+  idempotency_key: string;
+  reason: SafetyControlReasonCode;
+}

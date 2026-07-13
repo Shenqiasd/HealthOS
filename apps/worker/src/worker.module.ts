@@ -8,20 +8,22 @@ import { WeeklyReviewDispatcher } from "./jobs/reviews/weekly-review-dispatcher"
 import { WeeklyReviewWorker } from "./jobs/reviews/weekly-review-worker";
 import { RespectfulScheduler } from "./jobs/scheduling/respectful-scheduler";
 import { RespectfulSchedulerDispatcher } from "./jobs/scheduling/respectful-scheduler-dispatcher";
+import { WorkerTelemetry } from "./telemetry/worker-telemetry";
 
 @Module({
   providers: [
     { provide: PrismaClient, useFactory: () => new PrismaClient() },
+    { provide: WorkerTelemetry, useFactory: () => new WorkerTelemetry() },
     {
       provide: RecommendationWorker,
-      inject: [PrismaClient],
-      useFactory: (database: PrismaClient) => new RecommendationWorker(database, {
+      inject: [PrismaClient, WorkerTelemetry],
+      useFactory: (database: PrismaClient, telemetry: WorkerTelemetry) => new RecommendationWorker(database, {
         releaseStage: process.env.HEALTHOS_RELEASE_STAGE === "beta" ? "beta" : "alpha",
         normalSamplePercent: 20,
         llmEnabled: false,
         leaseSeconds: 300,
         reviewSlaSeconds: 1800,
-      }),
+      }, telemetry),
     },
     {
       provide: SignalProjectionWorker,
@@ -52,8 +54,8 @@ import { RespectfulSchedulerDispatcher } from "./jobs/scheduling/respectful-sche
     },
     {
       provide: RespectfulScheduler,
-      inject: [PrismaClient],
-      useFactory: (database: PrismaClient) => new RespectfulScheduler(database),
+      inject: [PrismaClient, WorkerTelemetry],
+      useFactory: (database: PrismaClient, telemetry: WorkerTelemetry) => new RespectfulScheduler(database, undefined, telemetry),
     },
     {
       provide: RespectfulSchedulerDispatcher,
@@ -69,6 +71,7 @@ import { RespectfulSchedulerDispatcher } from "./jobs/scheduling/respectful-sche
     WeeklyReviewDispatcher,
     RespectfulScheduler,
     RespectfulSchedulerDispatcher,
+    WorkerTelemetry,
   ],
 })
 export class WorkerModule {}

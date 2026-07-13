@@ -1,0 +1,39 @@
+schema_version: 1
+status: provider_neutral_synthetic_only
+production_exporter_configured: false
+alerts:
+  - id: stale_sync_spike
+    owner_role: on_call_engineer
+    signal: stale_health_sync_ratio
+    condition: value > 0.05 for 15m
+    runbook: ../runbooks/recommendation-incident.md
+  - id: recommendation_generation_failures
+    owner_role: on_call_engineer
+    signal: recommendation_failure_ratio
+    condition: value > 0.02 for 10m OR count >= 5 for 5m
+    runbook: ../runbooks/recommendation-incident.md
+  - id: safety_block_spike
+    owner_role: safety_operator
+    signal: recommendation_safety_block_ratio
+    condition: value > baseline_plus_3_sigma for 10m
+    runbook: ../runbooks/recommendation-incident.md
+  - id: queue_backlog
+    owner_role: operations_lead
+    signal: oldest_pending_work_seconds
+    condition: value > configured_sla_seconds for 5m
+    runbook: ../runbooks/recommendation-incident.md
+  - id: delivery_failure
+    owner_role: channel_operator
+    signal: channel_delivery_failure_ratio
+    condition: value > 0.01 for 10m OR unknown_after_send > 0
+    runbook: ../runbooks/channel-incident.md
+  - id: unauthorized_access
+    owner_role: security_incident_commander
+    signal: unauthorized_health_access_events
+    condition: count > 0
+    runbook: ../runbooks/privacy-incident.md
+  - id: privacy_reconciliation_not_ready
+    owner_role: privacy_operator
+    signal: privacy_reconciliation_ready
+    condition: value == 0 for 1m
+    runbook: ../runbooks/privacy-incident.md

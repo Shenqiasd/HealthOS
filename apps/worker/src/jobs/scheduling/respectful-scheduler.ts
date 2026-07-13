@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { Logger } from "@nestjs/common";
 import type { PrismaClient, ReminderPreferenceRevision } from "@prisma/client";
 
+import { WorkerTelemetry } from "../../telemetry/worker-telemetry";
+
 import {
   boundedLocalDates,
   currentLocalDate,
@@ -44,6 +46,7 @@ export class RespectfulScheduler {
   constructor(
     private readonly database: PrismaClient,
     private readonly logger: SchedulerLogger = new Logger(RespectfulScheduler.name),
+    private readonly telemetry: WorkerTelemetry = new WorkerTelemetry(),
   ) {}
 
   async runDue(now: Date): Promise<number> {
@@ -74,6 +77,16 @@ export class RespectfulScheduler {
         failed_users: failedUsers,
       }));
     }
+    await this.telemetry.record({
+      eventName: "scheduler.pass_completed",
+      severity: failedUsers > 0 ? "warn" : "info",
+      attributes: {
+        component: "respectful-scheduler",
+        status: failedUsers > 0 ? "partial" : "complete",
+        count: inserted,
+        context: { count: failedUsers, reason_code: "failed_users" },
+      },
+    });
     return inserted;
   }
 
@@ -130,6 +143,33 @@ export class RespectfulScheduler {
 
   private async runUser(userId: string, now: Date): Promise<number> {
     return this.database.$transaction(async (tx) => {
+      const [controlEpoch] = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "safety_control_epoch" WHERE "id" = 'global' FOR SHARE
+      `;
+      if (!controlEpoch) return 0;
+      const [dailyFeature, proactiveMessagesStopped] = await Promise.all([
+        tx.safetyControlRevision.findFirst({
+          where: {
+            controlType: "feature_flag",
+            controlKey: "feature.daily_recommendations",
+            scopeType: "global",
+            scopeId: "*",
+          },
+          orderBy: { version: "desc" },
+          select: { active: true },
+        }),
+        tx.safetyControlRevision.findFirst({
+          where: {
+            controlType: "kill_switch",
+            controlKey: "global.proactive_messages",
+            scopeType: "global",
+            scopeId: "*",
+          },
+          orderBy: { version: "desc" },
+          select: { active: true },
+        }),
+      ]);
+      if (!dailyFeature?.active || proactiveMessagesStopped?.active) return 0;
       await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
       await tx.schedulerWatermark.createMany({ data: [{ userId }], skipDuplicates: true });
       await tx.$queryRaw`SELECT "user_id" FROM "scheduler_watermarks" WHERE "user_id" = ${userId}::uuid FOR UPDATE`;
