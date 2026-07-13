@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T045
+active_task: T046
 
 tasks:
   - id: T001
@@ -3032,7 +3032,7 @@ tasks:
   - id: T045
     type: worker
     assignee: Worker
-    status: active
+    status: blocked
     reasoning_hint: xhigh
     objective: "Recover and complete T044 by adding feature.llm_generation to the existing audited global feature-flag path, exporting the existing consent-bound ProfileCandidateService, and then implementing the full synthetic-only Coach server/eval foundation. Preserve every T044 safety, migration, provider-boundary, and no-native-completion requirement."
     inputs:
@@ -3087,6 +3087,81 @@ tasks:
       - "Fixed high-risk/abstention behavior and no-partial-output guarantees"
       - "Offline golden/adversarial eval suite and fresh/historical/restricted migration proof"
       - "Affected regression, exact scope, independent no-P0/P1/P2 evidence, and receipt preserving native/real-provider T115 work"
+    receipt:
+      result: blocked
+      changed_files:
+        - "apps/api/prisma/schema.prisma"
+        - "apps/api/prisma/migrations/20260713210000_coach_server_foundation/**"
+        - "apps/api/src/ai/**"
+        - "apps/api/src/coach/**"
+        - "apps/api/src/app.module.ts"
+        - "apps/api/src/feature-flags/**"
+        - "apps/api/src/kill-switches/**"
+        - "apps/api/src/profile/profile.module.ts"
+        - "apps/api/test/database-constraints.e2e-spec.ts"
+        - "packages/contracts/**"
+        - "packages/evals/**"
+      summary: "Implemented the synthetic Coach server/eval foundation and closed the audited feature-gate, provider-boundary race, consent ABA, exact-citation, ownership, hash, immutable-pair, privacy-delete, and migration invariants. Core Coach, safety, database, fresh migration, historical migration, restricted migration, and zero-diff checks passed. The package could not complete because the required Actions regression uses a hard-coded 2026-07-11 assignment while ActionFeedbackService correctly evaluates the current local date; on 2026-07-13 this caused 17 expected-success paths to fail as stale. T045 cannot edit that test file."
+      evidence:
+        - "Node v24.14.0 and pnpm 10.32.0 were used for the supported-runtime checks."
+        - "Safety/feature tests passed 12/12, Coach/AI tests passed 59/59, database constraints passed 21/21, and offline Coach evals passed 23/23 with zero network calls."
+        - "Profile regression passed 9/9 after removing a stale local test-role grant; privacy passed 12/12, recommendations passed 15/15, Today passed 19/19, and observability passed 19/19."
+        - "Actions regression failed 17/22 because publishedAction() hard-codes localDate=2026-07-11 while accepted service and HTTP paths use the current clock."
+        - "No real provider, network, credential, native iOS implementation, commit, push, or full T115 claim was made."
+      remaining_blockers:
+        - "Expand the recovery scope to apps/api/src/actions/actions.integration.spec.ts and make its current/stale date fixtures clock-stable without weakening ActionFeedbackService."
+        - "Rerun the corrected Actions suite, latest historical/restricted migration proofs, full workspace verification, exact scope guard, and independent Judge review."
+      stopped_because: "The required regression fix is outside T045 allowed_files."
+  - id: T046
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Recover and complete T045 by making the Actions regression clock-stable without weakening current-assignment enforcement, then finish every synthetic Coach verification and independent review requirement. Preserve all T045 product changes and keep native/real-provider T115 incomplete."
+    inputs:
+      - "T045 blocked receipt and uncommitted implementation"
+      - "The hard-coded localDate in apps/api/src/actions/actions.integration.spec.ts"
+      - "Every T045 safety, migration, provider-boundary, and no-native-completion contract"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260713210000_coach_server_foundation/**"
+      - "apps/api/src/ai/**"
+      - "apps/api/src/coach/**"
+      - "apps/api/src/actions/actions.integration.spec.ts"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/feature-flags/feature-flags.service.ts"
+      - "apps/api/src/feature-flags/feature-flags.service.spec.ts"
+      - "apps/api/src/kill-switches/dto/safety-control-action.dto.ts"
+      - "apps/api/src/kill-switches/safety-controls.service.ts"
+      - "apps/api/src/kill-switches/safety-controls.integration.spec.ts"
+      - "apps/api/src/kill-switches/openapi-contract.spec.ts"
+      - "apps/api/src/profile/profile.module.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/evals/**"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Observe the Actions current-path failures under the real current clock, then make only the test fixtures date-stable and prove the explicit stale-date case still rejects"
+      - "Rerun feature/safety, Coach/AI, database, privacy, profile, recommendation, Actions, Today, and observability suites under supported Node 24"
+      - "Rerun offline Coach golden/adversarial evals with 100% forbidden-output blocking, zero safety/action mutation, deterministic replay, and no external network"
+      - "Run fresh fifteen-migration deploy, fourteen-to-fifteen historical upgrade with legacy-row preservation, restricted non-superuser migration, and zero Prisma diff against the final migration"
+      - "Run workspace lint, recursive typecheck, API/worker/admin builds, no-database tests, high-severity audit, Docker config, git diff check, and exact T046 scope guard"
+      - "Obtain a fresh independent no-P0/P1/P2 GoalBuddy Judge review"
+    stop_if:
+      - "The Actions fix changes production current-assignment rules, freezes the process clock globally, or weakens the explicit stale/non-primary/incident rejection case."
+      - "Implementation requires a real LLM/API credential, external network call, production prompt, real health/user data, provider/data-region approval, medical approval, or files outside allowed_files."
+      - "Consent withdrawal, deletion freeze, privacy no-send state, kill switch, or feature disable can commit first and still cross the provider boundary."
+      - "Any high-risk, diagnosis, medication, emergency, stale/no-evidence, invalid-output, or prompt-injected path can invoke free generation or persist partial/prohibited output."
+      - "The task would be declared as full Task 15/T115 without native Swift stores/UI/tests, full Xcode evidence, an approved provider sandbox, pinned production model/prompt, and named medical/privacy/provider authority."
+    expected_output:
+      - "Clock-stable Actions regression with current acceptance and explicit stale rejection"
+      - "All T045 Coach, safety, migration, privacy, and offline-eval outputs"
+      - "Full affected and workspace verification"
+      - "Exact scope and independent no-P0/P1/P2 evidence"
+      - "Receipt preserving native/real-provider T115 work as incomplete"
     receipt: null
   - id: T003
     type: worker
