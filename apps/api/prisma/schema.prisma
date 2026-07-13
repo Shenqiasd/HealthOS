@@ -179,6 +179,8 @@ model User {
   reminderMutations     ReminderPreferenceMutation[]
   schedulePlans         SchedulePlan[]
   schedulerWatermark    SchedulerWatermark?
+  safetyControlRevisions SafetyControlRevision[]
+  safetyControlMutations SafetyControlMutation[]
 
   @@map("users")
 }
@@ -548,6 +550,7 @@ model RuleBundle {
   rollbackTargets     RuleBundleRollbackEvent[] @relation("RollbackTarget")
   lastRollbackEvent   RuleBundleRollbackEvent?  @relation("LastRollbackEvidence", fields: [lastRollbackEventId], references: [id], onDelete: Restrict)
   recommendationRuns  RecommendationRun[]
+  safetyControlRevisions SafetyControlRevision[]
 
   @@map("rule_bundles")
 }
@@ -990,6 +993,8 @@ model AdminActor {
   subjectScopes  AdminActorSubjectScope[]
   auditLogs      AuditLog[]
   queueSnapshots AdminQueueSnapshot[]
+  safetyControlRevisions SafetyControlRevision[]
+  safetyControlMutations SafetyControlMutation[]
 
   @@index([status, id])
   @@map("admin_actors")
@@ -1065,6 +1070,7 @@ model AuditLog {
   recommendationPublication RecommendationPublication?
   adminActor                AdminActor?                @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
   operationConsumption      OperationAuditConsumption?
+  safetyControlConsumption  SafetyControlAuditConsumption?
 
   @@index([resourceType, resourceId, createdAt])
   @@index([adminActorId, createdAt])
@@ -1081,6 +1087,68 @@ model OperationAuditConsumption {
 
   @@unique([workItemId, operationVersion])
   @@map("operation_audit_consumptions")
+}
+
+model SafetyControlRevision {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  controlType    String   @map("control_type")
+  controlKey     String   @map("control_key")
+  scopeType      String   @map("scope_type")
+  scopeId        String   @map("scope_id")
+  subjectUserId  String?  @map("subject_user_id") @db.Uuid
+  ruleBundleId   String?  @map("rule_bundle_id") @db.Uuid
+  active         Boolean
+  version        Int
+  reason         String
+  adminActorId   String   @map("admin_actor_id") @db.Uuid
+  correlationId  String   @map("correlation_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  adminActor     AdminActor @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
+  subjectUser    User? @relation(fields: [subjectUserId], references: [id], onDelete: Cascade)
+  ruleBundle     RuleBundle? @relation(fields: [ruleBundleId], references: [id], onDelete: Restrict)
+  auditConsumptions SafetyControlAuditConsumption[]
+
+  @@unique([controlType, controlKey, scopeType, scopeId, version], map: "safety_controls_logical_version_key")
+  @@index([controlType, controlKey, scopeType, scopeId, version(sort: Desc)], map: "safety_controls_logical_version_idx")
+  @@index([subjectUserId])
+  @@map("safety_control_revisions")
+}
+
+model SafetyControlMutation {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminActorId   String   @map("admin_actor_id") @db.Uuid
+  subjectUserId  String?  @map("subject_user_id") @db.Uuid
+  idempotencyKey String   @map("idempotency_key") @db.Uuid
+  requestHash    String   @map("request_hash")
+  resultJson     Json     @map("result_json") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  adminActor     AdminActor @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
+  subjectUser    User? @relation(fields: [subjectUserId], references: [id], onDelete: Cascade)
+
+  @@unique([idempotencyKey])
+  @@map("safety_control_mutations")
+}
+
+model SafetyControlEpoch {
+  id        String   @id
+  version   BigInt   @default(0)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("safety_control_epoch")
+}
+
+model SafetyControlAuditConsumption {
+  auditId          String   @map("audit_id") @db.Uuid
+  controlRevisionId String  @map("control_revision_id") @db.Uuid
+  operationVersion Int      @map("operation_version")
+  operationTxid    BigInt   @default(dbgenerated("txid_current()")) @map("operation_txid")
+  consumedAt       DateTime @default(now()) @map("consumed_at") @db.Timestamptz(6)
+  audit             AuditLog @relation(fields: [auditId], references: [id], onDelete: Restrict)
+  controlRevision   SafetyControlRevision @relation(fields: [controlRevisionId], references: [id], onDelete: Cascade)
+
+  @@id([auditId])
+  @@unique([controlRevisionId, operationVersion], map: "safety_control_consumption_revision_version_key")
+  @@map("safety_control_audit_consumptions")
 }
 
 model ReminderPreference {

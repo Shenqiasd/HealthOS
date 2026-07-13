@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, afterEach, before, test } from "node:test";
 
-import { PrismaClient, type Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 import {
   RecommendationWorker,
@@ -31,6 +31,25 @@ afterEach(async () => {
   `);
   await database.privacyReconciliation.create({ data: { id: "global", status: "ready" } });
 });
+
+async function withMissingControlEpoch<T>(callback: () => Promise<T>): Promise<T> {
+  const epoch = await database.safetyControlEpoch.findUniqueOrThrow({ where: { id: "global" } });
+  await database.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe("SET LOCAL session_replication_role = 'replica'");
+    await tx.$executeRaw`DELETE FROM "safety_control_epoch" WHERE "id" = 'global'`;
+  });
+  try {
+    return await callback();
+  } finally {
+    await database.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL session_replication_role = 'replica'");
+      await tx.$executeRaw`
+        INSERT INTO "safety_control_epoch"("id", "version", "updated_at")
+        VALUES ('global', ${epoch.version}, ${epoch.updatedAt})
+      `;
+    });
+  }
+}
 
 async function activeBundle(autoPublishEligible: boolean, qualifyRule = autoPublishEligible) {
   const bundle = await database.ruleBundle.create({
@@ -281,6 +300,7 @@ async function pendingRun(
   autoPublishEligible = false,
   qualifyRule = autoPublishEligible,
   userId?: string,
+  enableFeature = true,
 ) {
   const bundle = await activeBundle(autoPublishEligible, qualifyRule);
   const user = await database.user.create({ data: { ...(userId ? { id: userId } : {}), consentEpoch: 1 } });
@@ -354,7 +374,104 @@ async function pendingRun(
       consentRequirements: { create: { purpose: "health_processing", grantEpoch: 1 } },
     },
   });
+  if (enableFeature) {
+    await setSafetyControl({
+      controlType: "feature_flag",
+      key: "feature.daily_recommendations",
+      scopeType: "global",
+      scopeId: "*",
+    });
+  }
   return { run, user, outbox };
+}
+
+async function setSafetyControl(input: {
+  controlType?: "feature_flag" | "kill_switch";
+  key: "feature.daily_recommendations" | "global.proactive_messages" | "user.recommendations" | "rule.bundle" | "llm.generation";
+  scopeType: "global" | "user" | "rule_bundle";
+  scopeId: string;
+  active?: boolean;
+  version?: number;
+}) {
+  const controlType = input.controlType ?? "kill_switch";
+  const active = input.active ?? true;
+  const version = input.version ?? 1;
+  const actor = await database.adminActor.create({ data: {
+    lookupHash: randomUUID().replaceAll("-", "").padEnd(64, "0"),
+    displayLabel: "Synthetic recommendation operator",
+    roles: { create: [{ role: "operator" }] },
+  } });
+  const reason = "synthetic_test";
+  const correlationId = randomUUID();
+  const revisionId = randomUUID();
+  await database.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "safety_control_epoch" WHERE "id" = 'global' FOR UPDATE`;
+    const previous = await tx.safetyControlRevision.findFirst({
+      where: {
+        controlType,
+        controlKey: input.key,
+        scopeType: input.scopeType,
+        scopeId: input.scopeId,
+      },
+      orderBy: { version: "desc" },
+    });
+    const [snapshots] = await tx.$queryRaw<Array<{
+      before_json: Prisma.JsonValue | null;
+      after_json: Prisma.JsonValue;
+      before_hash: string;
+      after_hash: string;
+    }>>`
+      SELECT
+        ${previous ? Prisma.sql`healthos_safety_control_snapshot(
+          ${previous.controlType}, ${previous.controlKey}, ${previous.scopeType}, ${previous.scopeId},
+          ${previous.active}, ${previous.version}::integer, ${previous.reason}
+        )` : Prisma.sql`NULL::jsonb`} AS "before_json",
+        healthos_safety_control_snapshot(${controlType}, ${input.key}, ${input.scopeType}, ${input.scopeId},
+          ${active}, ${version}::integer, ${reason}) AS "after_json",
+        encode(digest(coalesce(${previous ? Prisma.sql`healthos_safety_control_snapshot(
+          ${previous.controlType}, ${previous.controlKey}, ${previous.scopeType}, ${previous.scopeId},
+          ${previous.active}, ${previous.version}::integer, ${previous.reason}
+        )` : Prisma.sql`NULL::jsonb`}, 'null'::jsonb)::text, 'sha256'), 'hex') AS "before_hash",
+        encode(digest(healthos_safety_control_snapshot(${controlType}, ${input.key}, ${input.scopeType}, ${input.scopeId},
+          ${active}, ${version}::integer, ${reason})::text, 'sha256'), 'hex') AS "after_hash"
+    `;
+    assert.ok(snapshots);
+    const audit = await tx.auditLog.create({ data: {
+      adminActorId: actor.id,
+      actorRole: "operator",
+      action: active ? "safety_control.activate" : "safety_control.deactivate",
+      resourceType: "safety_control",
+      resourceId: revisionId,
+      reason,
+      correlationId,
+      beforeJson: snapshots.before_json === null ? Prisma.DbNull : snapshots.before_json as Prisma.InputJsonValue,
+      afterJson: snapshots.after_json as Prisma.InputJsonValue,
+      beforeHash: snapshots.before_hash,
+      afterHash: snapshots.after_hash,
+      operationVersion: version,
+    } });
+    await tx.$executeRaw`SELECT set_config('healthos.safety_control_audit_id', ${audit.id}, true)`;
+    await tx.safetyControlRevision.create({ data: {
+      id: revisionId,
+      controlType,
+      controlKey: input.key,
+      scopeType: input.scopeType,
+      scopeId: input.scopeId,
+      subjectUserId: input.scopeType === "user" ? input.scopeId : null,
+      ruleBundleId: input.scopeType === "rule_bundle" ? input.scopeId : null,
+      active,
+      version,
+      reason,
+      adminActorId: actor.id,
+      correlationId,
+    } });
+    await tx.safetyControlAuditConsumption.create({ data: {
+      auditId: audit.id,
+      controlRevisionId: revisionId,
+      operationVersion: version,
+    } });
+    await tx.safetyControlEpoch.update({ where: { id: "global" }, data: { version: { increment: 1 } } });
+  });
 }
 
 test("Alpha always creates one immutable review draft and exact retries do not duplicate", async () => {
@@ -457,6 +574,102 @@ test("a newer same-epoch profile suppresses a run before evaluation", async () =
   const lease = await worker.claim(run.id);
   assert.equal(await worker.process(run.id, lease.leaseToken!), null);
   assert.equal((await database.recommendationRun.findUniqueOrThrow({ where: { id: run.id } })).status, "suppressed");
+});
+
+test("daily recommendation feature flag is fail-closed when no enabling revision exists", async () => {
+  const featureCase = await pendingRun(baseRuleInput, false, false, undefined, false);
+  const worker = new RecommendationWorker(database, alphaPolicy);
+  const lease = await worker.claim(featureCase.run.id);
+  assert.equal(await worker.process(featureCase.run.id, lease.leaseToken!), null);
+  assert.equal((await database.recommendationRun.findUniqueOrThrow({
+    where: { id: featureCase.run.id },
+  })).status, "suppressed");
+});
+
+test("missing safety-control epoch suppresses recommendation execution", async () => {
+  const epochCase = await pendingRun(baseRuleInput);
+  const worker = new RecommendationWorker(database, alphaPolicy);
+  const lease = await worker.claim(epochCase.run.id);
+  await withMissingControlEpoch(async () => {
+    assert.equal(await worker.process(epochCase.run.id, lease.leaseToken!), null);
+  });
+  assert.equal((await database.recommendationRun.findUniqueOrThrow({
+    where: { id: epochCase.run.id },
+  })).status, "suppressed");
+});
+
+test("a concurrently activated global switch suppresses at the execution boundary", async () => {
+  const globalCase = await pendingRun(baseRuleInput);
+  const globalWorker = new RecommendationWorker(database, alphaPolicy);
+  const globalLease = await globalWorker.claim(globalCase.run.id);
+  let releaseEpoch!: () => void;
+  let epochLocked!: () => void;
+  const release = new Promise<void>((resolve) => { releaseEpoch = resolve; });
+  const locked = new Promise<void>((resolve) => { epochLocked = resolve; });
+  const blockingTransaction = database.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "safety_control_epoch" WHERE "id" = 'global' FOR UPDATE`;
+    epochLocked();
+    await release;
+  });
+  await locked;
+  const activation = setSafetyControl({ key: "global.proactive_messages", scopeType: "global", scopeId: "*" });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  let processingSettled = false;
+  const processing = globalWorker.process(globalCase.run.id, globalLease.leaseToken!).then((result) => {
+    processingSettled = true;
+    return result;
+  });
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(processingSettled, false);
+    releaseEpoch();
+    await blockingTransaction;
+    await activation;
+    assert.equal(await processing, null);
+  } finally {
+    releaseEpoch();
+    await blockingTransaction;
+  }
+  assert.equal((await database.recommendationRun.findUniqueOrThrow({ where: { id: globalCase.run.id } })).status, "suppressed");
+});
+
+test("user recommendation kill switch is isolated to its exact user", async () => {
+  const userCase = await pendingRun(baseRuleInput);
+  await setSafetyControl({
+    key: "user.recommendations",
+    scopeType: "user",
+    scopeId: userCase.user.id,
+  });
+  const worker = new RecommendationWorker(database, alphaPolicy);
+  const lease = await worker.claim(userCase.run.id);
+  assert.equal(await worker.process(userCase.run.id, lease.leaseToken!), null);
+  assert.equal((await database.recommendationRun.findUniqueOrThrow({ where: { id: userCase.run.id } })).status, "suppressed");
+});
+
+test("rule-bundle kill switch suppresses the exact running bundle", async () => {
+  const ruleCase = await pendingRun(baseRuleInput);
+  await setSafetyControl({
+    key: "rule.bundle",
+    scopeType: "rule_bundle",
+    scopeId: ruleCase.run.ruleBundleId,
+  });
+  const worker = new RecommendationWorker(database, alphaPolicy);
+  const lease = await worker.claim(ruleCase.run.id);
+  assert.equal(await worker.process(ruleCase.run.id, lease.leaseToken!), null);
+  assert.equal((await database.recommendationRun.findUniqueOrThrow({ where: { id: ruleCase.run.id } })).status, "suppressed");
+});
+
+test("LLM kill switch keeps the deterministic template path and records fallback provenance", async () => {
+  const llmCase = await pendingRun(baseRuleInput);
+  await setSafetyControl({ key: "llm.generation", scopeType: "global", scopeId: "*" });
+  const worker = new RecommendationWorker(database, { ...alphaPolicy, llmEnabled: true });
+  const lease = await worker.claim(llmCase.run.id);
+  const snapshot = await worker.process(llmCase.run.id, lease.leaseToken!);
+  assert.ok(snapshot);
+  const provenance = snapshot.provenanceJson as Prisma.JsonObject;
+  assert.equal(provenance.llm_kill_switch_active, true);
+  assert.equal(provenance.provider_id, null);
+  assert.equal(provenance.model_id, null);
 });
 
 test("Beta holds a normal action when the exact rule lacks qualification evidence", async () => {

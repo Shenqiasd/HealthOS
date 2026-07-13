@@ -2,8 +2,8 @@
   "name": "@healthos/observability",
   "version": "0.1.0",
   "private": true,
-  "main": "src/correlation.ts",
-  "types": "src/correlation.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --config jest.config.mjs"

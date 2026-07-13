@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T039
+active_task: T041
 
 tasks:
   - id: T001
@@ -2526,7 +2526,7 @@ tasks:
   - id: T039
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the production server foundation tranche of implementation Task 22: durable versioned feature flags and kill switches with audited administrator mutations, fail-closed evaluation at recommendation, respectful-scheduling, and Review-sharing boundaries, structured redacted telemetry and correlation contracts, provider-neutral dashboard/alert definitions, and runnable synthetic incident runbooks. Use synthetic data and local sinks only; do not complete production telemetry/provider integration or full T122."
     inputs:
@@ -2582,6 +2582,182 @@ tasks:
       - "Provider-neutral dashboards, alerts, and runnable incident runbooks"
       - "Fresh/historical/restricted migration, full regression, scope, and independent no-P0/P1/P2 evidence"
       - "Receipt explicitly leaving production integration and full Task 22/T122 incomplete"
+    receipt:
+      result: done
+      harness: codex
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260713100000_observability_safety_controls/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/feature-flags/feature-flags.module.ts
+        - apps/api/src/feature-flags/feature-flags.service.ts
+        - apps/api/src/kill-switches/dto/safety-control-action.dto.ts
+        - apps/api/src/kill-switches/kill-switches.module.ts
+        - apps/api/src/kill-switches/openapi-contract.spec.ts
+        - apps/api/src/kill-switches/safety-controls.controller.ts
+        - apps/api/src/kill-switches/safety-controls.integration.spec.ts
+        - apps/api/src/kill-switches/safety-controls.service.ts
+        - apps/api/src/reviews/reviews.integration.spec.ts
+        - apps/api/src/reviews/reviews.service.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/recommendations/recommendation-worker.integration.spec.ts
+        - apps/worker/src/jobs/recommendations/recommendation-worker.ts
+        - apps/worker/src/jobs/scheduling/respectful-scheduler.integration.spec.ts
+        - apps/worker/src/jobs/scheduling/respectful-scheduler.ts
+        - apps/worker/src/telemetry/worker-telemetry.spec.ts
+        - apps/worker/src/telemetry/worker-telemetry.ts
+        - apps/worker/src/worker.module.ts
+        - infra/observability/README.md
+        - infra/observability/alert-rules.yaml
+        - infra/observability/slo-catalog.yaml
+        - infra/runbooks/channel-incident.md
+        - infra/runbooks/privacy-incident.md
+        - infra/runbooks/recommendation-incident.md
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - packages/observability/README.md
+        - packages/observability/package.json
+        - packages/observability/src/correlation.spec.ts
+        - packages/observability/src/correlation.ts
+        - packages/observability/src/index.ts
+        - packages/observability/src/telemetry.spec.ts
+        - packages/observability/src/telemetry.ts
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "DATABASE_URL=<fresh-postgres> safety-control, Review, recommendation, scheduler, admin, and database integration suites"
+          status: pass
+        - cmd: "pnpm --filter @healthos/observability test"
+          status: pass
+        - cmd: "pnpm --filter @healthos/worker test:telemetry"
+          status: pass
+        - cmd: "pnpm --filter @healthos/rules test --coverage"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low"
+          status: pass
+        - cmd: "Fresh 13-migration deploy, 12-to-13 historical upgrade, restricted-owner deploy, and zero Prisma migration diff"
+          status: pass
+        - cmd: "git diff --check && exact T039 scope guard"
+          status: pass
+        - cmd: "Third independent GoalBuddy Judge review"
+          status: pass
+      summary: "Committed the T039 server-only Task 22 foundation: durable audited safety controls, fail-closed recommendation/scheduling/Review-share enforcement, strict local-only redacted telemetry, provider-neutral SLO/alert definitions, and synthetic incident runbooks."
+      evidence:
+        - "Commit be47111 (feat: add observability safety controls)."
+        - "Independent Judge: APPROVE, no P0/P1/P2 findings; full_outcome_complete=false."
+        - "Safety controls 8/8, Reviews 6/6, Recommendation 17/17, Scheduler 22/22, worker telemetry 2/2, observability 19/19, admin 9/9, DB constraints 11/11, rules 36/36."
+        - "Concurrent switch activation cannot bypass recommendation, scheduler, or Review-share final boundaries."
+        - "Audit role, snapshot hashes, same-transaction audit consumption, protected epoch singleton, immutable revisions, strict reason codes, and deidentified deletion behavior are database-enforced."
+        - "Correlation accepts RFC UUID or exact lowercase healthos-test-####; adversarial health/lab/token/identifier payloads are redacted and no external exporter exists."
+      risks_remaining:
+        - "Full Task 22/T122 still requires approved production telemetry/exporter integration, live dashboards and alerts, injected provider-outage evidence, and named incident authority."
+        - "The complete HealthOS V1 oracle remains false; Tasks 23-27 and all release gates are outstanding."
+      next: "T040 must audit this evidence, preserve T122 as incomplete, and activate the next largest safe plan-permitted task."
+  - id: T040
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit the completed T039 server-foundation tranche against its receipt, independent Judge evidence, Git history, and the full HealthOS oracle; preserve T122 as incomplete, then select and activate the next largest safe plan-permitted work package."
+    inputs:
+      - "T039 Worker receipt and commit"
+      - "Third independent T039 Judge receipt"
+      - "Implementation plan Tasks 22-27 and current queued/blocked board tasks"
+      - "Current Git status, branch chain, and remaining human/environment gates"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T122 or the full HealthOS outcome complete."
+      - "Do not fabricate production exporter, live alert, provider-outage, TestFlight, named authority, or governance evidence."
+      - "Prefer the largest safe local task whose dependencies and authority are already green."
+      - "Any new Worker must have explicit allowed_files, verify commands, stop_if conditions, and a scope snapshot."
+    expected_output:
+      - "T039 evidence and receipt audit"
+      - "Explicit remaining gap to T122 and the full outcome"
+      - "One activated next task or a truthful exact blocker"
+      - "Valid GoalBuddy board and PM scope evidence"
+    receipt:
+      result: done
+      harness: codex
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "Audit T039 commit be47111, Worker receipt, third independent Judge evidence, and exact scope result"
+          status: pass
+        - cmd: "Push codex/safety-controls and create Draft PR #24 against codex/respectful-scheduling"
+          status: pass
+        - cmd: "Audit expected-incomplete output from check-plan-coverage.mjs"
+          status: pass
+        - cmd: "Audit implementation Tasks 19 and 23-27, technical channel/outbox contracts, current schema, repository tree, native-tooling and governance constraints"
+          status: pass
+      summary: "Audited T039 as a complete server-foundation tranche while preserving T122 and the full HealthOS oracle as incomplete. Selected T041 as the next largest safe local package: a synthetic-only reliable channel-delivery server foundation that uses the newly completed scheduling and safety-control dependencies."
+      evidence:
+        - "T039 product commit be47111 and Draft PR https://github.com/Shenqiasd/HealthOS/pull/24."
+        - "Third independent T039 Judge reported APPROVE with no P0/P1/P2 findings and full_outcome_complete=false."
+        - "The final lowercase synthetic correlation-ID tightening passes all 19 observability tests and the exact T039 scope guard."
+        - "Plan coverage remains truthfully false: T100, T104-T109, and T113-T127 are not done."
+        - "apps/ios contains only README.md and no e2e directory exists, so full Task 23 cannot honestly start before native and feature lanes exist."
+        - "Existing schedule plans, consent epochs, privacy reconciliation, devices/channel accounts, outboxes, and T039 safety controls are sufficient for a provider-neutral local channel-dispatch tranche."
+        - "T041 forbids real provider credentials/network calls and explicitly leaves APNs, approved WeCom, Universal Links, native settings/deep links, and full T119 incomplete."
+      risks_remaining:
+        - "Full T122 still requires approved production exporters, live dashboards/alerts, provider-outage evidence, and named incident authority."
+        - "Full T119 requires real APNs, a passed WeCom feasibility gate or explicit removal, device/sandbox evidence, Universal Links, native settings, and named channel authority."
+        - "Native iOS implementation remains externally constrained by unavailable full Xcode/Apple readiness."
+        - "GitHub Actions execution remains dependent on the account billing state."
+      next: "Activate T041 and implement the synthetic-only provider-neutral channel delivery foundation with no external delivery."
+  - id: T041
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the synthetic-only production server foundation tranche of implementation Task 19: provider-neutral channel outbox dispatch from due schedule plans, immutable/fenced delivery attempts, bounded retry and unknown-after-send semantics, strict allowlisted notification templates, and fail-closed send-time rechecks of user/privacy/consent/destination/feature-flag/kill-switch state. Use local in-memory providers only; do not complete APNs, WeCom, Universal Links, native settings, or full T119."
+    inputs:
+      - "T037 durable respectful schedule plans and notification-consent epochs"
+      - "T039 feature.channel_delivery, global proactive-message, and channel delivery safety controls"
+      - "T103 consent, deletion, privacy reconciliation, devices, channel accounts, channel outbox, and delivery-attempt schema"
+      - "T112 atomic recommendation publication and current in-app channel evidence"
+      - "Implementation plan Task 19 and technical-design channel/outbox/privacy contracts"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260713130000_channel_delivery_foundation/**"
+      - "apps/api/src/channels/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/jobs/channels/**"
+      - "apps/worker/src/worker.module.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Write failing channel template, outbox creation, lease fencing, destination, consent/privacy, retry, unknown-after-send, concurrency, database, and adversarial tests before implementation"
+      - "Fresh fourteen-migration Prisma validate/deploy and zero migration diff"
+      - "Valid thirteen-to-fourteen historical upgrade preserving users, devices, channel accounts, schedule plans, outboxes, delivery attempts, operations audit, and safety controls, plus full restricted-owner deploy"
+      - "Assert only due planned schedules create one idempotent APNs outbox with an allowlisted non-sensitive template and exact notification-consent requirement; disabled, cutoff-missed, or suppressed plans never enqueue"
+      - "Assert WeCom is fail-closed unless a current linked tenant-scoped account, exact binding epoch, enabled feature revision, and inactive kill switch all exist; no public binding endpoint or real tenant is introduced"
+      - "Assert immediately before provider invocation the worker holds a current safety-control epoch shared lock and rechecks active user, ready privacy reconciliation, current consent grant epoch, current destination/binding, opt-out, feature.channel_delivery, global proactive messages, and channel kill switch"
+      - "Assert a concurrent safety-control activation, consent withdrawal, deletion freeze, destination rotation/revocation, or privacy no-send transition cannot cross the provider boundary"
+      - "Assert duplicate workers, stale leases, retryable/permanent failures, provider acceptance followed by recording failure, and reconciliation produce deterministic sent, suppressed, failed, or unknown_after_send states without blind resend"
+      - "Assert outbox identity/payload/consent requirements and delivery attempts are immutable, status transitions are allowlisted and lease-fenced, attempt numbers are unique, and privacy deletion remains authorized"
+      - "Assert template rendering accepts only stable copy/action/deep-link keys, rejects health text, lab values, identifiers, tokens, arbitrary nested values, and never emits provider payloads to telemetry"
+      - "Run affected API channels, worker channels/scheduling/privacy, safety controls, admin, database, rules, lint, typecheck, no-DB workspace, audit, migration, diff, and exact scope checks"
+      - "Obtain independent no-P0/P1/P2 review"
+    stop_if:
+      - "Implementation requires an APNs certificate/token, WeCom tenant or credential, external network call, Apple entitlement, Associated Domains, production access, real user/channel identity, or real health data."
+      - "A send can occur after consent withdrawal, deletion freeze, privacy no-send state, destination revocation/rotation, or a newly activated global/channel safety switch."
+      - "A retry can blindly resend an unknown-after-send delivery, a stale lease can commit, or a duplicate worker can produce a second provider invocation for the same attempt."
+      - "A notification template can contain raw health text, lab values, external identifiers, device tokens, encrypted destinations, or arbitrary free text."
+      - "The task would be declared as full Task 19/T119 without real APNs and approved WeCom adapters, sandbox/device evidence, native settings/deep-link ownership checks, Universal Links, and named channel authority."
+    expected_output:
+      - "Durable provider-neutral channel outbox dispatcher and schedule-plan enqueue path"
+      - "Fenced immutable delivery attempts with bounded retry, reconciliation, and unknown-after-send handling"
+      - "Strict notification template contract and local in-memory provider adapters only"
+      - "Fail-closed send-time withdrawal, privacy, destination, feature-flag, and kill-switch enforcement with concurrency evidence"
+      - "Fresh/historical/restricted migration, affected regression, scope, and independent no-P0/P1/P2 evidence"
+      - "Receipt explicitly leaving APNs, WeCom, native deep links/settings, production channel authority, and full T119 incomplete"
     receipt: null
   - id: T003
     type: worker

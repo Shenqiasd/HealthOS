@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test, { after, before, beforeEach } from "node:test";
 
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 import { RespectfulScheduler } from "./respectful-scheduler";
 
@@ -12,9 +12,31 @@ const scheduler = new RespectfulScheduler(database);
 before(async () => { await database.$connect(); });
 after(async () => { await database.$disconnect(); });
 beforeEach(async () => {
-  await database.$executeRawUnsafe("TRUNCATE TABLE users, audit_logs, privacy_reconciliation RESTART IDENTITY CASCADE");
+  await database.$executeRawUnsafe(`
+    TRUNCATE TABLE users, admin_actors, audit_logs, privacy_reconciliation,
+      safety_control_revisions, safety_control_mutations RESTART IDENTITY CASCADE
+  `);
   await database.privacyReconciliation.create({ data: { id: "global", status: "ready" } });
 });
+
+async function withMissingControlEpoch<T>(callback: () => Promise<T>): Promise<T> {
+  const epoch = await database.safetyControlEpoch.findUniqueOrThrow({ where: { id: "global" } });
+  await database.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe("SET LOCAL session_replication_role = 'replica'");
+    await tx.$executeRaw`DELETE FROM "safety_control_epoch" WHERE "id" = 'global'`;
+  });
+  try {
+    return await callback();
+  } finally {
+    await database.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL session_replication_role = 'replica'");
+      await tx.$executeRaw`
+        INSERT INTO "safety_control_epoch"("id", "version", "updated_at")
+        VALUES ('global', ${epoch.version}, ${epoch.updatedAt})
+      `;
+    });
+  }
+}
 
 async function configuredUser(input: {
   timezone?: string;
@@ -29,6 +51,16 @@ async function configuredUser(input: {
   quietEndMinute?: number;
   preferenceCreatedAt?: Date;
 }) {
+  if (await database.safetyControlRevision.count({
+    where: {
+      controlType: "feature_flag",
+      controlKey: "feature.daily_recommendations",
+      scopeType: "global",
+      scopeId: "*",
+    },
+  }) === 0) {
+    await setGlobalControl("feature_flag", "feature.daily_recommendations", true, 1);
+  }
   const preferenceCreatedAt = input.preferenceCreatedAt ?? new Date("2025-01-01T00:00:00.000Z");
   const user = await database.user.create({ data: { timezone: input.timezone ?? "Asia/Shanghai", consentEpoch: 1 } });
   const preference = await database.reminderPreference.create({ data: {
@@ -107,6 +139,92 @@ async function revisePreference(
   } });
 }
 
+async function setGlobalControl(
+  controlType: "feature_flag" | "kill_switch",
+  controlKey: "feature.daily_recommendations" | "global.proactive_messages",
+  active: boolean,
+  version: number,
+) {
+  await database.adminActor.createMany({
+    data: [{ lookupHash: "b".repeat(64), displayLabel: "Synthetic scheduler operator" }],
+    skipDuplicates: true,
+  });
+  const actor = await database.adminActor.findUniqueOrThrow({ where: { lookupHash: "b".repeat(64) } });
+  await database.adminActorRole.createMany({
+    data: [{ actorId: actor.id, role: "operator" }],
+    skipDuplicates: true,
+  });
+  const reason = "synthetic_test";
+  const correlationId = randomUUID();
+  const revisionId = randomUUID();
+  await database.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "safety_control_epoch" WHERE "id" = 'global' FOR UPDATE`;
+    const previous = await tx.safetyControlRevision.findFirst({
+      where: { controlType, controlKey, scopeType: "global", scopeId: "*" },
+      orderBy: { version: "desc" },
+    });
+    if (controlType === "feature_flag" && active && previous?.active) return;
+    const [snapshots] = await tx.$queryRaw<Array<{
+      before_json: Prisma.JsonValue | null;
+      after_json: Prisma.JsonValue;
+      before_hash: string;
+      after_hash: string;
+    }>>`
+      SELECT
+        ${previous ? Prisma.sql`healthos_safety_control_snapshot(
+          ${previous.controlType}, ${previous.controlKey}, ${previous.scopeType}, ${previous.scopeId},
+          ${previous.active}, ${previous.version}::integer, ${previous.reason}
+        )` : Prisma.sql`NULL::jsonb`} AS "before_json",
+        healthos_safety_control_snapshot(${controlType}, ${controlKey}, 'global', '*',
+          ${active}, ${version}::integer, ${reason}) AS "after_json",
+        encode(digest(coalesce(${previous ? Prisma.sql`healthos_safety_control_snapshot(
+          ${previous.controlType}, ${previous.controlKey}, ${previous.scopeType}, ${previous.scopeId},
+          ${previous.active}, ${previous.version}::integer, ${previous.reason}
+        )` : Prisma.sql`NULL::jsonb`}, 'null'::jsonb)::text, 'sha256'), 'hex') AS "before_hash",
+        encode(digest(healthos_safety_control_snapshot(${controlType}, ${controlKey}, 'global', '*',
+          ${active}, ${version}::integer, ${reason})::text, 'sha256'), 'hex') AS "after_hash"
+    `;
+    assert.ok(snapshots);
+    const audit = await tx.auditLog.create({ data: {
+      adminActorId: actor.id,
+      actorRole: "operator",
+      action: active ? "safety_control.activate" : "safety_control.deactivate",
+      resourceType: "safety_control",
+      resourceId: revisionId,
+      reason,
+      correlationId,
+      beforeJson: snapshots.before_json === null ? Prisma.DbNull : snapshots.before_json as Prisma.InputJsonValue,
+      afterJson: snapshots.after_json as Prisma.InputJsonValue,
+      beforeHash: snapshots.before_hash,
+      afterHash: snapshots.after_hash,
+      operationVersion: version,
+    } });
+    await tx.$executeRaw`SELECT set_config('healthos.safety_control_audit_id', ${audit.id}, true)`;
+    await tx.safetyControlRevision.create({ data: {
+      id: revisionId,
+      controlType,
+      controlKey,
+      scopeType: "global",
+      scopeId: "*",
+      active,
+      version,
+      reason,
+      adminActorId: actor.id,
+      correlationId,
+    } });
+    await tx.safetyControlAuditConsumption.create({ data: {
+      auditId: audit.id,
+      controlRevisionId: revisionId,
+      operationVersion: version,
+    } });
+    await tx.safetyControlEpoch.update({ where: { id: "global" }, data: { version: { increment: 1 } } });
+  });
+}
+
+async function setGlobalProactiveMessages(active: boolean, version: number) {
+  await setGlobalControl("kill_switch", "global.proactive_messages", active, version);
+}
+
 test("plans one advisor and one behavior reminder exactly once without external delivery", async () => {
   const now = new Date();
   const user = await configuredUser(liveUtcConfiguration(now));
@@ -117,6 +235,66 @@ test("plans one advisor and one behavior reminder exactly once without external 
   assert.equal(await database.schedulePlan.count({ where: { userId: user.id, status: "planned" } }), 2);
   assert.equal(await database.channelOutbox.count(), 0);
   assert.equal(await database.deliveryAttempt.count(), 0);
+});
+
+test("daily recommendation feature flag is fail-closed when its revision is missing", async () => {
+  const now = new Date();
+  const user = await configuredUser(liveUtcConfiguration(now));
+  await database.$executeRawUnsafe(`
+    TRUNCATE TABLE safety_control_revisions, safety_control_mutations,
+      admin_actors, audit_logs RESTART IDENTITY CASCADE
+  `);
+  assert.equal(await scheduler.runDue(now), 0);
+  assert.equal(await database.schedulePlan.count({ where: { userId: user.id } }), 0);
+  assert.equal(await database.schedulerWatermark.count({ where: { userId: user.id } }), 0);
+});
+
+test("missing safety-control epoch prevents scheduling and watermark advancement", async () => {
+  const now = new Date();
+  const user = await configuredUser(liveUtcConfiguration(now));
+  await withMissingControlEpoch(async () => {
+    assert.equal(await scheduler.runDue(now), 0);
+  });
+  assert.equal(await database.schedulePlan.count({ where: { userId: user.id } }), 0);
+  assert.equal(await database.schedulerWatermark.count({ where: { userId: user.id } }), 0);
+});
+
+test("global proactive-message switch stops planning and invalidates without a process cache", async () => {
+  const now = new Date();
+  const user = await configuredUser(liveUtcConfiguration(now));
+  let releaseEpoch!: () => void;
+  let epochLocked!: () => void;
+  const release = new Promise<void>((resolve) => { releaseEpoch = resolve; });
+  const locked = new Promise<void>((resolve) => { epochLocked = resolve; });
+  const blockingTransaction = database.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "safety_control_epoch" WHERE "id" = 'global' FOR UPDATE`;
+    epochLocked();
+    await release;
+  });
+  await locked;
+  const activation = setGlobalProactiveMessages(true, 1);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  let schedulingSettled = false;
+  const scheduling = scheduler.runDue(now).then((count) => {
+    schedulingSettled = true;
+    return count;
+  });
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(schedulingSettled, false);
+    releaseEpoch();
+    await blockingTransaction;
+    await activation;
+    assert.equal(await scheduling, 0);
+  } finally {
+    releaseEpoch();
+    await blockingTransaction;
+  }
+  assert.equal(await database.schedulePlan.count({ where: { userId: user.id } }), 0);
+  assert.equal(await database.schedulerWatermark.count({ where: { userId: user.id } }), 0);
+  await setGlobalProactiveMessages(false, 2);
+  assert.equal(await scheduler.runDue(now), 2);
+  assert.equal(await database.schedulePlan.count({ where: { userId: user.id, status: "planned" } }), 2);
 });
 
 test("suppresses disabled, gentle behavior, missing-consent, and missed-cutoff decisions", async () => {

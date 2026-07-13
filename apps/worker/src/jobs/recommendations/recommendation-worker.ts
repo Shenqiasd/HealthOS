@@ -3,6 +3,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { evaluateRule, getAction, isRuleInput } from "@healthos/rules";
 import { RecommendationReviewEventType, RecommendationReviewStatus, type Prisma, type PrismaClient } from "@prisma/client";
 
+import { WorkerTelemetry } from "../../telemetry/worker-telemetry";
+
 export const RULES_ENGINE_ARTIFACT_DIGEST = "22e19a3848877f16f3a56921f91f8eb1f3a54f21551d3c47569153f748c8d282";
 
 export interface RecommendationWorkerPolicy {
@@ -34,7 +36,11 @@ function samplingBucket(userId: string, localDate: string, signal: string | null
 }
 
 export class RecommendationWorker {
-  constructor(private readonly database: PrismaClient, private readonly policy: RecommendationWorkerPolicy) {}
+  constructor(
+    private readonly database: PrismaClient,
+    private readonly policy: RecommendationWorkerPolicy,
+    private readonly telemetry: WorkerTelemetry = new WorkerTelemetry(),
+  ) {}
 
   async claim(runId: string) {
     const now = new Date();
@@ -72,6 +78,9 @@ export class RecommendationWorker {
     }
 
     return this.database.$transaction(async (tx) => {
+      const [controlEpoch] = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "safety_control_epoch" WHERE "id" = 'global' FOR SHARE
+      `;
       await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${existing.userId}::uuid FOR UPDATE`;
       await tx.$queryRaw`SELECT "id" FROM "recommendation_runs" WHERE "id" = ${runId}::uuid FOR UPDATE`;
       const run = await tx.recommendationRun.findUniqueOrThrow({
@@ -98,15 +107,62 @@ export class RecommendationWorker {
         .filter((item) => item.consentType === "health_processing")
         .sort((left, right) => right.epoch - left.epoch)[0];
       const requirement = request?.consentRequirements.find((item) => item.purpose === "health_processing");
-      if (
-        !request || run.user.status !== "active" || run.user.deletedAt || reconciliation?.status !== "ready" ||
-        !consent?.granted || consent.epoch !== run.consentEpoch || requirement?.grantEpoch !== run.consentEpoch ||
-        latestProfile?.id !== run.inputSnapshotId ||
-        run.ruleBundle.status !== "active" || !run.ruleBundle.bundleDigest
-      ) {
+      const controlWhere = (controlType: string, controlKey: string, scopeType: string, scopeId: string) => ({
+        controlType,
+        controlKey,
+        scopeType,
+        scopeId,
+      });
+      const [dailyFeature, globalStop, userStop, ruleStop, llmStop] = await Promise.all([
+        tx.safetyControlRevision.findFirst({
+          where: controlWhere("feature_flag", "feature.daily_recommendations", "global", "*"),
+          orderBy: { version: "desc" }, select: { active: true },
+        }),
+        tx.safetyControlRevision.findFirst({
+          where: controlWhere("kill_switch", "global.proactive_messages", "global", "*"),
+          orderBy: { version: "desc" }, select: { active: true },
+        }),
+        tx.safetyControlRevision.findFirst({
+          where: controlWhere("kill_switch", "user.recommendations", "user", run.userId),
+          orderBy: { version: "desc" }, select: { active: true },
+        }),
+        tx.safetyControlRevision.findFirst({
+          where: controlWhere("kill_switch", "rule.bundle", "rule_bundle", run.ruleBundleId),
+          orderBy: { version: "desc" }, select: { active: true },
+        }),
+        tx.safetyControlRevision.findFirst({
+          where: controlWhere("kill_switch", "llm.generation", "global", "*"),
+          orderBy: { version: "desc" }, select: { active: true },
+        }),
+      ]);
+      const suppressionReason = !controlEpoch ? "control_epoch_missing"
+        : !request ? "missing_request"
+        : run.user.status !== "active" || run.user.deletedAt ? "user_inactive"
+          : reconciliation?.status !== "ready" ? "privacy_not_ready"
+            : !consent?.granted || consent.epoch !== run.consentEpoch || requirement?.grantEpoch !== run.consentEpoch
+              ? "consent_invalid"
+                : latestProfile?.id !== run.inputSnapshotId ? "profile_superseded"
+                  : run.ruleBundle.status !== "active" || !run.ruleBundle.bundleDigest ? "rule_bundle_invalid"
+                    : !dailyFeature?.active ? "feature_daily_recommendations_disabled"
+                      : globalStop?.active ? "kill_switch_global"
+                        : userStop?.active ? "kill_switch_user"
+                          : ruleStop?.active ? "kill_switch_rule_bundle"
+                            : null;
+      if (suppressionReason) {
         await this.suppress(tx, run.id, leaseToken, request?.id);
+        await this.telemetry.record({
+          eventName: "recommendation.suppressed",
+          severity: "warn",
+          correlationId: run.correlationId,
+          attributes: {
+            component: "recommendation-worker",
+            status: "suppressed",
+            reason_code: suppressionReason,
+          },
+        });
         return null;
       }
+      if (!request) throw new Error("Recommendation request disappeared after boundary validation");
       const [inputBinding] = await tx.$queryRaw<Array<{ valid: boolean }>>`
         SELECT "input_hash" = encode(digest("input_manifest_json"::text, 'sha256'), 'hex') AS "valid"
         FROM "recommendation_runs" WHERE "id" = ${run.id}::uuid
@@ -198,12 +254,12 @@ export class RecommendationWorker {
         generated_at: generatedAt,
         rule_result: result,
         rule_key: ruleKey,
-        llm_kill_switch_active: !this.policy.llmEnabled,
+        llm_kill_switch_active: !this.policy.llmEnabled || Boolean(llmStop?.active),
       };
       const policyDigest = sha256({
         release_stage: this.policy.releaseStage,
         normal_sample_percent: this.policy.normalSamplePercent,
-        llm_enabled: this.policy.llmEnabled,
+        llm_enabled: this.policy.llmEnabled && !llmStop?.active,
         rules_engine: bundleIdentity.rules_engine,
         rules_engine_digest: bundleIdentity.rules_engine_digest,
         safety_bundle: bundleIdentity.safety_bundle_digest,
@@ -268,6 +324,16 @@ export class RecommendationWorker {
       await tx.domainOutbox.update({ where: { id: request.id }, data: { status: "sent", leaseToken: null, leaseUntil: null } });
       await tx.consumerInbox.create({
         data: { consumer: "recommendation-worker-v1", messageId: request.id, resultHash: snapshot.snapshotHash ?? "pending-db-hash" },
+      });
+      await this.telemetry.record({
+        eventName: "recommendation.completed",
+        severity: "info",
+        correlationId: run.correlationId,
+        attributes: {
+          component: "recommendation-worker",
+          status: "complete",
+          outcome: route,
+        },
       });
       return snapshot;
     });

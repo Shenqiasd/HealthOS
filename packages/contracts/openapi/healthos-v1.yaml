@@ -663,6 +663,47 @@ paths:
               schema: { $ref: "#/components/schemas/AdminReviewTaskPage" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+  /admin/safety-controls:
+    get:
+      operationId: listAdminSafetyControls
+      summary: List the latest bounded feature-flag and kill-switch revisions
+      security:
+        - adminBearerAuth: []
+      responses:
+        "200":
+          description: Latest control revision for each logical scope, without raw user identifiers in audit snapshots.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSafetyControlPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /admin/safety-controls/actions:
+    post:
+      operationId: mutateAdminSafetyControl
+      summary: Append one MFA-authorized and same-transaction audited control revision
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AdminCorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminSafetyControlActionRequest" }
+      responses:
+        "200":
+          description: Created control revision or exact idempotent replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSafetyControl" }
+        "400":
+          description: Invalid key, scope, reason code, correlation identifier, or referenced resource.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
   /reminders/preferences:
     get:
       operationId: getReminderPreferences
@@ -915,6 +956,75 @@ components:
           maxItems: 100
           items: { $ref: "#/components/schemas/AdminReviewTask" }
         next_cursor: { type: [string, "null"] }
+    AdminSafetyControl:
+      type: object
+      additionalProperties: false
+      required: [schema_version, control_type, control_key, scope_type, scope_id, active, version, reason, updated_at]
+      properties:
+        schema_version: { const: 1 }
+        control_type: { type: string, enum: [feature_flag, kill_switch] }
+        control_key:
+          type: string
+          enum:
+            - global.proactive_messages
+            - channel.delivery
+            - llm.generation
+            - rule.bundle
+            - user.recommendations
+            - review.share
+            - feature.daily_recommendations
+            - feature.weekly_review_share
+            - feature.channel_delivery
+        scope_type: { type: string, enum: [global, channel, rule_bundle, user] }
+        scope_id: { type: string, minLength: 1, maxLength: 100 }
+        active: { type: boolean }
+        version: { type: integer, minimum: 1 }
+        reason: { $ref: "#/components/schemas/SafetyControlReasonCode" }
+        updated_at: { type: string, format: date-time }
+    AdminSafetyControlPage:
+      type: object
+      additionalProperties: false
+      required: [schema_version, controls]
+      properties:
+        schema_version: { const: 1 }
+        controls:
+          type: array
+          maxItems: 200
+          items: { $ref: "#/components/schemas/AdminSafetyControl" }
+    AdminSafetyControlActionRequest:
+      type: object
+      additionalProperties: false
+      required: [control_type, control_key, scope_type, scope_id, active, expected_version, idempotency_key, reason]
+      properties:
+        control_type: { type: string, enum: [feature_flag, kill_switch] }
+        control_key:
+          type: string
+          enum:
+            - global.proactive_messages
+            - channel.delivery
+            - llm.generation
+            - rule.bundle
+            - user.recommendations
+            - review.share
+            - feature.daily_recommendations
+            - feature.weekly_review_share
+            - feature.channel_delivery
+        scope_type: { type: string, enum: [global, channel, rule_bundle, user] }
+        scope_id: { type: string, minLength: 1, maxLength: 100 }
+        active: { type: boolean }
+        expected_version: { type: integer, minimum: 0 }
+        idempotency_key: { type: string, format: uuid }
+        reason: { $ref: "#/components/schemas/SafetyControlReasonCode" }
+    SafetyControlReasonCode:
+      type: string
+      enum:
+        - incident_containment
+        - incident_recovery
+        - staged_rollout
+        - rollout_pause
+        - privacy_containment
+        - safety_review
+        - synthetic_test
     AdminSafetyIncidentPage:
       type: object
       additionalProperties: false

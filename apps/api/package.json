@@ -12,9 +12,10 @@
     "pretest:e2e": "pnpm prisma:generate",
     "pretest:integration": "pnpm prisma:generate",
     "pretest:reminders": "pnpm prisma:generate",
+    "pretest:safety-controls": "pnpm prisma:generate",
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest --config jest.config.mjs --testPathIgnorePatterns=database-constraints identity.integration consent.integration privacy.integration health-ingestion.integration profile.integration recommendations.integration today.integration actions.integration signals.integration reviews.integration admin.integration reminders.integration",
+    "test": "jest --config jest.config.mjs --testPathIgnorePatterns=database-constraints identity.integration consent.integration privacy.integration health-ingestion.integration profile.integration recommendations.integration today.integration actions.integration signals.integration reviews.integration admin.integration reminders.integration safety-controls.integration",
     "test:e2e": "jest --config jest.config.mjs",
     "test:integration": "jest --config jest.config.mjs database-constraints.e2e-spec.ts --runInBand",
     "test:identity": "jest --config jest.config.mjs identity --runInBand",
@@ -27,7 +28,8 @@
     "test:signals": "jest --config jest.config.mjs signals --runInBand",
     "test:reviews": "jest --config jest.config.mjs reviews --runInBand",
     "test:admin": "jest --config jest.config.mjs admin --runInBand",
-    "test:reminders": "jest --config jest.config.mjs reminders --runInBand"
+    "test:reminders": "jest --config jest.config.mjs reminders --runInBand",
+    "test:safety-controls": "jest --config jest.config.mjs kill-switches feature-flags --runInBand"
   },
   "dependencies": {
     "@healthos/contracts": "workspace:*",

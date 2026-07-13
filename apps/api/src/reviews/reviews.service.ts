@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import type {
   ReviewEvidenceRow,
@@ -120,48 +121,85 @@ export class ReviewsService {
   }
 
   async share(userId: string, reviewId: string, variant: ReviewShareVariant, now = new Date()): Promise<ReviewShareResponse> {
-    const { consentEpoch } = await this.authorize(userId);
-    const share = await this.database.weeklyReviewShare.findFirst({
-      where: {
-        userId,
-        variant,
-        weeklyReviewSnapshotId: reviewId,
-        review: { consentEpoch },
-      },
-      include: { review: true },
-    });
-    if (!share) throw new NotFoundException("Weekly review share is not available");
-    if (share.expiresAt <= now) throw new GoneException("Weekly review share has expired");
-    await this.assertSourcesRemainSafe(share.review.provenanceJson);
-    return {
-      id: share.id,
-      expires_at: share.expiresAt.toISOString(),
-      payload: share.payloadJson as unknown as ReviewShareResponse["payload"],
-    };
+    return this.database.$transaction(async (tx) => {
+      const [controlEpoch] = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "safety_control_epoch" WHERE "id" = 'global' FOR SHARE
+      `;
+      if (!controlEpoch) throw new ServiceUnavailableException("Safety controls are unavailable");
+      await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${userId}::uuid FOR SHARE`;
+      const { consentEpoch } = await this.authorize(userId, tx);
+      const [shareFeature, shareStopped] = await Promise.all([
+        tx.safetyControlRevision.findFirst({
+          where: {
+            controlType: "feature_flag",
+            controlKey: "feature.weekly_review_share",
+            scopeType: "global",
+            scopeId: "*",
+          },
+          orderBy: { version: "desc" },
+          select: { active: true },
+        }),
+        tx.safetyControlRevision.findFirst({
+          where: {
+            controlType: "kill_switch",
+            controlKey: "review.share",
+            scopeType: "global",
+            scopeId: "*",
+          },
+          orderBy: { version: "desc" },
+          select: { active: true },
+        }),
+      ]);
+      if (!shareFeature?.active) throw new GoneException("Weekly review sharing is not enabled");
+      if (shareStopped?.active) throw new GoneException("Weekly review sharing is temporarily unavailable");
+      const share = await tx.weeklyReviewShare.findFirst({
+        where: {
+          userId,
+          variant,
+          weeklyReviewSnapshotId: reviewId,
+          review: { consentEpoch },
+        },
+        include: { review: true },
+      });
+      if (!share) throw new NotFoundException("Weekly review share is not available");
+      if (share.expiresAt <= now) throw new GoneException("Weekly review share has expired");
+      await this.assertSourcesRemainSafe(share.review.provenanceJson, tx);
+      return {
+        id: share.id,
+        expires_at: share.expiresAt.toISOString(),
+        payload: share.payloadJson as unknown as ReviewShareResponse["payload"],
+      };
+    }, { isolationLevel: "ReadCommitted" });
   }
 
-  private async authorize(userId: string): Promise<{ consentEpoch: number }> {
-    const user = await this.database.user.findUnique({ where: { id: userId } });
-    const consent = await this.database.consentRecord.findFirst({
+  private async authorize(
+    userId: string,
+    database: Prisma.TransactionClient = this.database,
+  ): Promise<{ consentEpoch: number }> {
+    const user = await database.user.findUnique({ where: { id: userId } });
+    const consent = await database.consentRecord.findFirst({
       where: { userId, consentType: "health_processing" }, orderBy: { epoch: "desc" },
     });
-    const privacy = await this.database.privacyReconciliation.findUnique({ where: { id: "global" } });
+    const privacy = await database.privacyReconciliation.findUnique({ where: { id: "global" } });
     if (!user || user.status !== "active" || user.deletedAt || !consent?.granted || privacy?.status !== "ready") {
       throw new ForbiddenException("Current health-processing authorization is required");
     }
     return { consentEpoch: consent.epoch };
   }
 
-  private async assertSourcesRemainSafe(provenanceValue: Prisma.JsonValue): Promise<void> {
+  private async assertSourcesRemainSafe(
+    provenanceValue: Prisma.JsonValue,
+    database: Prisma.TransactionClient = this.database,
+  ): Promise<void> {
     const provenance = object(provenanceValue);
     const signalIds = array<string>(provenance?.signal_snapshot_ids ?? []);
     const actionIds = array<string>(provenance?.action_assignment_ids ?? []);
     const [signals, actions] = await Promise.all([
-      this.database.signalSnapshot.findMany({
+      database.signalSnapshot.findMany({
         where: { id: { in: signalIds } },
         include: { recommendationSnapshot: { include: { run: { include: { ruleBundle: true } } } } },
       }),
-      this.database.actionAssignment.findMany({
+      database.actionAssignment.findMany({
         where: { id: { in: actionIds } },
         include: { recommendationSnapshot: { include: { run: { include: { ruleBundle: true } } } } },
       }),
@@ -180,7 +218,7 @@ export class ReviewsService {
       const value = object(item.provenanceJson);
       return typeof value?.rule_key === "string" ? `rule:${value.rule_key}` : null;
     }).filter((item): item is string => item !== null))];
-    if (sources.length > 0 && await this.database.safetyIncident.count({ where: { source: { in: sources } } }) > 0) {
+    if (sources.length > 0 && await database.safetyIncident.count({ where: { source: { in: sources } } }) > 0) {
       throw new NotFoundException("Weekly review source evidence was withdrawn");
     }
   }
