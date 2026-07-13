@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T037
+active_task: T039
 
 tasks:
   - id: T001
@@ -2348,7 +2348,7 @@ tasks:
   - id: T037
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the production server tranche of implementation Task 21: authenticated versioned reminder preferences plus provider-neutral, durable and idempotent scheduling plans that respect IANA timezone and DST transitions, travel updates, quiet hours, notification consent, missed cutoffs, late data, daily caps, weekly report-day changes, and duplicate scheduler execution. Use a proven timezone library, synthetic data only, create no external delivery, and do not complete native or channel-dependent T121."
     inputs:
@@ -2412,6 +2412,176 @@ tasks:
       - "Database-enforced uniqueness, caps, consent/privacy deletion, and no-external-delivery evidence"
       - "Fresh/historical/restricted migration, OpenAPI, regression, scope, and independent no-P0/P1 evidence"
       - "Receipt explicitly leaving native/channel-dependent Task 21/T121 incomplete"
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260711230000_scheduling_reminders/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/app.module.ts
+        - apps/api/src/reminders/dto/reminder-preference.dto.ts
+        - apps/api/src/reminders/openapi-contract.spec.ts
+        - apps/api/src/reminders/reminder-view.ts
+        - apps/api/src/reminders/reminders.controller.ts
+        - apps/api/src/reminders/reminders.integration.spec.ts
+        - apps/api/src/reminders/reminders.module.ts
+        - apps/api/src/reminders/reminders.service.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/scheduling/respectful-scheduler-dispatcher.ts
+        - apps/worker/src/jobs/scheduling/respectful-scheduler.integration.spec.ts
+        - apps/worker/src/jobs/scheduling/respectful-scheduler.ts
+        - apps/worker/src/jobs/scheduling/schedule-time.spec.ts
+        - apps/worker/src/jobs/scheduling/schedule-time.ts
+        - apps/worker/src/worker.module.ts
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "pnpm install --frozen-lockfile"
+          status: pass
+        - cmd: "Fresh twelve-migration Prisma validate/deploy and zero migration diff"
+          status: pass
+        - cmd: "Eleven-to-twelve historical upgrade preserving user, channel outbox, weekly Review, review task, audit, and operation consumption rows"
+          status: pass
+        - cmd: "Twelve-migration deploy by NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION owner"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-postgres> pnpm --filter @healthos/api test:reminders"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-postgres> pnpm --filter @healthos/worker test:scheduling"
+          status: pass
+        - cmd: "API admin, Review, Signals Worker, Today, database constraints, admin web/build, and rules coverage regressions"
+          status: pass
+        - cmd: "Signals 9/9 and Actions 22/22 with deterministic 2026-07-11 test clock"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "pnpm audit --audit-level low && git diff --check"
+          status: pass
+        - cmd: "Scope guard with documented ignored apps/admin/.next and pre-activation committed state.yaml exceptions; Git staged diff contains only T037 allowed product files"
+          status: pass
+      summary: "Implemented the production server tranche of respectful scheduling: authenticated versioned reminder preferences, append-only historical preference revisions, database-authoritative evaluation time and canonical IANA/DST enforcement, durable bounded catch-up watermarks, idempotent provider-neutral schedule plans, privacy and notification-consent fencing, and safe isolated-failure telemetry without any external delivery path."
+      evidence:
+        - "Product commit 66e5a55"
+        - "Reminder API/OpenAPI 4/4 and scheduler 19/19 passed, including real three-timezone fourteen-day execution with exactly 90 occurrences and zero duplicate or external-delivery rows"
+        - "Database adversarial tests reject forged timezone, cutoff, evaluated time, offset, period, suppression reason, consent, preference revision, DST overlap instant, mutation, and privacy bypass"
+        - "Fresh and historical migration plus restricted migrator passed; Prisma reported zero schema difference"
+        - "Admin 9/9, Review, Signals Worker 11/11, Today 19/19, database invariants 11/11, deterministic Signals 9/9 and Actions 22/22, admin build, rules 100%, lint, typecheck, no-DB workspace, audit, and diff checks passed"
+        - "Independent final review: no P0/P1/P2"
+      risks_remaining:
+        - "Full implementation Task 21/T121 remains incomplete: native reminder settings, APNs or approved WeCom delivery, send-time channel consent, device E2E, Apple entitlement, and production notification authority remain required."
+        - "Signals and Actions integration fixtures hard-code 2026-07-11 and now require a deterministic test clock; a later task should remove this date brittleness."
+        - "The original T037 hash baseline predates the committed PM activation state and included ignored .next output; the exact guard therefore required documented non-product exceptions while the Git product diff remained within allowed_files."
+        - "Only synthetic data and local PostgreSQL were used; no provider credential, production access, or professional approval is implied."
+      next: "Activate T038 to audit T037, preserve T121 as incomplete, repair the scope-baseline workflow, and select the next largest safe package."
+  - id: T038
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T037 respectful-scheduling evidence, preserve full Task 21/T121 as incomplete, reconcile the scope-baseline exception caused by required ignored build artifacts and pre-activation PM state, and select the next largest safe production package that can proceed without inventing Apple, medical, provider, channel, operational, or real-user approval."
+    inputs:
+      - "T037 product commit and receipt"
+      - "Independent final no-P0/P1/P2 review"
+      - "Fresh, historical, restricted-role migration and full regression evidence"
+      - "Implementation plan Tasks 21-24 and current T100-T127 dependency state"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T121 done without native reminder settings, authorized channel delivery, device E2E, and production notification authority."
+      - "Do not treat ignored apps/admin/.next build output or already-committed PM board state as Worker product edits."
+      - "Do not select work requiring real health data, Apple entitlement, provider credentials, production access, or unrecorded professional approval."
+      - "Populate exact dependencies, allowed_files, verification, and stop conditions before activating a Worker."
+    expected_output:
+      - "T037 evidence audit against its server-only Task 21 contract"
+      - "Explicit residual scope for full Task 21/T121"
+      - "One next largest safe Worker package or a truthful dependency decision"
+      - "Updated board, next-task scope baseline, and PM receipt"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "Audit T037 commit 66e5a55, receipt, migration, regression, scope-exception, and independent no-P0/P1/P2 evidence"
+          status: pass
+        - cmd: "Read implementation Tasks 22-24 and technical kill-switch, observability, correlation, redaction, and SLO contracts"
+          status: pass
+        - cmd: "Audit existing observability package, admin audit controls, recommendation/scheduling/Review boundaries, and T100-T127 status"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode readiness --expect-blocked"
+          status: pass
+        - cmd: "T038 scope guard for docs/goals/healthos-v1 only"
+          status: pass
+      summary: "Audited T037 as a complete production server scheduling tranche while preserving full Task 21/T121 as queued. Reconciled the T037 scope exception as ignored required-build output plus a baseline created before committed PM activation state, with no out-of-scope Git product diff. Selected a synthetic-only server observability and safety-control tranche of Task 22 as the next largest safe package."
+      evidence:
+        - "T037 commit 66e5a55 and receipt include fresh/historical/restricted migration, scheduler 19/19 with exact 3-zone 14-day execution, reminders 4/4, full affected regression, audit, and independent no-P0/P1/P2 evidence."
+        - "Full Task 21/T121 still requires native settings, authorized APNs or approved WeCom delivery, device E2E, send-time channel controls, Apple entitlement, and production notification authority."
+        - "T037 scope guard exceptions were limited to ignored apps/admin/.next output produced by a mandatory build and state.yaml already changed by the committed PM activation after the baseline; staged product files exactly matched T037 allowed_files."
+        - "Preflight readiness remains truthfully blocked on twelve professional and production decisions."
+        - "The repository has local correlation utilities, audited administrator controls, PostgreSQL durability, and recommendation/scheduling/Review execution boundaries suitable for a provider-neutral Task 22 server tranche."
+      risks_remaining:
+        - "T039 cannot complete production telemetry export, live dashboards/alerts, provider outage proof, or named incident authority."
+        - "Full T122, T121, T120, and T119 remain incomplete and all professional governance gates remain unresolved."
+        - "Signals and Actions date-brittle fixtures should be repaired in a later test-hardening package."
+        - "GitHub Actions remains externally constrained by the account billing state tracked in T006."
+      next: "Activate T039 and implement the synthetic-only observability and safety-control server tranche without closing full T122."
+  - id: T039
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the production server foundation tranche of implementation Task 22: durable versioned feature flags and kill switches with audited administrator mutations, fail-closed evaluation at recommendation, respectful-scheduling, and Review-sharing boundaries, structured redacted telemetry and correlation contracts, provider-neutral dashboard/alert definitions, and runnable synthetic incident runbooks. Use synthetic data and local sinks only; do not complete production telemetry/provider integration or full T122."
+    inputs:
+      - "T035 audited administrator identity, workflow mutation, and operation-audit consumption foundations"
+      - "T037 provider-neutral scheduling plans and safe isolated-failure telemetry"
+      - "T112 recommendation publication and T033 weekly Review/share boundaries"
+      - "Implementation plan Task 22 and technical-design kill-switch, observability, redaction, correlation, and SLO contracts"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260713100000_observability_safety_controls/**"
+      - "apps/api/src/feature-flags/**"
+      - "apps/api/src/kill-switches/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/reviews/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/telemetry/**"
+      - "apps/worker/src/jobs/recommendations/**"
+      - "apps/worker/src/jobs/scheduling/**"
+      - "apps/worker/src/worker.module.ts"
+      - "packages/observability/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "infra/observability/**"
+      - "infra/runbooks/recommendation-incident.md"
+      - "infra/runbooks/channel-incident.md"
+      - "infra/runbooks/privacy-incident.md"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Write failing flag, kill-switch, audit, cache-invalidation, redaction, correlation, integration-boundary, database, and adversarial tests before implementation"
+      - "Fresh thirteen-migration Prisma validate/deploy and zero migration diff"
+      - "Valid twelve-to-thirteen historical upgrade preserving scheduling, operations, Review, recommendation, outbox, and audit evidence, plus full restricted-owner deploy"
+      - "Assert immutable monotonic revisions, optimistic concurrency, exact idempotency, administrator MFA/RBAC/scope, same-transaction operation-audit consumption, and privacy deletion behavior"
+      - "Assert global proactive-message, channel, LLM, rule-bundle, user recommendation, and share-link switches fail closed with deterministic reasons and cache invalidation"
+      - "Assert recommendation, scheduler, and Review-share boundaries recheck current switches and cannot bypass a concurrent activation"
+      - "Assert telemetry preserves one valid correlation ID while redacting health text, lab values, tokens, identifiers, and arbitrary nested sensitive fields"
+      - "Assert no production exporter, endpoint credential, provider call, or external delivery is introduced"
+      - "Validate dashboard/alert definitions and runbooks include owner role, evidence, mitigation, recovery, rollback, and notification without claiming production authority"
+      - "Run affected API, worker recommendation/scheduling/review, admin, database, rules, lint, typecheck, no-DB workspace, audit, and git diff checks"
+      - "Run exact scope guard and obtain independent no-P0/P1/P2 review"
+    stop_if:
+      - "Implementation requires a production telemetry endpoint, real provider credential, production access, real health data, Apple entitlement, or named operational/medical/legal approval."
+      - "A flag or switch can be mutated without authenticated MFA administrator authorization and reconstructable same-transaction audit evidence."
+      - "A cache, worker lease, or queued item can bypass a newly activated safety switch at the execution boundary."
+      - "Telemetry can contain health text, lab values, raw tokens, channel identifiers, or unbounded exception payloads."
+      - "The task would be declared as full Task 22/T122 without production exporters, live dashboards/alerts, provider outage evidence, and named incident authority."
+    expected_output:
+      - "Durable audited feature-flag and kill-switch control plane with deterministic fail-closed evaluation"
+      - "Recommendation, scheduling, and Review-share boundary enforcement with concurrency and cache invalidation evidence"
+      - "Structured correlation and deep-redaction telemetry contracts using local synthetic sinks only"
+      - "Provider-neutral dashboards, alerts, and runnable incident runbooks"
+      - "Fresh/historical/restricted migration, full regression, scope, and independent no-P0/P1/P2 evidence"
+      - "Receipt explicitly leaving production integration and full Task 22/T122 incomplete"
     receipt: null
   - id: T003
     type: worker
