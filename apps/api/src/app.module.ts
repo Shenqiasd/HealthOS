@@ -14,6 +14,7 @@ import { ActionsModule } from "./actions/actions.module";
 import { SignalsModule } from "./signals/signals.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { AdminModule } from "./admin/admin.module";
+import { RemindersModule } from "./reminders/reminders.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AdminModule } from "./admin/admin.module";
     SignalsModule,
     ReviewsModule,
     AdminModule,
+    RemindersModule,
   ],
   controllers: [HealthController],
   providers: [ReadinessService],

@@ -6,6 +6,8 @@ import { SignalProjectionWorker } from "./jobs/signals/signal-projection-worker"
 import { SignalProjectionDispatcher } from "./jobs/signals/signal-projection-dispatcher";
 import { WeeklyReviewDispatcher } from "./jobs/reviews/weekly-review-dispatcher";
 import { WeeklyReviewWorker } from "./jobs/reviews/weekly-review-worker";
+import { RespectfulScheduler } from "./jobs/scheduling/respectful-scheduler";
+import { RespectfulSchedulerDispatcher } from "./jobs/scheduling/respectful-scheduler-dispatcher";
 
 @Module({
   providers: [
@@ -48,6 +50,16 @@ import { WeeklyReviewWorker } from "./jobs/reviews/weekly-review-worker";
       useFactory: (database: PrismaClient, worker: WeeklyReviewWorker) =>
         new WeeklyReviewDispatcher(database, worker, { leaseSeconds: 300, pollMilliseconds: 5_000 }),
     },
+    {
+      provide: RespectfulScheduler,
+      inject: [PrismaClient],
+      useFactory: (database: PrismaClient) => new RespectfulScheduler(database),
+    },
+    {
+      provide: RespectfulSchedulerDispatcher,
+      inject: [RespectfulScheduler],
+      useFactory: (scheduler: RespectfulScheduler) => new RespectfulSchedulerDispatcher(scheduler, 60_000),
+    },
   ],
   exports: [
     RecommendationWorker,
@@ -55,6 +67,8 @@ import { WeeklyReviewWorker } from "./jobs/reviews/weekly-review-worker";
     SignalProjectionDispatcher,
     WeeklyReviewWorker,
     WeeklyReviewDispatcher,
+    RespectfulScheduler,
+    RespectfulSchedulerDispatcher,
   ],
 })
 export class WorkerModule {}
