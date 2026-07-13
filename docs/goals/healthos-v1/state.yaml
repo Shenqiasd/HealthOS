@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T043
+active_task: T044
 
 tasks:
   - id: T001
@@ -2897,7 +2897,7 @@ tasks:
   - id: T043
     type: pm
     assignee: PM
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Audit T042 completion evidence against implementation Task 19 and the full HealthOS V1 oracle, preserve real channel and full T119 gaps, then select and activate the largest safe next package with explicit preference for unblocking the native iOS critical path."
     inputs:
@@ -2916,6 +2916,86 @@ tasks:
       - "Fresh native toolchain and external-gate audit"
       - "One activated next Worker package or an exact truthful blocker"
       - "Valid GoalBuddy board and PM scope evidence"
+    receipt:
+      result: done
+      harness: codex
+      changed_files:
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "Audit T042 product commit 5c71b73, board commit 34e85e6, Draft PR #25, full local verification, and independent Judge receipt"
+          status: pass
+        - cmd: "Inspect apps/ios and probe xcode-select, xcodebuild, Swift, and simctl availability"
+          status: pass
+        - cmd: "Run preflight structure and expected-blocked production-readiness checks"
+          status: pass
+        - cmd: "Dispatch GitHub Actions run 29248501082 and inspect its check-run annotation"
+          status: blocked
+        - cmd: "Audit implementation Tasks 6-9, 15, 17, 19, and 23 plus existing schema, safety, privacy, profile, recommendation, action, signal, and eval foundations"
+          status: pass
+      summary: "Audited T042 as a complete synthetic channel-delivery foundation while preserving real T119 work. Native iOS remains non-executable because this machine has only Command Line Tools, no xcodebuild or simctl. GitHub Actions remains externally billing-locked. Selected T044 as the largest safe user-value package: a synthetic-only, evidence-bound Coach server and eval foundation with no real LLM or native-completion claim."
+      evidence:
+        - "T042 product commit 5c71b73 and Draft PR https://github.com/Shenqiasd/HealthOS/pull/25 are cleanly published on codex/channel-delivery."
+        - "Independent T042 Judge reported no P0/P1/P2/P3 after ABA, idempotency, 40-round token-swap, fresh/historical/restricted migration, schema-diff, and no-network verification."
+        - "apps/ios still contains only README.md; xcode-select points to /Library/Developer/CommandLineTools; xcodebuild requires full Xcode; simctl is unavailable."
+        - "Swift 6.2.4 command-line tooling exists, but it cannot build, launch, snapshot, or accessibility-test the required iOS app and is therefore insufficient evidence for T104-T108 or T113-T119 native scope."
+        - "Preflight structure passes while production readiness remains blocked on twelve named professional/provider decisions."
+        - "Manually dispatched HealthOS CI run 29248501082 failed before any step; GitHub annotation states that the account remains locked due to a billing issue."
+        - "Coach is the highest-value remaining server tranche that can build on completed identity, consent/privacy, profiles, published recommendations, actions, signals, safety controls, observability, and existing Coach schema using synthetic provider behavior only."
+      risks_remaining:
+        - "Full Xcode, Simulator, signing, entitlements, Apple account readiness, and real-device evidence are still unavailable."
+        - "No real LLM/provider, medical approval, region approval, or production prompt/eval evidence exists; T044 must fail closed and remain synthetic-only."
+        - "GitHub Actions and branch-protection enforcement remain externally blocked by billing under T006."
+        - "Real APNs, WeCom, Universal Links, native channels, and full T119 remain incomplete."
+      next: "T044 implements the synthetic Coach server/eval foundation and leaves native Coach plus approved provider sandbox evidence queued under T115."
+  - id: T044
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the synthetic-only production server foundation tranche of implementation Task 15: authenticated, privacy- and consent-gated Coach threads/messages; deterministic pre-provider intent and safety routing; minimal immutable evidence context; a provider-neutral fully buffered structured-response boundary; citation/action-code validation; fixed high-risk responses; and executable golden/adversarial evals. Use a local synthetic provider only and do not complete native Coach, a real LLM provider, provider sandbox evidence, or full T115."
+    inputs:
+      - "T013 identity, T015 consent/privacy lifecycle, T019 profile snapshots, T025 Today, T029 action feedback, T031 signal snapshots, T039 safety controls/observability, and the existing Coach schema"
+      - "T111 deterministic safety policy and action catalog plus T112 immutable published recommendation evidence"
+      - "Implementation plan Task 15 and technical-design Coach, LLM-boundary, privacy, safety, telemetry, and release contracts"
+      - "T043 proof that native iOS and production provider execution remain unavailable"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260713210000_coach_server_foundation/**"
+      - "apps/api/src/ai/**"
+      - "apps/api/src/coach/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/evals/**"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Write failing intent, safety, context, provider-boundary, idempotency, ownership, consent/privacy, migration, and eval tests first and observe the intended unsafe/missing behavior"
+      - "Assert active authenticated ownership, ready privacy reconciliation, current health-processing consent, feature.llm_generation revision, global proactive-message policy where applicable, and llm.generation kill switch are checked fail-closed before any provider invocation"
+      - "Assert emergency, diagnosis, medication, unsupported monitoring, stale/no-evidence, and prohibited mutation paths use fixed region-aware responses or abstention and invoke the provider zero times"
+      - "Assert explain-action, general-question, lighter, swap, and limitation-candidate intents are classified before provider use; only deterministic application services may mutate action/profile state, never provider output"
+      - "Assert provider context contains only minimal confirmed immutable snapshot fields and explicit source identities; user/OCR text is untrusted data and cannot alter system policy or reveal hidden context"
+      - "Assert provider output is fully buffered, exact-schema parsed, source/citation bound, action-code immutable, post-safety checked, and persisted/displayed only after all checks pass; timeout, partial output, schema error, citation mismatch, or prohibited content yields no partial assistant message"
+      - "Assert client idempotency, request-hash conflict, concurrent duplicate sends, cross-user thread access, thread/message identity immutability, summary-version drift, consent withdrawal, privacy freeze, and authorized deletion behave deterministically"
+      - "Run offline Coach golden/adversarial evals with 100% forbidden-output blocking, zero safety/action mutation, deterministic replay, and no external network"
+      - "Run fresh fifteen-migration deploy, fourteen-to-fifteen historical upgrade, restricted non-superuser migration, zero Prisma diff, Coach/API/database tests, existing privacy/recommendation/action/safety/observability regressions, lint, typecheck, builds, no-DB workspace tests, audit, Docker config, and exact scope guard"
+      - "Obtain a fresh independent no-P0/P1/P2 GoalBuddy Judge review"
+    stop_if:
+      - "Implementation requires a real LLM/API credential, external network call, production prompt, real health/user data, provider/data-region approval, or medical approval."
+      - "Any high-risk, diagnosis, medication, emergency, stale-evidence, schema-invalid, citation-invalid, or prompt-injected path can invoke free generation or persist partial/prohibited output."
+      - "Provider output can directly mutate actions, profile facts, safety class, source identity, or published recommendation state."
+      - "Consent withdrawal, deletion freeze, privacy no-send state, kill switch, or feature disable can cross the provider boundary after committing first."
+      - "The task would be declared as full Task 15/T115 without native Swift stores/UI/tests, full Xcode evidence, an approved provider sandbox, pinned production model/prompt, and named medical/privacy/provider authority."
+    expected_output:
+      - "Authenticated versioned Coach API and immutable/idempotent thread-message persistence"
+      - "Deterministic intent/safety router and minimal evidence-context assembler"
+      - "Provider-neutral fully buffered structured boundary with local synthetic provider only"
+      - "Fixed high-risk/abstention behavior and no-partial-output guarantees"
+      - "Offline golden/adversarial Coach eval suite with fail-closed provider faults and prompt-injection coverage"
+      - "Fresh/historical/restricted migration, affected regression, exact scope, and independent no-P0/P1/P2 evidence"
+      - "Receipt explicitly preserving native Coach, real provider approval/sandbox, and full T115 as incomplete"
     receipt: null
   - id: T003
     type: worker
