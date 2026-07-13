@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T046
+active_task: T047
 
 tasks:
   - id: T001
@@ -3115,7 +3115,7 @@ tasks:
   - id: T046
     type: worker
     assignee: Worker
-    status: active
+    status: blocked
     reasoning_hint: xhigh
     objective: "Recover and complete T045 by making the Actions regression clock-stable without weakening current-assignment enforcement, then finish every synthetic Coach verification and independent review requirement. Preserve all T045 product changes and keep native/real-provider T115 incomplete."
     inputs:
@@ -3162,6 +3162,78 @@ tasks:
       - "Full affected and workspace verification"
       - "Exact scope and independent no-P0/P1/P2 evidence"
       - "Receipt preserving native/real-provider T115 work as incomplete"
+    receipt:
+      result: blocked
+      decision: reject_subgoal
+      full_outcome_complete: false
+      summary: "Recovered the clock-stable Actions regression and completed the declared local migration, test, build, audit, and scope gates, but the independent Judge found three P1 Coach safety defects and one P2 offline-proof defect. T046 cannot be approved until paraphrase routing, provider-output medical safety, current-evidence locking/invalidation, and complete Node egress isolation are fixed and independently reverified."
+      evidence:
+        - "P1: common English paraphrases for prompt injection, diagnosis, medication, emergency, and action_code mutation reached the provider route."
+        - "P1: exact-schema provider output 'You should double your pills tonight.' passed the post-provider prohibited-content validator and could be persisted."
+        - "P1: Coach evidence did not reject safety incidents, inactive rule bundles, or superseded profiles and did not hold current-evidence locks through provider validation/persistence."
+        - "P2: the offline eval intercepted only global fetch, leaving http, https, net, dns, subprocess, and other Node egress mechanisms unguarded."
+        - "Independent core tests passed 71 assertions; database plus Actions passed 43; fresh, historical, restricted-owner migrations and zero Prisma diff passed."
+        - "Actions clock repair preserved explicit stale, non-primary, and incident rejection."
+        - "Exact T046 file scope passed and Judge left Git status/HEAD unchanged."
+      remaining_blockers:
+        - "Add adversarial paraphrase coverage and deterministic zero-provider routing for every prohibited category."
+        - "Conservatively reject medication, diagnosis, emergency, and prohibited-mutation semantics in provider output before persistence."
+        - "Bind evidence to no matching safety incident, active rule bundle, latest consent-epoch profile, and lock-compatible current rows through persistence."
+        - "Block or detect all supported Node network/subprocess mechanisms in the offline eval."
+        - "Obtain a fresh independent Judge with no unresolved P0/P1/P2."
+      stopped_because: "Independent Judge rejected T046 on unresolved P1/P2 safety findings."
+  - id: T047
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Recover T046 by closing every independent Judge P1/P2: robust deterministic high-risk paraphrase routing, conservative post-provider medical/prohibited-content rejection, lock-bound current recommendation evidence with safety incident/rule/profile invalidation, and comprehensive offline Node egress isolation. Preserve all prior Coach, migration, Actions clock, scope, and no-native-completion requirements."
+    inputs:
+      - "T046 independent Judge rejection receipt"
+      - "Uncommitted T046 implementation and passing local verification evidence"
+      - "Actions current-evidence rules and existing recommendation/profile/rule-bundle lock order"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260713210000_coach_server_foundation/**"
+      - "apps/api/src/ai/**"
+      - "apps/api/src/coach/**"
+      - "apps/api/src/actions/actions.integration.spec.ts"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/feature-flags/feature-flags.service.ts"
+      - "apps/api/src/feature-flags/feature-flags.service.spec.ts"
+      - "apps/api/src/kill-switches/dto/safety-control-action.dto.ts"
+      - "apps/api/src/kill-switches/safety-controls.service.ts"
+      - "apps/api/src/kill-switches/safety-controls.integration.spec.ts"
+      - "apps/api/src/kill-switches/openapi-contract.spec.ts"
+      - "apps/api/src/profile/profile.module.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/evals/**"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Write and observe failing routing tests for common English and Chinese paraphrases of emergency, injection, diagnosis, medication, unsupported monitoring, and action/profile/safety/source mutation; every prohibited case must use a fixed route and invoke provider zero times"
+      - "Write and observe failing provider-boundary tests for paraphrased medication, diagnosis, emergency, and mutation advice including 'You should double your pills tonight.'; exact-schema prohibited output must fail before any persistence"
+      - "Write and observe failing integration races for pre-existing and concurrent safety incidents, inactive/superseded rule bundles, newer consent-epoch profile snapshots, and current-evidence row changes; the first committed invalidator must cause zero provider calls and provider-first must hold compatible locks through persistence"
+      - "Add a migration-level safety-incident/evidence lock protocol without weakening append-only or privacy-delete behavior, then rerun fresh, 14-to-15 legacy, restricted-owner, zero-diff, database constraint, privacy, profile, recommendation, Actions, Today, and Coach tests"
+      - "Replace fetch-only eval instrumentation with comprehensive fail-closed Node egress/subprocess isolation, add canary assertions for blocked mechanisms, and keep deterministic replay, forbidden blocking, zero mutations, and zero attempted network/subprocess operations"
+      - "Run supported Node 24 lint, recursive typecheck, API/worker/admin builds, no-database tests, audit, Docker config, diff check, and exact T047 scope guard"
+      - "Obtain a different fresh independent no-P0/P1/P2 GoalBuddy Judge review"
+    stop_if:
+      - "A prohibited paraphrase or provider output can invoke generation, cross the output boundary, or persist."
+      - "Safety incident insertion, rule-bundle invalidation, newer profile publication, consent withdrawal, privacy freeze, kill switch, or feature disable can commit first and still cross the provider boundary."
+      - "The lock protocol introduces a conflicting order with user, privacy, control epoch, rule bundle, or recommendation mutation paths and no deterministic concurrency test proves the order."
+      - "Offline evaluation can still open a socket, resolve DNS, start a subprocess/worker, or call an unguarded external transport."
+      - "Implementation requires a real LLM, external network, real credential/data, native iOS work, medical/provider approval, or files outside allowed_files."
+      - "The task would be declared as full T115 or HealthOS V1 completion."
+    expected_output:
+      - "Deterministic paraphrase-resistant fixed routing and conservative provider-output safety rejection"
+      - "Lock-bound current evidence with incident, rule-bundle, profile, consent, privacy, feature, and kill-switch fail-closed behavior"
+      - "Comprehensive offline Node egress/subprocess isolation with executable canaries"
+      - "All prior migration, Coach, database, Actions, workspace, and exact-scope gates green"
+      - "Fresh independent no-P0/P1/P2 approval while preserving native/real-provider T115 as incomplete"
     receipt: null
   - id: T003
     type: worker
