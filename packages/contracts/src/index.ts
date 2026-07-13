@@ -484,3 +484,23 @@ export type AdminSafetyWorkflowActionRequest = AdminWorkflowActionRequestBase & 
   action: "acknowledge" | "resolve" | "reopen";
   assignee_id?: never;
 };
+
+export type ReminderIntensity = "gentle" | "standard";
+export type WeekdayName = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+
+export interface ReminderPreferenceResponse {
+  version: number;
+  enabled: boolean;
+  intensity: ReminderIntensity;
+  timezone: string;
+  quiet_hours: { start: string; end: string };
+  advisor_time: string;
+  behavior_time: string;
+  weekly_report: { day: WeekdayName; time: string };
+  updated_at: string | null;
+}
+
+export interface ReminderPreferenceUpdateRequest extends Omit<ReminderPreferenceResponse, "version" | "updated_at"> {
+  expected_version: number;
+  idempotency_key: string;
+}

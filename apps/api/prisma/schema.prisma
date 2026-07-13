@@ -140,14 +140,14 @@ enum RecommendationReviewEventType {
 }
 
 model User {
-  id                    String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  status                UserStatus                @default(active)
-  timezone              String                    @default("Asia/Shanghai")
-  locale                String                    @default("zh-CN")
-  consentEpoch          Int                       @default(0) @map("consent_epoch")
-  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt             DateTime?                 @map("deleted_at") @db.Timestamptz(6)
+  id                    String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status                UserStatus                   @default(active)
+  timezone              String                       @default("Asia/Shanghai")
+  locale                String                       @default("zh-CN")
+  consentEpoch          Int                          @default(0) @map("consent_epoch")
+  createdAt             DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt             DateTime?                    @map("deleted_at") @db.Timestamptz(6)
   identities            UserIdentity[]
   devices               Device[]
   consents              ConsentRecord[]
@@ -172,8 +172,13 @@ model User {
   refreshSessions       RefreshSession[]
   securityEvents        SecurityEvent[]
   exportJobs            ExportJob[]
-  operationsReviewTasks ReviewTask[]              @relation("OperationsReviewSubject")
+  operationsReviewTasks ReviewTask[]                 @relation("OperationsReviewSubject")
   adminSubjectScopes    AdminActorSubjectScope[]
+  reminderPreference    ReminderPreference?
+  reminderRevisions     ReminderPreferenceRevision[]
+  reminderMutations     ReminderPreferenceMutation[]
+  schedulePlans         SchedulePlan[]
+  schedulerWatermark    SchedulerWatermark?
 
   @@map("users")
 }
@@ -1076,6 +1081,98 @@ model OperationAuditConsumption {
 
   @@unique([workItemId, operationVersion])
   @@map("operation_audit_consumptions")
+}
+
+model ReminderPreference {
+  userId           String   @id @map("user_id") @db.Uuid
+  version          Int      @default(1)
+  enabled          Boolean  @default(false)
+  intensity        String   @default("gentle")
+  quietStartMinute Int      @default(1320) @map("quiet_start_minute")
+  quietEndMinute   Int      @default(420) @map("quiet_end_minute")
+  advisorMinute    Int      @default(510) @map("advisor_minute")
+  behaviorMinute   Int      @default(1110) @map("behavior_minute")
+  weeklyDay        Int      @default(1) @map("weekly_day")
+  weeklyMinute     Int      @default(540) @map("weekly_minute")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reminder_preferences")
+}
+
+model ReminderPreferenceMutation {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  idempotencyKey String   @map("idempotency_key") @db.Uuid
+  requestHash    String   @map("request_hash")
+  resultJson     Json     @map("result_json") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, idempotencyKey])
+  @@map("reminder_preference_mutations")
+}
+
+model ReminderPreferenceRevision {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  version           Int
+  enabled           Boolean
+  intensity         String
+  timezone          String
+  quietStartMinute  Int      @map("quiet_start_minute")
+  quietEndMinute    Int      @map("quiet_end_minute")
+  advisorMinute     Int      @map("advisor_minute")
+  behaviorMinute    Int      @map("behavior_minute")
+  weeklyDay         Int      @map("weekly_day")
+  weeklyMinute      Int      @map("weekly_minute")
+  effectiveAt       DateTime @map("effective_at") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedulePlans     SchedulePlan[]
+
+  @@unique([userId, version])
+  @@index([userId, effectiveAt])
+  @@map("reminder_preference_revisions")
+}
+
+model SchedulePlan {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String   @map("user_id") @db.Uuid
+  kind                     String
+  localDate                DateTime @map("local_date") @db.Date
+  periodStart              DateTime @map("period_start") @db.Date
+  timezone                 String
+  scheduledAt              DateTime @map("scheduled_at") @db.Timestamptz(6)
+  cutoffAt                 DateTime @map("cutoff_at") @db.Timestamptz(6)
+  evaluatedAt              DateTime @default(dbgenerated("statement_timestamp()")) @map("evaluated_at") @db.Timestamptz(6)
+  requestedMinute          Int      @map("requested_local_minute")
+  resolvedLocalMinute      Int      @map("resolved_local_minute")
+  utcOffsetMinutes         Int      @map("utc_offset_minutes")
+  preferenceVersion        Int      @map("preference_version")
+  notificationConsentEpoch Int?     @map("notification_consent_epoch")
+  status                   String
+  suppressionReason        String?  @map("suppression_reason")
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferenceRevision       ReminderPreferenceRevision @relation(fields: [userId, preferenceVersion], references: [userId, version], onDelete: Cascade)
+
+  @@unique([userId, kind, periodStart])
+  @@index([status, scheduledAt, kind])
+  @@map("schedule_plans")
+}
+
+model SchedulerWatermark {
+  userId          String    @id @map("user_id") @db.Uuid
+  lastEvaluatedAt DateTime? @map("last_evaluated_at") @db.Timestamptz(6)
+  lastLocalDate   DateTime? @map("last_local_date") @db.Date
+  timezone        String?
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("scheduler_watermarks")
 }
 
 model SafetyIncident {

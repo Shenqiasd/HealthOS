@@ -663,6 +663,46 @@ paths:
               schema: { $ref: "#/components/schemas/AdminReviewTaskPage" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+  /reminders/preferences:
+    get:
+      operationId: getReminderPreferences
+      summary: Read the authenticated user's respectful reminder preferences
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current stored preferences or a disabled default.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReminderPreferenceResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
+    put:
+      operationId: updateReminderPreferences
+      summary: Replace reminder preferences with optimistic versioning and exact idempotency
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReminderPreferenceUpdateRequest" }
+      responses:
+        "200":
+          description: Versioned preferences after the mutation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReminderPreferenceResponse" }
+        "400":
+          description: Invalid timezone, target time, quiet hours, or preference body.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
   /admin/review-tasks/{taskId}/actions:
     post:
       operationId: mutateAdminReviewTask
@@ -956,6 +996,53 @@ components:
         action: { const: reopen }
         expected_version: { type: integer, minimum: 1 }
         reason: { type: string, minLength: 3, maxLength: 500 }
+    ReminderTime:
+      type: string
+      pattern: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$"
+    ReminderQuietHours:
+      type: object
+      additionalProperties: false
+      required: [start, end]
+      properties:
+        start: { $ref: "#/components/schemas/ReminderTime" }
+        end: { $ref: "#/components/schemas/ReminderTime" }
+    WeeklyReportPreference:
+      type: object
+      additionalProperties: false
+      required: [day, time]
+      properties:
+        day:
+          type: string
+          enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+        time: { $ref: "#/components/schemas/ReminderTime" }
+    ReminderPreferenceUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_version, idempotency_key, enabled, intensity, timezone, quiet_hours, advisor_time, behavior_time, weekly_report]
+      properties:
+        expected_version: { type: integer, minimum: 0 }
+        idempotency_key: { type: string, format: uuid }
+        enabled: { type: boolean }
+        intensity: { type: string, enum: [gentle, standard] }
+        timezone: { type: string, minLength: 1, maxLength: 64 }
+        quiet_hours: { $ref: "#/components/schemas/ReminderQuietHours" }
+        advisor_time: { $ref: "#/components/schemas/ReminderTime" }
+        behavior_time: { $ref: "#/components/schemas/ReminderTime" }
+        weekly_report: { $ref: "#/components/schemas/WeeklyReportPreference" }
+    ReminderPreferenceResponse:
+      type: object
+      additionalProperties: false
+      required: [version, enabled, intensity, timezone, quiet_hours, advisor_time, behavior_time, weekly_report, updated_at]
+      properties:
+        version: { type: integer, minimum: 0 }
+        enabled: { type: boolean }
+        intensity: { type: string, enum: [gentle, standard] }
+        timezone: { type: string, minLength: 1, maxLength: 64 }
+        quiet_hours: { $ref: "#/components/schemas/ReminderQuietHours" }
+        advisor_time: { $ref: "#/components/schemas/ReminderTime" }
+        behavior_time: { $ref: "#/components/schemas/ReminderTime" }
+        weekly_report: { $ref: "#/components/schemas/WeeklyReportPreference" }
+        updated_at: { type: [string, "null"], format: date-time }
     LivenessResponse:
       type: object
       additionalProperties: false
