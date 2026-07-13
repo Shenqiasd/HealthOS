@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T041
+active_task: T042
 
 tasks:
   - id: T001
@@ -2709,7 +2709,7 @@ tasks:
   - id: T041
     type: worker
     assignee: Worker
-    status: active
+    status: blocked
     reasoning_hint: xhigh
     objective: "Implement the synthetic-only production server foundation tranche of implementation Task 19: provider-neutral channel outbox dispatch from due schedule plans, immutable/fenced delivery attempts, bounded retry and unknown-after-send semantics, strict allowlisted notification templates, and fail-closed send-time rechecks of user/privacy/consent/destination/feature-flag/kill-switch state. Use local in-memory providers only; do not complete APNs, WeCom, Universal Links, native settings, or full T119."
     inputs:
@@ -2758,6 +2758,97 @@ tasks:
       - "Fail-closed send-time withdrawal, privacy, destination, feature-flag, and kill-switch enforcement with concurrency evidence"
       - "Fresh/historical/restricted migration, affected regression, scope, and independent no-P0/P1/P2 evidence"
       - "Receipt explicitly leaving APNs, WeCom, native deep links/settings, production channel authority, and full T119 incomplete"
+    receipt:
+      result: blocked
+      harness: codex
+      blocked_reason: "A fresh independent Judge rejected T041 after reproducing a P1 cross-account APNs token ownership flaw and a P2 database template-value integrity gap. The two previously rejected lease-reconciliation and preference-disable races are fixed and independently verified, but T041 cannot be marked done until the new findings are repaired under an expanded recovery scope."
+      changed_files:
+        - apps/api/prisma/migrations/20260713130000_channel_delivery_foundation/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/channels/channel-delivery-dispatcher.spec.ts
+        - apps/worker/src/jobs/channels/channel-delivery-dispatcher.ts
+        - apps/worker/src/jobs/channels/channel-delivery-worker.integration.spec.ts
+        - apps/worker/src/jobs/channels/channel-delivery-worker.ts
+        - apps/worker/src/jobs/channels/channel-template.spec.ts
+        - apps/worker/src/jobs/channels/channel-template.ts
+        - apps/worker/src/jobs/channels/local-channel-provider.ts
+        - apps/worker/src/worker.module.ts
+      commands:
+        - cmd: "DATABASE_URL=<fresh-fourteen-migration-postgres> pnpm --filter @healthos/worker test:channels"
+          status: pass
+        - cmd: "DATABASE_URL=<fresh-fourteen-migration-postgres> pnpm --filter @healthos/api test:integration && pnpm --filter @healthos/api test:privacy && pnpm --filter @healthos/worker test:privacy && pnpm --filter @healthos/worker test:scheduling"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test && pnpm audit --audit-level high"
+          status: pass
+        - cmd: "prisma migrate validate/deploy/status/diff plus thirteen-to-fourteen and restricted-owner replay"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify --baseline docs/goals/healthos-v1/.goalbuddy-board/scopes/T041.json <T041 allowlist>"
+          status: pass
+        - cmd: "fresh independent T041 no-P0/P1/P2 goal_judge review"
+          status: fail
+      summary: "Built and verified the synthetic provider-neutral channel-delivery foundation and fixed the stale reconcile and preference enqueue races. Independent review then proved that duplicate APNs token ownership can cross the provider boundary after account switching and that malformed template values can persist despite application parsing, so the package remains blocked and its worktree is preserved for T042 recovery."
+      evidence:
+        - "Channel tests pass 32/32, including five repeated independent rounds of both repaired concurrency windows."
+        - "Independent reproduction created two users with one APNs fingerprint and observed two provider sends."
+        - "Independent direct PostgreSQL insertion persisted health text, identifier-bearing paths, token strings, template mismatch, and object schema_version under the current constraint."
+        - "Fresh fourteen-migration, historical upgrade, restricted-owner deployment, migration diff, database, privacy, scheduling, safety, admin, rules, lint, typecheck, no-DB, audit, and exact source scope evidence passed."
+        - "Exact hash scope passes after removing only the generated .next, dist, and coverage outputs created by verification."
+      risks_remaining:
+        - "APNs ownership must transfer atomically at device registration and be unique in PostgreSQL so an old account cannot send to the same physical token."
+        - "External channel payload constraints must bind every field to one exact allowlisted scalar tuple and the outbox template column."
+        - "Real APNs, approved WeCom, Universal Links, native settings/deep links, sandbox/device evidence, production channel authority, and full T119 remain unfinished."
+      next: "Activate T042 to recover T041 with an expanded identity-device scope, migration-safe token transfer, exact database template constraints, adversarial regressions, clean scope proof, and a fresh independent Judge."
+  - id: T042
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Recover and complete the synthetic-only T041 channel-delivery foundation by enforcing one current APNs token owner across account switches, atomically revoking the prior device at registration, suppressing its queued delivery at the provider boundary, and binding every deliverable database payload to one exact allowlisted scalar template tuple. Preserve all verified T041 behavior and still do not complete real APNs, WeCom, Universal Links, native settings, or full T119."
+    inputs:
+      - "Preserved T041 implementation and its passing lease, retry, privacy, consent, destination, safety-control, and production fail-closed evidence"
+      - "Fresh independent T041 rejection proving duplicate APNs fingerprint ownership and permissive database template values"
+      - "Existing DeviceService authenticated registration and purpose-separated APNs encryption/fingerprinting"
+      - "Implementation plan Task 19 account-switch, sensitive-field, and send-time destination requirements"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260713130000_channel_delivery_foundation/**"
+      - "apps/api/src/channels/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/identity/device.service.ts"
+      - "apps/api/src/identity/identity.integration.spec.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/jobs/channels/**"
+      - "apps/worker/src/worker.module.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Write failing registration, database, worker account-switch, concurrent ownership, and malformed-template tests before implementation and observe the exact prior unsafe behavior"
+      - "Assert registering one APNs token for a new authenticated user atomically clears that token from every prior device before assigning it to the current device, while same-user registration stays idempotent"
+      - "Assert PostgreSQL permits at most one non-null APNs token fingerprint and concurrent cross-account registrations serialize to exactly one current owner"
+      - "Assert a queued outbox for the prior owner is suppressed after transfer and only the current owner can cross the provider boundary"
+      - "Assert thirteen-to-fourteen migration deterministically resolves legacy duplicate fingerprints, suppresses their stale destination evidence at send time, and preserves unrelated historical data"
+      - "Assert each deliverable APNs/WeCom payload exactly equals one allowlisted scalar tuple, its payload template equals channel_outbox.template, and health text, identifiers, tokens, nested values, wrong types, mixed template fields, arbitrary paths, and extra keys are rejected by PostgreSQL"
+      - "Re-run all T041 channel, lease, retry, consent/privacy/deletion, destination, feature/kill-switch, production fail-closed, database and migration evidence"
+      - "Run identity, database, privacy, scheduling, reminders, safety controls, admin, rules, lint, typecheck, builds, no-DB workspace, dependency audit, migration diff, and exact hash-scope checks"
+      - "Obtain a fresh independent no-P0/P1/P2 Judge review"
+    stop_if:
+      - "Implementation requires a real APNs token/certificate, WeCom tenant/credential, external network call, Apple entitlement, production access, real user identity, or real health data."
+      - "Registration can leave one fingerprint on multiple devices, transfer can race with provider invocation without a linearizable winner, or the prior user can send after transfer commits."
+      - "Migration resolves duplicate ownership by deleting users/devices or losing unrelated device, consent, schedule, outbox, attempt, audit, or safety-control history."
+      - "Any deliverable database template accepts free text, raw health values, identifiers, tokens, arbitrary deep links, nested values, wrong scalar types, or mismatched template metadata."
+      - "The task would be declared as full Task 19/T119 without real APNs and approved WeCom adapters, sandbox/device evidence, native settings/deep-link ownership checks, Universal Links, and named channel authority."
+    expected_output:
+      - "Linearizable APNs token ownership transfer in authenticated device registration with a PostgreSQL uniqueness backstop"
+      - "Provider-boundary suppression proof for the prior account and deterministic concurrent account-switch evidence"
+      - "Exact PostgreSQL allowlist constraints for every external notification payload tuple"
+      - "Fresh/historical/restricted migration, full affected regression, clean scope, and independent no-P0/P1/P2 evidence"
+      - "Receipt explicitly preserving real APNs, WeCom, native deep links/settings, production authority, and full T119 as incomplete"
     receipt: null
   - id: T003
     type: worker
