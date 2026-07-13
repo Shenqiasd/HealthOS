@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T047
+active_task: T048
 
 tasks:
   - id: T001
@@ -3185,7 +3185,7 @@ tasks:
   - id: T047
     type: worker
     assignee: Worker
-    status: active
+    status: blocked
     reasoning_hint: xhigh
     objective: "Recover T046 by closing every independent Judge P1/P2: robust deterministic high-risk paraphrase routing, conservative post-provider medical/prohibited-content rejection, lock-bound current recommendation evidence with safety incident/rule/profile invalidation, and comprehensive offline Node egress isolation. Preserve all prior Coach, migration, Actions clock, scope, and no-native-completion requirements."
     inputs:
@@ -3234,6 +3234,80 @@ tasks:
       - "Comprehensive offline Node egress/subprocess isolation with executable canaries"
       - "All prior migration, Coach, database, Actions, workspace, and exact-scope gates green"
       - "Fresh independent no-P0/P1/P2 approval while preserving native/real-provider T115 as incomplete"
+    receipt:
+      result: blocked
+      decision: reject_subgoal
+      full_outcome_complete: false
+      summary: "Closed the first Judge findings and passed 140 Coach assertions, 32 offline cases, migration/regression/workspace gates, and exact scope, but the second fresh Judge reproduced deeper routing/output bypasses, a separate-transaction limitation-candidate partial commit, and pre-install runtime isolation escapes. T047 remains rejected despite green repository tests."
+      evidence:
+        - "P1 routing bypasses: word-order, ordinary emergency/diagnosis phrases, Chinese loss-of-consciousness wording, and zero-width Unicode in injection/action_code text reached provider routes in user and OCR input."
+        - "P1 output bypasses: paraphrased prescribed-amount, findings-consistent-with diagnosis, dial-911, state mutation, Chinese, and Unicode-apostrophe outputs passed exact-schema validation."
+        - "P1 atomicity: limitation candidate committed in ProfileCandidateService's separate transaction before a forced Coach turn persistence failure."
+        - "P2 false positives: safe negated medication/emergency explanations and a source-ID explanation were rejected."
+        - "P2 isolation: application modules loaded before isolation; cached pre-install handles survived; runtime start counters were initialized but never measured."
+        - "Evidence race/lock order, feature/kill/consent/privacy safety, DB constraints, Actions clock, fresh/historical/restricted migrations, zero Prisma diff, no-real-provider proof, and exact T047 scope all passed independent review."
+      remaining_blockers:
+        - "Canonicalize zero-width/confusable input and classify word-order/ordinary high-risk variants before provider use."
+        - "Replace broad output regexes with affirmative hazard predicates that reject unsafe claims/directives while allowing explicit negated boundaries."
+        - "Join ProfileCandidateService proposal to the existing Coach transaction and prove rollback after post-candidate persistence failure."
+        - "Install isolation before importing evaluation modules and add OS/Node permission boundaries so cached transport/process handles cannot escape."
+        - "Obtain another fresh independent no-P0/P1/P2 Judge approval."
+      stopped_because: "Second independent Judge rejected T047 on unresolved P1/P2 safety and atomicity findings."
+  - id: T048
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Recover T047 by replacing fragile routing/output checks with canonical affirmative hazard classification, making limitation-candidate creation atomic with Coach-turn persistence, and starting evals inside OS network plus Node process/worker isolation before application imports. Preserve every prior evidence-lock, migration, contract, Actions clock, and no-native/no-real-provider requirement."
+    inputs:
+      - "T047 second independent Judge rejection receipt"
+      - "Current uncommitted synthetic Coach implementation"
+      - "Existing ProfileCandidateService transaction and Coach Prisma transaction context"
+      - "macOS sandbox-exec and Node 24 permission-mode proof"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260713210000_coach_server_foundation/**"
+      - "apps/api/src/ai/**"
+      - "apps/api/src/coach/**"
+      - "apps/api/src/actions/actions.integration.spec.ts"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/feature-flags/feature-flags.service.ts"
+      - "apps/api/src/feature-flags/feature-flags.service.spec.ts"
+      - "apps/api/src/kill-switches/dto/safety-control-action.dto.ts"
+      - "apps/api/src/kill-switches/safety-controls.service.ts"
+      - "apps/api/src/kill-switches/safety-controls.integration.spec.ts"
+      - "apps/api/src/kill-switches/openapi-contract.spec.ts"
+      - "apps/api/src/profile/profile.module.ts"
+      - "apps/api/src/profile/profile-candidate.service.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/evals/**"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Add RED tests for every T047 reproduced user/OCR bypass: Do I have diabetes, Could this be liver disease, blacked out, struggling to breathe, Chinese loss of consciousness, reversed action-code mutation, zero-width injection, and zero-width action_code"
+      - "Canonicalize NFKC plus apostrophe/confusable/zero-width separators before classification; use affirmative category predicates and prove every prohibited user/OCR variant is fixed/provider-zero without breaking allowed general/explain/lighter/swap inputs"
+      - "Add RED exact-schema output tests in both answer and reason for prescribed-amount, consistent-with diagnosis, dial-911, state mutation, Chinese, and Unicode-apostrophe hazards; also prove safe negated medication/emergency boundaries and source-ID explanations are accepted"
+      - "Extend ProfileCandidateService with an explicit caller transaction path, call it from Coach's current Prisma transaction, and prove candidate count remains zero when persistence fails after proposal; preserve existing standalone idempotency/consent behavior"
+      - "Split eval bootstrap from application runner so runtime isolation installs before any Coach/AI module import; launch the inner runner under macOS deny-network sandbox plus Node permission mode denying child processes/workers, fail closed where equivalent OS isolation is unavailable, and report attempted operations rather than unmeasured start counters"
+      - "Rerun all prior routing/output/evidence/concurrency/DB/privacy/profile/recommendation/Actions/Today/safety tests, 32+ offline cases and isolation escape probes"
+      - "Rerun fresh, legacy 14-to-15, restricted-owner, zero-diff migrations; lint, recursive typecheck, API/worker/admin builds, no-DB tests, audit, Docker, diff, exact T048 scope"
+      - "Obtain a third fresh independent no-P0/P1/P2 GoalBuddy Judge review"
+    stop_if:
+      - "Any reproduced user/OCR or provider-output exploit remains accepted, or safe explicit negated boundary text remains rejected."
+      - "A candidate survives a failed Coach turn or uses a transaction other than the active turn transaction."
+      - "Application/eval modules can capture transport/process handles before isolation, OS network denial is absent, or Node permission mode allows child/worker startup."
+      - "Any prior evidence/authorization race, migration, ownership, privacy, or exact-output invariant regresses."
+      - "Implementation requires real provider/network credentials/data, native iOS, external approval, or files outside allowed_files."
+      - "The task would be declared as full T115 or full HealthOS V1."
+    expected_output:
+      - "Canonical paraphrase/Unicode-resistant pre-provider routing with allowed-intent regression proof"
+      - "Affirmative post-provider hazard validation with safe-negation precision tests"
+      - "Atomic pending limitation candidate and Coach turn rollback semantics"
+      - "Pre-import OS network and Node child/worker isolation with measured escape probes"
+      - "All prior gates plus fresh independent no-P0/P1/P2 approval, while T115/native/real-provider remains incomplete"
     receipt: null
   - id: T003
     type: worker
