@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T044
+active_task: T045
 
 tasks:
   - id: T001
@@ -2950,7 +2950,7 @@ tasks:
   - id: T044
     type: worker
     assignee: Worker
-    status: active
+    status: blocked
     reasoning_hint: xhigh
     objective: "Implement the synthetic-only production server foundation tranche of implementation Task 15: authenticated, privacy- and consent-gated Coach threads/messages; deterministic pre-provider intent and safety routing; minimal immutable evidence context; a provider-neutral fully buffered structured-response boundary; citation/action-code validation; fixed high-risk responses; and executable golden/adversarial evals. Use a local synthetic provider only and do not complete native Coach, a real LLM provider, provider sandbox evidence, or full T115."
     inputs:
@@ -2996,6 +2996,97 @@ tasks:
       - "Offline golden/adversarial Coach eval suite with fail-closed provider faults and prompt-injection coverage"
       - "Fresh/historical/restricted migration, affected regression, exact scope, and independent no-P0/P1/P2 evidence"
       - "Receipt explicitly preserving native Coach, real provider approval/sandbox, and full T115 as incomplete"
+    receipt:
+      result: blocked
+      harness: codex
+      commands:
+        - cmd: "Read test-driven-development and healthos-long-goal SKILL.md files"
+          status: pass
+        - cmd: "git rev-parse --show-toplevel; goalbuddy.sh resume docs/goals/healthos-v1; git status --short --branch"
+          status: pass
+        - cmd: "Read T044, goal.md, implementation Task 15, and technical-design Coach/LLM/privacy boundaries"
+          status: pass
+        - cmd: "export supported Node PATH; node --version; pnpm --version"
+          status: pass
+          evidence: "Node v24.14.0; pnpm 10.32.0"
+        - cmd: "scope-guard.mjs snapshot --output /tmp/healthos-T044-scope.json"
+          status: pass
+        - cmd: "Verify T013/T015/T019/T025/T029/T031/T039/T111/T112 dependency statuses"
+          status: pass
+          evidence: "All listed dependencies are done"
+        - cmd: "Audit feature.llm_generation across feature flags, kill-switch DTO/service, contracts, schema, and migration 20260713100000"
+          status: fail
+          evidence: "FeatureFlagKey, SafetyControlActionDto, SafetyControlsService, OpenAPI/types, and DB key/scope constraints omit feature.llm_generation; the legal audited admin mutation path rejects it"
+        - cmd: "scope-guard.mjs verify with every T044 allowed_files pattern; git status --porcelain=v1"
+          status: pass
+          evidence: "changed=[]; violations=[]; worktree clean"
+      summary: "T044 was stopped before RED/GREEN or edits. The required feature.llm_generation revision cannot be created, disabled, or evaluated through the existing audited operations path. Implementing it only inside Coach, seeding it enabled, directly inserting revisions, or fabricating an admin actor would create the prohibited weak authorization path. No real provider, network, credential, or user data was used."
+      remaining_blockers:
+        - "Expand allowed_files to the feature-flag evaluator and audited safety-control DTO, service, integration, and OpenAPI tests."
+        - "Use the forward-only fifteenth migration to replace the database key/scope constraints without editing prior migration history."
+        - "Prove the authenticated admin path creates/disables feature.llm_generation, FeatureFlagsService observes it, and missing/disabled feature or active llm.generation kill switch invokes the provider zero times."
+        - "Export the existing ProfileCandidateService through ProfileModule instead of duplicating its consent and idempotency path inside Coach."
+      verification_attempts: 0
+      stopped_because: "T044 requires a legally operable feature.llm_generation revision, but completing that path requires production and test files outside allowed_files. Continuing would violate stop_if and the explicit prohibition on a Coach-local or direct-database authorization bypass."
+      next: "T045 recovers T044 with the minimal expanded safety-control and profile-module scope, then completes the original synthetic Coach server/eval package."
+  - id: T045
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Recover and complete T044 by adding feature.llm_generation to the existing audited global feature-flag path, exporting the existing consent-bound ProfileCandidateService, and then implementing the full synthetic-only Coach server/eval foundation. Preserve every T044 safety, migration, provider-boundary, and no-native-completion requirement."
+    inputs:
+      - "T044 blocked receipt proving the existing audited operations path rejects feature.llm_generation"
+      - "Existing FeatureFlagsService, SafetyControlsService/admin mutation/audit/epoch machinery, ProfileCandidateService, ActionsModule exports, and T044 dependency set"
+      - "Implementation plan Task 15 and technical-design Coach/LLM/privacy/safety contracts"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260713210000_coach_server_foundation/**"
+      - "apps/api/src/ai/**"
+      - "apps/api/src/coach/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/feature-flags/feature-flags.service.ts"
+      - "apps/api/src/feature-flags/feature-flags.service.spec.ts"
+      - "apps/api/src/kill-switches/dto/safety-control-action.dto.ts"
+      - "apps/api/src/kill-switches/safety-controls.service.ts"
+      - "apps/api/src/kill-switches/safety-controls.integration.spec.ts"
+      - "apps/api/src/kill-switches/openapi-contract.spec.ts"
+      - "apps/api/src/profile/profile.module.ts"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/evals/**"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Write and observe failing tests before production code for the audited feature flag, intent/safety routing, context, provider boundary, idempotency, ownership, consent/privacy, migration, profile candidate, and offline eval behavior"
+      - "Assert feature.llm_generation is accepted only as a global feature_flag through the authenticated MFA operations API, with audit consumption, epoch advancement, exact replay, concurrent version fencing, and wrong type/scope rejection"
+      - "Assert FeatureFlagsService evaluates feature.llm_generation with missing/disabled revision and missing epoch fail-closed, and the fifteenth migration changes the database key/scope allowlist forward-only"
+      - "Assert active authenticated ownership, ready privacy reconciliation, current health-processing consent, enabled feature.llm_generation revision, and inactive llm.generation kill switch are held/rechecked fail-closed through the provider boundary"
+      - "Assert emergency, diagnosis, medication, unsupported monitoring, stale/no-evidence, prompt injection, and prohibited mutation paths use fixed responses or abstention and invoke the provider zero times"
+      - "Assert explain-action, general-question, lighter, swap, and limitation-candidate intents are classified before provider use; actions require deterministic confirmation commands and limitations use the existing pending ProfileCandidateService path"
+      - "Assert provider context contains only minimal confirmed immutable snapshot fields and source identities; untrusted user/OCR text cannot alter policy or reveal hidden context"
+      - "Assert output is fully buffered, exact-schema parsed, citation/action/safety bound, post-safety checked, and persisted only after all checks pass; timeout, partial, schema, citation, or prohibited-content faults persist no partial assistant response"
+      - "Assert client idempotency, request-hash conflict, concurrent duplicate sends, cross-user access, message/thread immutability, summary drift, withdrawal, privacy freeze, switch/feature races, and authorized deletion are deterministic"
+      - "Run offline Coach golden/adversarial evals with 100% forbidden-output blocking, zero safety/action mutation, deterministic replay, and no external network"
+      - "Run fresh fifteen-migration deploy, fourteen-to-fifteen historical upgrade, restricted non-superuser migration, zero Prisma diff, Coach/API/database/feature/safety tests, affected privacy/recommendation/action/profile/observability regressions, lint, typecheck, builds, no-DB tests, audit, Docker config, diff, and exact T045 scope guard"
+      - "Obtain a fresh independent no-P0/P1/P2 GoalBuddy Judge review"
+    stop_if:
+      - "Implementation requires a real LLM/API credential, external network call, production prompt, real health/user data, provider/data-region approval, medical approval, or files outside the expanded allowed_files."
+      - "The feature gate can be created without the existing authenticated audited operations path, defaults enabled, or bypasses safety-control epoch/idempotency/concurrency semantics."
+      - "Any high-risk, diagnosis, medication, emergency, stale/no-evidence, invalid-output, or prompt-injected path can invoke free generation or persist partial/prohibited output."
+      - "Provider output can mutate actions, profile facts, safety class, source identity, or published recommendation state; a limitation may only create a pending user-confirmation candidate."
+      - "Consent withdrawal, deletion freeze, privacy no-send state, kill switch, or feature disable can commit first and still cross the provider boundary."
+      - "The task would be declared as full Task 15/T115 without native Swift stores/UI/tests, full Xcode evidence, an approved provider sandbox, pinned production model/prompt, and named medical/privacy/provider authority."
+    expected_output:
+      - "Legally operable audited feature.llm_generation flag plus fail-closed evaluation"
+      - "Authenticated versioned Coach API with immutable/idempotent thread-message persistence"
+      - "Deterministic intent/safety router, pending limitation-candidate integration, and minimal evidence context"
+      - "Provider-neutral fully buffered structured boundary with local synthetic provider only"
+      - "Fixed high-risk/abstention behavior and no-partial-output guarantees"
+      - "Offline golden/adversarial eval suite and fresh/historical/restricted migration proof"
+      - "Affected regression, exact scope, independent no-P0/P1/P2 evidence, and receipt preserving native/real-provider T115 work"
     receipt: null
   - id: T003
     type: worker
