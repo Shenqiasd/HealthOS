@@ -70,7 +70,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T042
+active_task: T043
 
 tasks:
   - id: T001
@@ -2803,7 +2803,7 @@ tasks:
   - id: T042
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Recover and complete the synthetic-only T041 channel-delivery foundation by enforcing one current APNs token owner across account switches, atomically revoking the prior device at registration, suppressing its queued delivery at the provider boundary, and binding every deliverable database payload to one exact allowlisted scalar template tuple. Preserve all verified T041 behavior and still do not complete real APNs, WeCom, Universal Links, native settings, or full T119."
     inputs:
@@ -2849,6 +2849,73 @@ tasks:
       - "Exact PostgreSQL allowlist constraints for every external notification payload tuple"
       - "Fresh/historical/restricted migration, full affected regression, clean scope, and independent no-P0/P1/P2 evidence"
       - "Receipt explicitly preserving real APNs, WeCom, native deep links/settings, production authority, and full T119 as incomplete"
+    receipt:
+      result: done
+      harness: codex
+      decision: approved
+      full_outcome_complete: false
+      changed_files:
+        - apps/api/prisma/migrations/20260713130000_channel_delivery_foundation/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/identity/device.service.ts
+        - apps/api/src/identity/identity.integration.spec.ts
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - apps/worker/package.json
+        - apps/worker/src/jobs/channels/channel-delivery-dispatcher.spec.ts
+        - apps/worker/src/jobs/channels/channel-delivery-dispatcher.ts
+        - apps/worker/src/jobs/channels/channel-delivery-worker.integration.spec.ts
+        - apps/worker/src/jobs/channels/channel-delivery-worker.ts
+        - apps/worker/src/jobs/channels/channel-template.spec.ts
+        - apps/worker/src/jobs/channels/channel-template.ts
+        - apps/worker/src/jobs/channels/local-channel-provider.ts
+        - apps/worker/src/worker.module.ts
+      commands:
+        - cmd: "Supported Node 24 targeted identity, database, channel, privacy, scheduling, reminders, safety, admin, rules, and admin-app regression suite"
+          status: pass
+        - cmd: "pnpm lint, typecheck, API/worker/admin builds, no-DB workspace tests, dependency audit, Docker config, and git diff check"
+          status: pass
+        - cmd: "Fresh fourteen-migration deploy/status, thirteen-to-fourteen historical upgrade, restricted-owner deploy, and Prisma migration diff"
+          status: pass
+        - cmd: "T042 exact scope guard"
+          status: pass
+        - cmd: "Fresh independent T042 no-P0/P1/P2 GoalBuddy Judge"
+          status: pass
+      summary: "Recovered and completed the synthetic-only channel-delivery foundation. APNs ownership transfer is atomic and epoch-bound across account switches; stale ABA outboxes remain suppressed; concurrent token swaps are deadlock-free; external payloads are database-bound to exact allowlisted scalar template tuples. Real providers and full T119 remain incomplete."
+      evidence:
+        - "Product commit 5c71b73 (feat: add reliable synthetic channel delivery)."
+        - "Main regression run passed 162/162 targeted tests, including identity 15/15, database invariants 14/14, and channel delivery 34/34."
+        - "Independent Judge found no P0, P1, P2, or P3 findings."
+        - "Independent ABA proof observed old_epoch=1, returned_epoch=2, provider_calls=0; same-token registration retained its epoch."
+        - "Independent 40-round dual-device dual-token swap proof completed without PostgreSQL 40P01, lost ownership, or duplicate fingerprint ownership."
+        - "All fourteen migrations deploy cleanly; thirteen-to-fourteen upgrade deterministically keeps one legacy owner and preserves unrelated history; restricted non-superuser migration and zero schema diff pass."
+        - "Implementation contains only SyntheticLocalChannelProvider and no external APNs/WeCom client, network transport, real credential, or real user data."
+      risks_remaining:
+        - "Real APNs provider credentials, sandbox and device evidence remain incomplete."
+        - "Approved WeCom adapter, tenant credentials, and seven-day sandbox evidence remain incomplete."
+        - "Universal Links, native notification settings/deep-link ownership, named channel authority, and full T119 remain queued."
+      next: "T043 audits T042 against the full V1 oracle and selects the largest safe next package, prioritizing the native iOS critical path when local tooling permits it."
+  - id: T043
+    type: pm
+    assignee: PM
+    status: active
+    reasoning_hint: xhigh
+    objective: "Audit T042 completion evidence against implementation Task 19 and the full HealthOS V1 oracle, preserve real channel and full T119 gaps, then select and activate the largest safe next package with explicit preference for unblocking the native iOS critical path."
+    inputs:
+      - "T041 blocked receipt, T042 implementation commit 5c71b73, and independent no-P0/P1/P2/P3 Judge receipt"
+      - "Implementation plan Tasks 4-9, 13-27 and technical-design native, channel, privacy, and release contracts"
+      - "Current apps/ios state, local Xcode/toolchain availability, governance gates, provider gates, and GitHub automation state"
+    constraints:
+      - "Edit GoalBuddy control files only."
+      - "Do not mark T119, any native task, or the full HealthOS outcome complete without its listed evidence."
+      - "Do not infer Apple, medical, legal/privacy, WeCom, provider, security, operations, or GitHub billing readiness."
+      - "Prefer a coherent vertical slice on the user-visible native critical path when executable; otherwise choose the largest safe local package with real dependencies."
+      - "Any new Worker must define explicit allowed_files, verification commands, stop conditions, and a scope snapshot."
+    expected_output:
+      - "T042 receipt and commit audit"
+      - "Explicit remaining gap to T119 and the full V1 outcome"
+      - "Fresh native toolchain and external-gate audit"
+      - "One activated next Worker package or an exact truthful blocker"
+      - "Valid GoalBuddy board and PM scope evidence"
     receipt: null
   - id: T003
     type: worker
