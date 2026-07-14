@@ -213,6 +213,125 @@ export interface HealthFreshnessResponse {
   latest_local_date: string | null;
 }
 
+export const LAB_CODES = ["ALT", "AST", "GGT", "URIC_ACID", "BMI", "WEIGHT", "WAIST"] as const;
+export type LabCode = (typeof LAB_CODES)[number];
+export type LabMimeType = "application/pdf" | "image/png" | "image/jpeg";
+
+export interface LabDocumentIntakeRequest {
+  idempotency_key: string;
+  sha256: string;
+  mime_type: LabMimeType;
+  size_bytes: number;
+}
+
+export interface LabDocumentFinalizeRequest {
+  idempotency_key: string;
+}
+
+export interface LabEvidenceBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface LabObservationResponse {
+  id: string;
+  code: string;
+  value: string;
+  unit: string;
+  normalized_value: number | null;
+  normalized_unit: string | null;
+  reference_range: string | null;
+  page: number | null;
+  evidence_box: LabEvidenceBox;
+  confidence: number;
+  disposition_code: string;
+  confirmation_status: "needs_confirmation" | "usable" | "rejected";
+  version: number;
+}
+
+export interface LabDocumentResponse {
+  id: string;
+  object_key: string;
+  sha256: string;
+  mime_type: LabMimeType;
+  size_bytes: number;
+  status: "pending" | "active" | "completed" | "failed" | "suppressed" | "deleted";
+  failure_code: string | null;
+  observations: LabObservationResponse[];
+}
+
+export interface LabObservationConfirmationRequest {
+  idempotency_key: string;
+  expected_version: number;
+  code: LabCode;
+  value: number;
+  unit: string;
+}
+
+export interface LabObservationReviewRequest extends LabObservationConfirmationRequest {
+  reason: string;
+}
+
+export interface NormalizedLabValue {
+  code: LabCode;
+  value: number;
+  unit: "U/L" | "umol/L" | "kg/m2" | "kg" | "cm";
+}
+
+const LAB_BOUNDS: Record<LabCode, readonly [number, number]> = {
+  ALT: [0, 10_000],
+  AST: [0, 10_000],
+  GGT: [0, 10_000],
+  URIC_ACID: [0, 5_000],
+  BMI: [5, 150],
+  WEIGHT: [1, 500],
+  WAIST: [20, 300],
+};
+
+function boundedLabValue(code: LabCode, value: number): number | null {
+  const [minimum, maximum] = LAB_BOUNDS[code];
+  if (!Number.isFinite(value) || value < minimum || value > maximum) return null;
+  return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+export function normalizeLabValue(
+  rawCode: string,
+  rawValue: string | number,
+  rawUnit: string,
+): NormalizedLabValue | null {
+  const code = rawCode.trim().toUpperCase();
+  if (!(LAB_CODES as readonly string[]).includes(code)) return null;
+  const typedCode = code as LabCode;
+  const rawNumeric = typeof rawValue === "string" ? rawValue.trim() : null;
+  if (rawNumeric !== null && !/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(rawNumeric)) return null;
+  const parsed = typeof rawValue === "number" ? rawValue : Number(rawNumeric);
+  const unit = rawUnit.trim().replace("μ", "u").replace("µ", "u");
+  let value = parsed;
+  let canonicalUnit: NormalizedLabValue["unit"];
+
+  if (["ALT", "AST", "GGT"].includes(typedCode) && unit.toLowerCase() === "u/l") {
+    canonicalUnit = "U/L";
+  } else if (typedCode === "URIC_ACID" && unit.toLowerCase() === "umol/l") {
+    canonicalUnit = "umol/L";
+  } else if (typedCode === "URIC_ACID" && unit.toLowerCase() === "mg/dl") {
+    value *= 59.48;
+    canonicalUnit = "umol/L";
+  } else if (typedCode === "BMI" && ["kg/m2", "kg/m^2", "kg/m²"].includes(unit.toLowerCase())) {
+    canonicalUnit = "kg/m2";
+  } else if (typedCode === "WEIGHT" && unit.toLowerCase() === "kg") {
+    canonicalUnit = "kg";
+  } else if (typedCode === "WAIST" && unit.toLowerCase() === "cm") {
+    canonicalUnit = "cm";
+  } else {
+    return null;
+  }
+
+  const bounded = boundedLabValue(typedCode, value);
+  return bounded === null ? null : { code: typedCode, value: bounded, unit: canonicalUnit };
+}
+
 export interface ProfileCandidateResponse {
   id: string;
   candidate_type: string;

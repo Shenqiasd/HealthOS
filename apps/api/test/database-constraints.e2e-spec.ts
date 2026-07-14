@@ -546,7 +546,7 @@ describe("database invariants", () => {
       data: {
         userId: user.id,
         objectKey: "synthetic/lab.pdf",
-        sha256: "sha256:synthetic-lab",
+        sha256: "a".repeat(64),
         status: "completed",
       },
     });

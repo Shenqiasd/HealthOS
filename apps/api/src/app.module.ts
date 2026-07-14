@@ -18,6 +18,7 @@ import { AdminModule } from "./admin/admin.module";
 import { RemindersModule } from "./reminders/reminders.module";
 import { KillSwitchesModule } from "./kill-switches/kill-switches.module";
 import { CoachModule } from "./coach/coach.module";
+import { LabsModule } from "./labs/labs.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { CoachModule } from "./coach/coach.module";
     RemindersModule,
     KillSwitchesModule,
     CoachModule,
+    LabsModule,
   ],
   controllers: [HealthController],
   providers: [ReadinessService],

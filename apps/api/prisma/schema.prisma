@@ -155,6 +155,7 @@ model User {
   healthSyncRuns         HealthSyncRun[]
   dailyFacts             DailyHealthFactRevision[]
   labDocuments           LabDocument[]
+  labObservationMutations LabObservationMutation[]
   foodScans              FoodScan[]
   profileEvents          ProfileEvent[]
   profileSnapshots       ProfileSnapshot[]
@@ -404,18 +405,29 @@ model DailyHealthFactRevision {
 }
 
 model LabDocument {
-  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String           @map("user_id") @db.Uuid
-  objectKey    String           @map("object_key")
-  sha256       String
-  status       RecordStatus     @default(pending)
-  uploadedAt   DateTime         @default(now()) @map("uploaded_at") @db.Timestamptz(6)
-  deletedAt    DateTime?        @map("deleted_at") @db.Timestamptz(6)
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  observations LabObservation[]
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  objectKey      String           @map("object_key")
+  sha256         String
+  mimeType       String           @default("application/pdf") @map("mime_type")
+  sizeBytes      BigInt           @default(1) @map("size_bytes")
+  consentEpoch   Int              @default(0) @map("consent_epoch")
+  idempotencyKey String           @default(dbgenerated("(gen_random_uuid())::text")) @map("idempotency_key")
+  requestHash    String           @default("0000000000000000000000000000000000000000000000000000000000000000") @map("request_hash")
+  version        Int              @default(1)
+  status         RecordStatus     @default(pending)
+  failureCode    String?          @map("failure_code")
+  uploadedAt     DateTime         @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  finalizedAt    DateTime?        @map("finalized_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  observations   LabObservation[]
 
   @@unique([userId, sha256])
+  @@unique([userId, idempotencyKey])
   @@index([userId, uploadedAt])
+  @@index([status, updatedAt])
   @@map("lab_documents")
 }
 
@@ -426,16 +438,39 @@ model LabObservation {
   value                String
   unit                 String
   normalizedValue      Decimal?                    @map("normalized_value") @db.Decimal(18, 6)
+  normalizedUnit       String?                     @map("normalized_unit")
   referenceRange       String?                     @map("reference_range")
   page                 Int?
   evidenceBox          Json                        @map("evidence_box") @db.JsonB
   confidence           Decimal                     @db.Decimal(6, 5)
+  dispositionCode      String                      @default("awaiting_confirmation") @map("disposition_code")
+  observationHash      String                      @default("0000000000000000000000000000000000000000000000000000000000000000") @map("observation_hash")
+  version              Int                         @default(1)
+  createdAt            DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   confirmationStatus   ConfirmationStatus          @default(extracted) @map("confirmation_status")
   document             LabDocument                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
   recommendationInputs RecommendationRunLabInput[]
+  mutations            LabObservationMutation[]
 
   @@index([documentId, code])
   @@map("lab_observations")
+}
+
+model LabObservationMutation {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  observationId  String         @map("observation_id") @db.Uuid
+  idempotencyKey String         @map("idempotency_key")
+  requestHash    String         @map("request_hash")
+  resultJson     Json           @map("result_json") @db.JsonB
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  observation    LabObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, idempotencyKey])
+  @@index([observationId, createdAt])
+  @@map("lab_observation_mutations")
 }
 
 model FoodScan {

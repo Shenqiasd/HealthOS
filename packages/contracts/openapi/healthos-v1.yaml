@@ -94,6 +94,125 @@ paths:
                 $ref: "#/components/schemas/HealthFreshnessResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /labs/documents:
+    post:
+      operationId: createLabDocument
+      summary: Create one consent-bound bounded lab document intake
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabDocumentIntakeRequest" }
+      responses:
+        "201":
+          description: Created document intake or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabDocument" }
+        "400": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /labs/documents/{document_id}:
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getLabDocument
+      summary: Read one owned document and its evidence-bound observations
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Owned lab document.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabDocument" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /labs/documents/{document_id}/finalize:
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: finalizeLabDocument
+      summary: Verify object metadata and enqueue one consent-bound parse
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabDocumentFinalizeRequest" }
+      responses:
+        "200":
+          description: Verified active document or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabDocument" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
+  /labs/observations/{observation_id}/confirm:
+    parameters:
+      - name: observation_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: confirmLabObservation
+      summary: Correct or confirm one owned allowlisted observation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabObservationConfirmationRequest" }
+      responses:
+        "200":
+          description: Usable confirmed observation and exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabObservation" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /admin/labs/observations/{observation_id}/confirm:
+    parameters:
+      - name: observation_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: reviewLabObservation
+      summary: Confirm one scoped observation with reviewer authority and reason
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabObservationReviewRequest" }
+      responses:
+        "200":
+          description: Reviewer-confirmed usable observation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabObservation" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
   /today:
     get:
       operationId: getToday
@@ -979,6 +1098,85 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
   schemas:
+    LabDocumentIntakeRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, sha256, mime_type, size_bytes]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        mime_type: { type: string, enum: [application/pdf, image/png, image/jpeg] }
+        size_bytes: { type: integer, minimum: 1, maximum: 20971520 }
+    LabDocumentFinalizeRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+    LabEvidenceBox:
+      type: object
+      additionalProperties: false
+      required: [x, y, width, height]
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+        width: { type: number, exclusiveMinimum: 0, maximum: 1 }
+        height: { type: number, exclusiveMinimum: 0, maximum: 1 }
+    LabObservation:
+      type: object
+      additionalProperties: false
+      required: [id, code, value, unit, normalized_value, normalized_unit, reference_range, page, evidence_box, confidence, disposition_code, confirmation_status, version]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, maxLength: 64 }
+        value: { type: string, maxLength: 64 }
+        unit: { type: string, maxLength: 32 }
+        normalized_value: { type: [number, "null"] }
+        normalized_unit: { type: [string, "null"], maxLength: 32 }
+        reference_range: { type: [string, "null"], maxLength: 80 }
+        page: { type: [integer, "null"], minimum: 1, maximum: 500 }
+        evidence_box: { $ref: "#/components/schemas/LabEvidenceBox" }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        disposition_code: { type: string, enum: [awaiting_confirmation, low_confidence, unsupported_field_or_unit, conflicting_field, user_confirmed, reviewer_confirmed] }
+        confirmation_status: { type: string, enum: [needs_confirmation, usable, rejected] }
+        version: { type: integer, minimum: 1 }
+    LabDocument:
+      type: object
+      additionalProperties: false
+      required: [id, object_key, sha256, mime_type, size_bytes, status, failure_code, observations]
+      properties:
+        id: { type: string, format: uuid }
+        object_key: { type: string, maxLength: 300 }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        mime_type: { type: string, enum: [application/pdf, image/png, image/jpeg] }
+        size_bytes: { type: integer, minimum: 1, maximum: 20971520 }
+        status: { type: string, enum: [pending, active, completed, failed, suppressed, deleted] }
+        failure_code: { type: [string, "null"] }
+        observations:
+          type: array
+          maxItems: 64
+          items: { $ref: "#/components/schemas/LabObservation" }
+    LabObservationConfirmationRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, expected_version, code, value, unit]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        expected_version: { type: integer, minimum: 1 }
+        code: { type: string, enum: [ALT, AST, GGT, URIC_ACID, BMI, WEIGHT, WAIST] }
+        value: { type: number }
+        unit: { type: string, minLength: 1, maxLength: 32 }
+    LabObservationReviewRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, expected_version, code, value, unit, reason]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        expected_version: { type: integer, minimum: 1 }
+        code: { type: string, enum: [ALT, AST, GGT, URIC_ACID, BMI, WEIGHT, WAIST] }
+        value: { type: number }
+        unit: { type: string, minLength: 1, maxLength: 32 }
+        reason: { type: string, minLength: 3, maxLength: 240 }
     CoachThreadCreateRequest:
       type: object
       additionalProperties: false

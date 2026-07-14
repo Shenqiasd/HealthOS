@@ -12,15 +12,46 @@ import { WeeklyReviewWorker } from "./jobs/reviews/weekly-review-worker";
 import { RespectfulScheduler } from "./jobs/scheduling/respectful-scheduler";
 import { RespectfulSchedulerDispatcher } from "./jobs/scheduling/respectful-scheduler-dispatcher";
 import { WorkerTelemetry } from "./telemetry/worker-telemetry";
+import path from "node:path";
+import { LabParsingDispatcher } from "./jobs/labs/lab-parsing-dispatcher";
+import { LabParsingWorker } from "./jobs/labs/lab-parsing-worker";
+import {
+  FailClosedLabParserProvider,
+  LabParserProvider,
+  SyntheticFixtureLabParserProvider,
+} from "./jobs/labs/lab-parser-provider";
 
 const syntheticChannelDeliveryEnabled = () =>
   process.env.NODE_ENV !== "production" && process.env.HEALTHOS_CHANNEL_MODE === "synthetic";
+
+const syntheticLabsEnabled = () =>
+  process.env.NODE_ENV !== "production" && process.env.HEALTHOS_LABS_MODE === "synthetic";
 
 @Module({
   providers: [
     { provide: PrismaClient, useFactory: () => new PrismaClient() },
     { provide: WorkerTelemetry, useFactory: () => new WorkerTelemetry() },
     { provide: SyntheticLocalChannelProvider, useFactory: () => new SyntheticLocalChannelProvider() },
+    {
+      provide: LabParserProvider,
+      useFactory: () => syntheticLabsEnabled()
+        ? new SyntheticFixtureLabParserProvider(
+          process.env.HEALTHOS_LABS_FIXTURE_DIR ?? path.resolve(process.cwd(), "../../packages/test-fixtures/labs"),
+        )
+        : new FailClosedLabParserProvider(),
+    },
+    {
+      provide: LabParsingWorker,
+      inject: [PrismaClient, LabParserProvider],
+      useFactory: (database: PrismaClient, provider: LabParserProvider) =>
+        new LabParsingWorker(database, provider, { leaseSeconds: 300, timeoutMilliseconds: 30_000 }),
+    },
+    {
+      provide: LabParsingDispatcher,
+      inject: [PrismaClient, LabParsingWorker],
+      useFactory: (database: PrismaClient, worker: LabParsingWorker) =>
+        new LabParsingDispatcher(database, worker, { enabled: syntheticLabsEnabled(), pollMilliseconds: 5_000 }),
+    },
     {
       provide: ChannelDeliveryWorker,
       inject: [PrismaClient, SyntheticLocalChannelProvider],
@@ -100,6 +131,8 @@ const syntheticChannelDeliveryEnabled = () =>
     RespectfulScheduler,
     RespectfulSchedulerDispatcher,
     WorkerTelemetry,
+    LabParsingWorker,
+    LabParsingDispatcher,
   ],
 })
 export class WorkerModule {}

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "id": "synthetic-standard",
+  "object": {
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "mime_type": "application/pdf",
+    "size_bytes": 4096
+  },
+  "observations": [
+    {
+      "code": "ALT",
+      "value": "25",
+      "unit": "U/L",
+      "confidence": 0.995,
+      "page": 1,
+      "evidence_box": { "x": 0.1, "y": 0.2, "width": 0.2, "height": 0.04 },
+      "reference_range": "synthetic-reference"
+    },
+    {
+      "code": "URIC_ACID",
+      "value": "7.1",
+      "unit": "mg/dL",
+      "confidence": 0.75,
+      "page": 2,
+      "evidence_box": { "x": 0.2, "y": 0.3, "width": 0.2, "height": 0.04 }
+    }
+  ]
+}
