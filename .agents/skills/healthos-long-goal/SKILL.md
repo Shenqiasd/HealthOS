@@ -92,11 +92,11 @@ node .agents/skills/healthos-long-goal/scripts/scope-guard.mjs verify \
 - PM may pass `--allow 'docs/goals/healthos-v1/**'` for board maintenance only.
 - A scope violation blocks the task. Inspect and preserve user work; never delete an out-of-scope change merely to make the guard pass.
 
-## HealthOS Safety Gates
+## HealthOS Safety Gates And Sequencing
 
 The implementation plan is an existing approved engineering plan, not permission to fabricate non-technical approvals.
 
-Before downstream implementation, Task 0 must truthfully record the applicable decisions and named owners for:
+Task 0 must truthfully record the applicable decisions and named owners for:
 
 - privacy, data region, retention, and regulatory positioning;
 - medical-content and clinical governance;
@@ -104,7 +104,12 @@ Before downstream implementation, Task 0 must truthfully record the applicable d
 - enterprise messaging and the binary WeCom feasibility result;
 - incident response, backups, providers, and threat model.
 
-Never invent legal, medical, platform, provider, or owner sign-off. If a required decision is missing, mark the exact slice blocked with `required_reply` or required evidence. Continue only work that the implementation plan permits before that gate.
+Never invent legal, medical, platform, provider, or owner sign-off. Apply the product owner's 2026-07-14 two-tier decision:
+
+- **Development-essential safety** remains mandatory in each affected slice: ownership/authorization, consent/deletion fences, deterministic health rules, fixed emergency paths, provider-output validation, bounded inputs/uploads, privacy-safe logs, auditability, idempotency, feature flags, and kill switches. A reproducible failure blocks that slice.
+- **Pre-Beta hardening** does not block synthetic local Tasks 1-23: final security/threat-model sign-off, attack-style independent review, penetration testing, complete supply-chain/container/Terraform scans, production network/KMS validation, incident exercises, and backup/restore RPO/RTO evidence. Keep these pending for Tasks 24-27.
+- Missing external authority blocks only work that crosses into real data, real providers/channels, Apple entitlements/distribution, infrastructure promotion, TestFlight Beta, or production release. Continue independent synthetic work.
+- If an optional cyber-focused subagent is refused by platform policy, record the refusal as deferred release evidence and use deterministic local acceptance gates for the current functional slice; do not repeatedly resubmit the same attack-style prompt.
 
 Additional invariants:
 

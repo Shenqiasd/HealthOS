@@ -7,7 +7,7 @@ goal:
   title: "HealthOS V1.0 Production Release"
   slug: "healthos-v1"
   kind: existing_plan
-  tranche: "Validate current readiness, close Task 0 gates truthfully, then execute Task 1-27 in dependency order through release evidence."
+  tranche: "Execute synthetic functional Tasks 1-23 with development-essential safety; keep external approvals and full security/recovery hardening explicit for Tasks 24-27 before real-data Beta or production release."
   status: active
   oracle:
     signal: "The executable release-gate suite and final evidence audit prove Task 27, M6, and every Definition of Done item."
@@ -22,6 +22,7 @@ goal:
     authority_evidence:
       - "2026-07-10: Product owner explicitly approved entering implementation Task 0 and continuing later engineering tasks after their technical and governance dependencies pass."
       - "This approval does not substitute for named legal, privacy, medical, Apple, WeCom, provider, security, incident-response, or backup authority."
+      - "2026-07-14: Product owner approved removing nonessential security hardening from the functional-development critical path while retaining essential product safety and all pre-Beta release gates."
     proof_type: review
     completion_proof: "Task 27 and the Definition of Done pass against the implemented system, with a final Judge/PM audit recording full_outcome_complete: true."
     likely_misfire: "Declare success after reproducing the visual prototype or completing only a partial vertical slice."
@@ -34,6 +35,7 @@ goal:
       - "Use docs/plans/2026-07-10-healthos-v1-technical-design.md as the architecture and product contract."
       - "Use docs/plans/2026-07-10-healthos-v1-implementation.md as scope, dependency, verification, and release truth."
       - "Execute M0-M6 and Task 0-27; downstream tasks wait for applicable gates and listed dependencies."
+      - "Synthetic local Tasks 1-23 may proceed with Tier A safety while Tier B offensive review, full threat-model/security sign-off, production network/KMS, supply-chain scanning, incident exercises, and recovery drills remain deferred to Tasks 24-27."
       - "The image-backed prototype is design reference only and must not be copied into the native product."
       - "Product-owner approval to enter implementation Task 0 is still required by the technical design."
 
@@ -52,6 +54,26 @@ rules:
   intake_misfire_must_be_audited: true
   goal_pressure_requires_oracle: true
   no_completion_on_weak_proof: true
+  security_scope:
+    development_essential:
+      - ownership_and_authorization
+      - consent_and_deletion_fences
+      - deterministic_health_rules
+      - fixed_emergency_paths
+      - provider_output_validation
+      - bounded_inputs_and_uploads
+      - privacy_safe_logging_and_audit
+      - idempotency_feature_flags_and_kill_switches
+    pre_beta_release_hardening:
+      - named_security_and_threat_model_signoff
+      - offensive_review_and_penetration_testing
+      - complete_supply_chain_container_and_terraform_scans
+      - production_network_and_kms_validation
+      - incident_exercises
+      - backup_restore_rpo_rto_evidence
+    pre_beta_hardening_blocks_synthetic_tasks_1_through_23: false
+    pre_beta_hardening_blocks_real_data_external_providers_beta_and_production: true
+    cyber_policy_refusal_is_product_test_failure: false
   slice_policy:
     max_consecutive_tiny_tasks: 2
     prefer_vertical_slices: true
@@ -70,7 +92,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T048
+active_task: T049
 
 tasks:
   - id: T001
@@ -3256,7 +3278,7 @@ tasks:
   - id: T048
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Recover T047 by replacing fragile routing/output checks with canonical affirmative hazard classification, making limitation-candidate creation atomic with Coach-turn persistence, and starting evals inside OS network plus Node process/worker isolation before application imports. Preserve every prior evidence-lock, migration, contract, Actions clock, and no-native/no-real-provider requirement."
     inputs:
@@ -3308,6 +3330,161 @@ tasks:
       - "Atomic pending limitation candidate and Coach turn rollback semantics"
       - "Pre-import OS network and Node child/worker isolation with measured escape probes"
       - "All prior gates plus fresh independent no-P0/P1/P2 approval, while T115/native/real-provider remains incomplete"
+    receipt:
+      result: done
+      changed_files:
+        - apps/api/package.json
+        - apps/api/prisma/migrations/20260713210000_coach_server_foundation/migration.sql
+        - apps/api/prisma/schema.prisma
+        - apps/api/src/actions/actions.integration.spec.ts
+        - apps/api/src/ai/coach-provider-boundary.spec.ts
+        - apps/api/src/ai/coach-provider-boundary.ts
+        - apps/api/src/ai/coach-provider.ts
+        - apps/api/src/app.module.ts
+        - apps/api/src/coach/coach-context.spec.ts
+        - apps/api/src/coach/coach-context.ts
+        - apps/api/src/coach/coach-orchestrator.spec.ts
+        - apps/api/src/coach/coach-orchestrator.ts
+        - apps/api/src/coach/coach-routing.spec.ts
+        - apps/api/src/coach/coach-routing.ts
+        - apps/api/src/coach/coach-safety-text.ts
+        - apps/api/src/coach/coach.controller.ts
+        - apps/api/src/coach/coach.integration.spec.ts
+        - apps/api/src/coach/coach.module.ts
+        - apps/api/src/coach/coach.service.ts
+        - apps/api/src/coach/dto/create-coach-thread.dto.ts
+        - apps/api/src/coach/dto/send-coach-message.dto.ts
+        - apps/api/src/coach/openapi-contract.spec.ts
+        - apps/api/src/coach/prisma-coach-turn.store.ts
+        - apps/api/src/feature-flags/feature-flags.service.spec.ts
+        - apps/api/src/feature-flags/feature-flags.service.ts
+        - apps/api/src/kill-switches/dto/safety-control-action.dto.ts
+        - apps/api/src/kill-switches/openapi-contract.spec.ts
+        - apps/api/src/kill-switches/safety-controls.integration.spec.ts
+        - apps/api/src/kill-switches/safety-controls.service.ts
+        - apps/api/src/profile/profile-candidate.service.ts
+        - apps/api/src/profile/profile.module.ts
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - packages/evals/bin/eval-coach
+        - packages/evals/cases/coach/adversarial.json
+        - packages/evals/cases/coach/golden.json
+        - packages/evals/package.json
+        - packages/evals/src/coach-eval-runner.ts
+        - packages/evals/src/coach-isolation-contract.test.mjs
+        - packages/evals/src/node-runtime-isolation.ts
+        - packages/evals/src/run-coach-evals-isolated.mjs
+        - packages/evals/src/run-coach-evals.ts
+        - packages/evals/tsconfig.json
+      commands:
+        - cmd: "pnpm --filter @healthos/api exec jest --config jest.config.mjs src/ai/coach-provider-boundary.spec.ts --runInBand"
+          status: pass
+        - cmd: "pnpm --filter @healthos/evals test:coach-isolation"
+          status: pass
+        - cmd: packages/evals/bin/eval-coach
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "pnpm --filter @healthos/api build && pnpm --filter @healthos/worker build && pnpm --filter @healthos/admin build"
+          status: pass
+        - cmd: "DATABASE_URL=postgresql://healthos@127.0.0.1:55432/healthos_t048_judge?schema=public pnpm --filter @healthos/api exec jest --config jest.config.mjs src/coach src/ai --runInBand"
+          status: pass
+        - cmd: "prisma migrate diff against healthos_t048_judge"
+          status: pass
+        - cmd: "T048 exact scope guard"
+          status: pass
+        - cmd: "git push origin codex/channel-delivery"
+          status: pass
+      summary: "Implemented the synthetic Coach server foundation with authenticated threads, deterministic high-risk routing, fully buffered schema/citation/action validation, deterministic safe-term binding, atomic limitation-candidate and Coach-turn persistence, evidence and authorization locks, feature/kill controls, and a pre-import isolated eval launcher. Provider boundary tests pass 143/143, no-database API tests pass 334/334, PostgreSQL Coach/AI tests pass 352/352, and 109 Coach eval cases report 100 percent forbidden blocking with zero action/safety mutations and zero evaluation egress/process attempts."
+      evidence:
+        - "Product commit 06a9fbb pushed to origin/codex/channel-delivery."
+        - "The first fresh Judge reproduced specific noun-slot and executable-spoof false-green failures; each was converted to RED tests and fixed."
+        - "Specific medical negations now require exact deterministic allowedSafeTerms binding; the production orchestrator supplies none, so provider prose cannot invent medical terms."
+        - "The non-Node eval entry ignores inherited runtime selectors, validates a fixed-location Node 24 runtime, and requires one exact completion receipt after the child exits successfully."
+        - "The second independent attack-review attempt was interrupted by platform cyber policy before a verdict; no product test or migration failed."
+        - "On 2026-07-14 the product owner explicitly moved offensive security review and other nonessential hardening out of the functional-development critical path and into pre-Beta release gates."
+      deviations:
+        - "The final independent offensive-style Judge verdict is deferred to pre-Beta hardening because the platform blocked that review for possible cybersecurity risk. This does not count as production security approval."
+        - "No native iOS client or real LLM provider was implemented; full implementation Task 15/T115 remains incomplete."
+      risks_remaining:
+        - "Pre-Beta security review must independently revisit provider-output adversarial coverage and eval trust boundaries."
+        - "Real-provider governance, medical review, native Coach UI, and production deployment evidence remain pending."
+        - "GitHub Actions billing remains an external blocker and local evidence is not represented as remote CI."
+      next: "Activate T049 to apply the product-owner security-scope decision and select the next safe synthetic functional Worker package."
+  - id: T049
+    type: pm
+    assignee: PM
+    status: active
+    reasoning_hint: high
+    objective: "Apply the product owner's 2026-07-14 security-scope decision: keep essential health, privacy, authorization, audit, and AI-output safety inside functional development; move offensive security review, full threat-model sign-off, penetration/supply-chain/production-network hardening, and disaster-recovery exercises to explicit pre-Beta release gates so synthetic feature development continues."
+    inputs:
+      - "Product-owner instruction on 2026-07-14 to remove nonessential security work from the current development critical path"
+      - "T048 verified implementation and the cyber-policy interruption of its second independent attack review"
+      - "Current goal charter, implementation plan dependencies, long-goal skill, and queued T100-T127 tasks"
+    allowed_files:
+      - ".agents/skills/healthos-long-goal/SKILL.md"
+      - "docs/goals/healthos-v1/**"
+      - "docs/plans/2026-07-10-healthos-v1-implementation.md"
+    verify:
+      - "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+      - "node scripts/check-preflight-gates.mjs --mode structure"
+      - "node .agents/skills/healthos-long-goal/scripts/check-plan-coverage.mjs"
+      - "git diff --check"
+      - "Goal policy explicitly distinguishes development-essential safety from pre-Beta release hardening and does not authorize real health data or production launch"
+      - "At least one largest safe synthetic functional Worker task is activated after T049"
+    stop_if:
+      - "The change would remove authentication/authorization, consent/deletion, deterministic health rules, fixed emergency handling, LLM output validation, auditability, feature flags, or kill switches from functional development."
+      - "The change would claim production readiness, real-data authority, medical approval, or release approval without named evidence."
+      - "The change would make Task 24-27 disappear instead of moving nonessential hardening to release readiness."
+    expected_output:
+      - "Durable two-tier security scope in the goal charter, implementation plan, board, and long-goal instructions"
+      - "Synthetic/local functional work may proceed while external approvals and pre-Beta hardening remain truthfully deferred"
+      - "A concrete next Worker package that advances a V1 user workflow without Xcode, real providers, real data, or offensive security review"
+    receipt: null
+  - id: T050
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: xhigh
+    objective: "Implement the synthetic provider-neutral server foundation for implementation Task 9: authenticated lab-document intake and finalization, bounded object metadata verification, deterministic allowlisted parsing/normalization, evidence boxes, low-confidence abstention, user correction/confirmation, reviewer confirmation, privacy/deletion fencing, and profile-event publication only from usable observations. Use only generated fixtures and local adapters; do not complete native Labs or full T109."
+    inputs:
+      - "T049 two-tier security sequencing decision"
+      - "Existing LabDocument/LabObservation schema and confirmed-lab recommendation constraints"
+      - "Identity, consent, privacy, profile-event, outbox, audit, feature-flag, and kill-switch foundations"
+      - "Implementation plan Task 9, limited to a synthetic server/worker vertical slice"
+    allowed_files:
+      - ".env.example"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260714120000_labs_server_foundation/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/labs/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/labs/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/test-fixtures/labs/**"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Write RED API and worker tests for ownership, consent/privacy/deletion races, MIME/size/SHA/object-head mismatch, duplicate document idempotency, parser timeout, unknown units, conflicting fields, low confidence, evidence boxes, abstention, correction, confirmation, and deletion during parsing"
+      - "Implement provider ports with a non-production local synthetic adapter; production or unconfigured mode must fail closed and no external request may occur"
+      - "Prove only confirmed/usable allowlisted observations can publish a lab_value_corrected profile event or become recommendation inputs; extracted, conflicted, unsupported, deleted, or low-confidence values remain unusable"
+      - "Run Labs API/worker tests plus database constraints, identity, consent/privacy, profile, recommendations, and migration regression"
+      - "Run fresh and legacy migrations, restricted-owner proof, Prisma zero-diff, lint, recursive typecheck, API/worker/admin builds, no-database tests, audit, Docker config, diff check, and exact T050 scope guard"
+    stop_if:
+      - "Implementation requires real health files, a real OCR/parser/object-storage credential, an external network call, or a medically approved parser claim."
+      - "Raw report text or lab values would enter logs, analytics, notification payloads, or unencrypted general-purpose fixtures."
+      - "An unconfirmed, low-confidence, unsupported, conflicted, deleted, wrong-owner, or stale-consent observation can affect the profile or recommendation pipeline."
+      - "Implementation requires native iOS/Xcode work, full Task 9/T109 completion, pre-Beta offensive review, or files outside allowed_files."
+    expected_output:
+      - "Runnable authenticated Labs API and leased worker path using generated synthetic reports only"
+      - "Deterministic allowlisted normalization with evidence and explicit abstention/manual-confirmation states"
+      - "Transactional privacy-safe publication into the existing profile pipeline only after usable confirmation"
+      - "Contracts, migration, regression, and exact-scope evidence while native/provider/medical T109 remains incomplete"
     receipt: null
   - id: T003
     type: worker
@@ -3505,7 +3682,7 @@ tasks:
     assignee: Worker
     status: queued
     reasoning_hint: xhigh
-    objective: "Execute implementation plan Task 0: close governance, platform, and feasibility gates."
+    objective: "Close release governance, platform, and feasibility gates for real-data, external-integration, Beta, and production readiness. Pending Tier B evidence remains visible but does not block independent synthetic Tasks 1-23."
     allowed_files:
       - "docs/product/**"
       - "spikes/wecom-synthetic/**"
@@ -4443,7 +4620,7 @@ tasks:
     assignee: Worker
     status: queued
     reasoning_hint: xhigh
-    objective: "Execute implementation plan Task 24: perform security and privacy hardening."
+    objective: "Execute pre-Beta implementation Task 24: complete deferred security and privacy hardening without retroactively blocking already verified synthetic functional slices."
     allowed_files: []
     verify: []
     stop_if: []
@@ -4454,7 +4631,7 @@ tasks:
     assignee: Worker
     status: queued
     reasoning_hint: xhigh
-    objective: "Execute implementation plan Task 25: validate performance, reliability, backup, and recovery."
+    objective: "Execute pre-Beta implementation Task 25: validate performance, reliability, backup, and recovery release gates."
     allowed_files: []
     verify: []
     stop_if: []

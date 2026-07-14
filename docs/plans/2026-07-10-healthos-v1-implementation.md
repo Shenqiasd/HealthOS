@@ -21,6 +21,15 @@
 7. Do not start a downstream task until its listed dependencies are green on `main`.
 8. A visual screenshot is evidence for design fidelity, never evidence that the underlying workflow works.
 
+### 0.1 Security sequencing decision (2026-07-14)
+
+The product owner approved a two-tier sequence to keep synthetic functional development moving:
+
+- **Development-essential safety (Tier A)** stays inside every relevant task: ownership and authorization, consent/deletion fences, deterministic health rules, fixed emergency paths, provider-output validation, privacy-safe logs, auditability, idempotency, bounded inputs/uploads, feature flags, and kill switches. A failing Tier A invariant blocks the affected slice.
+- **Pre-Beta hardening (Tier B)** is not a prerequisite for synthetic local implementation of Tasks 1-23: final threat-model/security-owner sign-off, attack-style independent review, penetration testing, complete supply-chain/container/Terraform scans, production network/KMS validation, incident exercises, and backup/restore RPO/RTO evidence. Tasks 24-27 still own these release gates.
+
+Pending Tier B or named external approvals must remain explicit, but they block only real health data, real providers/channels, native distribution evidence, infrastructure promotion, TestFlight Beta, and production release. They do not block a local synthetic adapter, deterministic domain logic, API contract, server workflow, or UI implementation that does not cross that boundary.
+
 ## 1. Target Repository Layout
 
 ```text
@@ -86,7 +95,7 @@ HealthOS/
 
 **Step 1: Write the failing preflight check**
 
-Require named owners and signed decisions for data region, privacy/legal review, medical content, Apple Developer/App Store, enterprise messaging, incident response and backups. Require every external processor to have purpose, fields, region, retention, subprocessors, training-use policy and kill-switch behavior.
+Require named owners and signed decisions for data region, privacy/legal review, medical content, Apple Developer/App Store, enterprise messaging, incident response and backups before the corresponding real-data, external-provider, Beta, or production boundary. Pending decisions remain visible and keep full readiness red, but do not block synthetic local Tasks 1-23 under section 0.1. Require every enabled external processor to have purpose, fields, region, retention, subprocessors, training-use policy and kill-switch behavior before activation.
 
 **Step 2: Run it and verify failure**
 
@@ -1180,12 +1189,12 @@ git commit -m "docs: record HealthOS V1 release readiness"
 
 | Lane | Sequential tasks | Can start |
 |---|---|---|
-| Preflight | 0 | Immediately; all other lanes wait for applicable gates |
-| A Backend core | 1 -> 2 -> 3 -> 4 -> 5 -> 8 -> 10 -> 12 | Task 0 architecture gates |
-| B iOS foundation | 6 -> 7 -> 13 -> 14 -> 15 -> 16 -> 18 | Task 0 Apple gate and Task 2 contract draft |
-| C Data/operations | 9 -> 20 -> 21 | Task 0 provider/medical gates, Task 3 schema and Task 4 identity |
-| D Rules/quality | 11 -> Coach/Food eval support -> 23 -> 24 -> 25 | Task 0 medical/threat model and Task 2 |
-| E Channels/release | 19 -> 22 -> 26 -> 27 | Task 0 channel decision, Task 4 identity and Task 12 published snapshots |
+| Preflight | 0 | Immediately; pending decisions remain release-visible |
+| A Backend core | 1 -> 2 -> 3 -> 4 -> 5 -> 8 -> 10 -> 12 | Tier A architecture plus synthetic data |
+| B iOS foundation | 6 -> 7 -> 13 -> 14 -> 15 -> 16 -> 18 | Task 2 contract draft; Apple approval is required only for entitlements, devices, TestFlight, or distribution evidence |
+| C Data/operations | 9 -> 20 -> 21 | Task 3 schema and Task 4 identity; use local synthetic providers until provider/medical gates pass |
+| D Rules/quality | 11 -> Coach/Food eval support -> 23 -> 24 -> 25 | Tier A safety and Task 2; Tier B begins at Tasks 24-25 |
+| E Channels/release | 19 -> 22 -> 26 -> 27 | Local provider-neutral delivery may proceed; real APNs/WeCom and release require their named gates |
 
 Recommended merge order:
 

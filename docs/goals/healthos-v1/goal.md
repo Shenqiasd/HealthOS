@@ -12,7 +12,7 @@ Implement the complete first version of HealthOS as a real product rather than a
 
 - Input shape: `existing_plan`
 - Audience: HealthOS product, engineering, medical-review, operations, and release owners
-- Authority: product owner approved entering implementation Task 0 on 2026-07-10 and continuing later engineering tasks after their listed dependencies pass; named legal, privacy, medical, Apple, WeCom, provider, security, incident-response, backup, and release approvals remain separately required where the plan calls for them
+- Authority: product owner approved entering implementation Task 0 on 2026-07-10 and, on 2026-07-14, approved continuing synthetic functional development without waiting for nonessential pre-Beta security hardening; named legal, privacy, medical, Apple, WeCom, provider, security, incident-response, backup, and release approvals remain separately required before their real-data, external-integration, Beta, or production boundaries
 - Proof type: `test`, `artifact`, `metric`, `review`, and `decision`
 - Completion proof: Task 27 release gates and the plan's Definition of Done pass with traceable receipts, including TestFlight, safety, privacy, security, performance, recovery, operations, rollback, and SLO evidence
 - Goal oracle: the current executable release-gate suite and final Judge/PM evidence audit against the original V1 outcome
@@ -34,7 +34,7 @@ The PM must keep comparing task receipts to this oracle. Planning, discovery, a 
 
 ## Current Tranche
 
-Validate the existing plan against current repository reality, then complete Task 0 governance, platform, and feasibility gates without inventing human approvals. Once applicable gates pass, continuously execute the largest safe verified task packages in dependency order through Task 27.
+Continue the largest safe synthetic functional packages through the complete V1 workflow while keeping essential product safety inside each slice. Close external governance and pre-Beta hardening gates before real data, external providers, TestFlight Beta, infrastructure promotion, or production release, without inventing human approvals.
 
 ## Non-Negotiable Constraints
 
@@ -48,6 +48,21 @@ Validate the existing plan against current repository reality, then complete Tas
 - Preserve user-authored and unrelated untracked files.
 - Every task ends with verification, a narrow commit or identified diff, and a durable receipt.
 - WeCom remains optional and ships only if its binary feasibility gate passes; personal-WeChat bridging remains outside V1.
+
+## Security Scope And Development Continuity
+
+The product owner's 2026-07-14 decision establishes two security tiers so release hardening does not become an unbounded prerequisite for functional development.
+
+**Tier A: development-essential safety.** Every affected functional slice must implement and verify resource ownership, authentication/session boundaries, consent and deletion fences, deterministic health-decision rules, fixed emergency handling, provider-output validation, input and upload limits, privacy-safe logging, audit reconstruction, idempotency, feature flags, and kill switches. A reproducible Tier A failure blocks that slice.
+
+**Tier B: pre-Beta and production hardening.** Named security-owner approval, final threat-model sign-off, offensive review or penetration testing, complete dependency/container/Terraform/supply-chain scanning, production network and KMS validation, incident tabletop exercises, and backup/restore RPO/RTO drills are outside the current functional-development critical path. They remain required in Tasks 24-27 before real-data Beta or production release.
+
+Consequences:
+
+- Missing Tier B evidence does not block local development with synthetic data through Tasks 1-23.
+- Missing legal, medical, Apple, channel, or provider authority blocks only the slice that would use real data, real health advice, native entitlements, an external provider, or an external channel.
+- A cyber-policy refusal from an optional attack-style subagent is recorded as deferred release evidence; it is not treated as a product-code failure when deterministic local tests and the affected functional acceptance gates pass.
+- This sequencing change does not authorize real health data, remove Tasks 24-27, weaken Tier A checks, or permit HealthOS V1 completion before the final release audit.
 
 ## Stop Rule
 
