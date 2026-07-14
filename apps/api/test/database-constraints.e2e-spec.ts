@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
 
 import { createApp } from "../src/main";
@@ -24,6 +24,18 @@ describe("database invariants", () => {
 
   beforeAll(async () => {
     await database.$connect();
+    await database.$executeRawUnsafe(`
+      DO $role$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'healthos_restricted_app') THEN
+          CREATE ROLE healthos_restricted_app NOLOGIN;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'healthos_privacy_worker') THEN
+          CREATE ROLE healthos_privacy_worker NOLOGIN;
+        END IF;
+      END;
+      $role$
+    `);
   });
 
   beforeEach(async () => {
@@ -156,6 +168,264 @@ describe("database invariants", () => {
     });
     return { run, snapshot, user };
   }
+
+  function sha256(value: string): string {
+    return createHash("sha256").update(value).digest("hex");
+  }
+
+  async function createCoachFixture() {
+    const owner = await database.user.create({ data: { locale: "zh-CN", timezone: "Asia/Shanghai", consentEpoch: 1 } });
+    const other = await database.user.create({ data: { locale: "zh-CN", timezone: "Asia/Shanghai", consentEpoch: 1 } });
+    await database.consentRecord.createMany({ data: [
+      {
+        userId: owner.id,
+        consentType: "health_processing",
+        documentVersion: "synthetic-coach-v1",
+        granted: true,
+        epoch: 1,
+        correlationId: randomUUID(),
+        requestHash: randomUUID(),
+        source: "synthetic",
+      },
+      {
+        userId: other.id,
+        consentType: "health_processing",
+        documentVersion: "synthetic-coach-v1",
+        granted: true,
+        epoch: 1,
+        correlationId: randomUUID(),
+        requestHash: randomUUID(),
+        source: "synthetic",
+      },
+    ] });
+    const ownerThread = await database.coachThread.create({ data: {
+      userId: owner.id,
+      clientThreadId: randomUUID(),
+      idempotencyKey: randomUUID(),
+      requestHash: sha256("owner-thread"),
+    } });
+    const otherThread = await database.coachThread.create({ data: {
+      userId: other.id,
+      clientThreadId: randomUUID(),
+      idempotencyKey: randomUUID(),
+      requestHash: sha256("other-thread"),
+    } });
+    const otherCandidate = await database.profileCandidate.create({ data: {
+      userId: other.id,
+      candidateType: "mobility_limitation",
+      structuredValueJson: { code: "synthetic", active: true },
+      sourceTextHash: sha256("synthetic candidate"),
+      idempotencyKey: randomUUID(),
+      requestHash: sha256("synthetic candidate request"),
+    } });
+    return { owner, other, ownerThread, otherThread, otherCandidate };
+  }
+
+  function coachTurnData(userId: string, threadId: string, candidateId: string | null = null) {
+    return {
+      userId,
+      threadId,
+      idempotencyKey: randomUUID(),
+      requestHash: sha256(randomUUID()),
+      intent: "general_question",
+      resultJson: {
+        intent: "general_question",
+        short_answer: "synthetic",
+        reason: "synthetic",
+        action_code: null,
+        safety_class: "normal",
+        source_ids: [],
+        needs_human_review: false,
+        fixed_response: true,
+        fixed_response_code: "coach.evidence_unavailable",
+        candidate: null,
+      },
+      gateEvidenceJson: { summaryVersion: 0, consentEpoch: 1 },
+      candidateId,
+    };
+  }
+
+  function coachMessageData(input: {
+    userId: string;
+    threadId: string;
+    turnId: string;
+    sequence: number;
+    role: "user" | "assistant";
+    content: string;
+    contentHash?: string;
+  }) {
+    return {
+      userId: input.userId,
+      threadId: input.threadId,
+      turnId: input.turnId,
+      sequence: input.sequence,
+      role: input.role,
+      intent: "general_question",
+      content: input.content,
+      contentHash: input.contentHash ?? sha256(input.content),
+      sourcesJson: [],
+      evidenceHash: sha256("[]"),
+      safetyClass: "normal",
+      needsHumanReview: false,
+    };
+  }
+
+  test("binds every Coach turn and candidate to the same user-owned thread", async () => {
+    const fixture = await createCoachFixture();
+    await expect(database.coachTurn.create({ data: coachTurnData(
+      fixture.owner.id,
+      fixture.otherThread.id,
+    ) })).rejects.toThrow(/owner|thread|foreign key/i);
+    await expect(database.coachTurn.create({ data: coachTurnData(
+      fixture.owner.id,
+      fixture.ownerThread.id,
+      fixture.otherCandidate.id,
+    ) })).rejects.toThrow(/candidate|owner|foreign key/i);
+  });
+
+  test("binds new turn messages to the same turn thread and user", async () => {
+    const fixture = await createCoachFixture();
+    await expect(database.$transaction(async (tx) => {
+      const turn = await tx.coachTurn.create({ data: coachTurnData(fixture.owner.id, fixture.ownerThread.id) });
+      await tx.coachMessage.createMany({ data: [
+        coachMessageData({
+          userId: fixture.other.id,
+          threadId: fixture.ownerThread.id,
+          turnId: turn.id,
+          sequence: 1,
+          role: "user",
+          content: "synthetic user",
+        }),
+        coachMessageData({
+          userId: fixture.other.id,
+          threadId: fixture.ownerThread.id,
+          turnId: turn.id,
+          sequence: 2,
+          role: "assistant",
+          content: "synthetic assistant",
+        }),
+      ] });
+    })).rejects.toThrow(/turn|thread|user|foreign key/i);
+  });
+
+  test("verifies Coach content and canonical evidence hashes in the database", async () => {
+    const fixture = await createCoachFixture();
+    await expect(database.$transaction(async (tx) => {
+      const turn = await tx.coachTurn.create({ data: coachTurnData(fixture.owner.id, fixture.ownerThread.id) });
+      await tx.coachMessage.createMany({ data: [
+        coachMessageData({
+          userId: fixture.owner.id,
+          threadId: fixture.ownerThread.id,
+          turnId: turn.id,
+          sequence: 1,
+          role: "user",
+          content: "synthetic user",
+          contentHash: "0".repeat(64),
+        }),
+        coachMessageData({
+          userId: fixture.owner.id,
+          threadId: fixture.ownerThread.id,
+          turnId: turn.id,
+          sequence: 2,
+          role: "assistant",
+          content: "synthetic assistant",
+        }),
+      ] });
+    })).rejects.toThrow(/content.*hash|hash.*content/i);
+  });
+
+  test("verifies the Coach evidence hash against canonical stored JSON", async () => {
+    const fixture = await createCoachFixture();
+    await expect(database.$transaction(async (tx) => {
+      const turn = await tx.coachTurn.create({ data: coachTurnData(fixture.owner.id, fixture.ownerThread.id) });
+      await tx.coachMessage.createMany({ data: [
+        coachMessageData({
+          userId: fixture.owner.id,
+          threadId: fixture.ownerThread.id,
+          turnId: turn.id,
+          sequence: 1,
+          role: "user",
+          content: "synthetic user",
+        }),
+        {
+          ...coachMessageData({
+            userId: fixture.owner.id,
+            threadId: fixture.ownerThread.id,
+            turnId: turn.id,
+            sequence: 2,
+            role: "assistant",
+            content: "synthetic assistant",
+          }),
+          evidenceHash: "0".repeat(64),
+        },
+      ] });
+    })).rejects.toThrow(/evidence.*hash|hash.*evidence/i);
+  });
+
+  test("requires exactly one user then one assistant message for every new Coach turn", async () => {
+    const fixture = await createCoachFixture();
+    await expect(database.$transaction(async (tx) => {
+      const turn = await tx.coachTurn.create({ data: coachTurnData(fixture.owner.id, fixture.ownerThread.id) });
+      await tx.coachMessage.createMany({ data: [
+        coachMessageData({
+          userId: fixture.owner.id,
+          threadId: fixture.ownerThread.id,
+          turnId: turn.id,
+          sequence: 1,
+          role: "assistant",
+          content: "synthetic assistant one",
+        }),
+        coachMessageData({
+          userId: fixture.owner.id,
+          threadId: fixture.ownerThread.id,
+          turnId: turn.id,
+          sequence: 3,
+          role: "assistant",
+          content: "synthetic assistant two",
+        }),
+      ] });
+    })).rejects.toThrow(/exactly|sequence|role|pair/i);
+  });
+
+  test("binds persisted Coach gate summary version to the immutable thread version", async () => {
+    const fixture = await createCoachFixture();
+    await expect(database.coachTurn.create({ data: {
+      ...coachTurnData(fixture.owner.id, fixture.ownerThread.id),
+      gateEvidenceJson: { summaryVersion: 1, consentEpoch: 1 },
+    } })).rejects.toThrow(/summary.*version/i);
+  });
+
+  test("uses Coach invariants for restricted mutation and the authorized frozen-user delete path", async () => {
+    const fixture = await createCoachFixture();
+    await database.$executeRawUnsafe(
+      "GRANT USAGE ON SCHEMA public TO healthos_restricted_app",
+    );
+    await database.$executeRawUnsafe(
+      "GRANT SELECT, UPDATE, DELETE ON coach_threads, coach_turns, coach_messages TO healthos_restricted_app",
+    );
+    await database.$executeRawUnsafe(
+      "GRANT EXECUTE ON FUNCTION healthos_delete_frozen_user(UUID) TO healthos_privacy_worker",
+    );
+
+    await expect(database.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL ROLE healthos_restricted_app");
+      await tx.$executeRaw`UPDATE "coach_threads" SET "summary" = 'mutated' WHERE "id" = ${fixture.ownerThread.id}::uuid`;
+    })).rejects.toThrow(/immutable/i);
+    await expect(database.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL ROLE healthos_restricted_app");
+      await tx.$executeRaw`DELETE FROM "coach_threads" WHERE "id" = ${fixture.ownerThread.id}::uuid`;
+    })).rejects.toThrow(/immutable/i);
+
+    await database.user.update({
+      where: { id: fixture.owner.id },
+      data: { status: "deleting", deletedAt: new Date() },
+    });
+    await database.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL ROLE healthos_privacy_worker");
+      await tx.$queryRaw`SELECT "healthos_delete_frozen_user"(${fixture.owner.id}::uuid)`;
+    });
+    expect(await database.coachThread.count({ where: { id: fixture.ownerThread.id } })).toBe(0);
+  });
 
   test("rejects action assignment provenance from an unpublished snapshot", async () => {
     const { snapshot, user } = await createPublishedSnapshot();

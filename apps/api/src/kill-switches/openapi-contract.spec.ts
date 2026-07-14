@@ -26,6 +26,8 @@ describe("safety-control OpenAPI contract", () => {
     ]));
     expect(document.request.properties.expected_version.minimum).toBe(0);
     expect(document.request.properties.reason).toEqual({ $ref: "#/components/schemas/SafetyControlReasonCode" });
+    expect(document.request.properties.control_key.enum).toContain("feature.llm_generation");
+    expect(document.response.properties.control_key.enum).toContain("feature.llm_generation");
     expect(document.response.additionalProperties).toBe(false);
   });
 });

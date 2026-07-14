@@ -5,6 +5,8 @@
   "scripts": {
     "generate:fixtures": "tsx src/generate-rule-fixtures.ts",
     "eval:rules": "tsx src/run-rule-cases.ts",
+    "eval:coach": "./bin/eval-coach",
+    "test:coach-isolation": "node --test src/coach-isolation-contract.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

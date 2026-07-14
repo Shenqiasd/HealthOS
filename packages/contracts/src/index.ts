@@ -19,6 +19,64 @@ export interface ErrorEnvelope {
   };
 }
 
+export type CoachIntent =
+  | "emergency" | "diagnosis_request" | "medication_request" | "unsupported_monitoring"
+  | "prompt_injection" | "prohibited_mutation" | "explain_action" | "lighter"
+  | "swap" | "limitation_candidate" | "general_question";
+export type CoachSafetyClass = "normal" | "caution" | "doctor" | "blocked";
+
+export interface CoachThreadCreateRequest {
+  client_thread_id: string;
+  idempotency_key: string;
+}
+
+export interface CoachThreadResponse {
+  id: string;
+  client_thread_id: string;
+  status: "active";
+  summary_version: number;
+  created_at: string;
+}
+
+export interface CoachMessageSendRequest {
+  idempotency_key: string;
+  expected_summary_version: number;
+  user_text: string;
+  ocr_text?: string;
+}
+
+export interface CoachTurnResult {
+  intent: CoachIntent;
+  short_answer: string;
+  reason: string;
+  action_code: string | null;
+  safety_class: CoachSafetyClass;
+  source_ids: string[];
+  needs_human_review: boolean;
+  fixed_response: boolean;
+  fixed_response_code: string | null;
+  candidate: { id: string; status: "pending" } | null;
+}
+
+export interface CoachMessageResponse {
+  id: string;
+  sequence: number;
+  role: "user" | "assistant";
+  intent: CoachIntent;
+  content: string;
+  sources: string[];
+  safety_class: CoachSafetyClass;
+  action_code: string | null;
+  fixed_response_code: string | null;
+  needs_human_review: boolean;
+  created_at: string;
+}
+
+export interface CoachMessagePage {
+  thread: CoachThreadResponse;
+  messages: CoachMessageResponse[];
+}
+
 export interface NonceResponse {
   nonce: string;
   expires_at: string;
@@ -515,7 +573,8 @@ export type SafetyControlKey =
   | "review.share"
   | "feature.daily_recommendations"
   | "feature.weekly_review_share"
-  | "feature.channel_delivery";
+  | "feature.channel_delivery"
+  | "feature.llm_generation";
 export type SafetyControlScopeType = "global" | "channel" | "rule_bundle" | "user";
 export type SafetyControlReasonCode =
   | "incident_containment"

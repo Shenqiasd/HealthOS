@@ -217,6 +217,84 @@ describe("audited safety controls", () => {
       .resolves.toMatchObject({ enabled: false, reason: "disabled_revision", version: 2 });
   });
 
+  test("operates LLM generation only through the audited global feature-flag path", async () => {
+    const flags = app.get(FeatureFlagsService);
+    const operator = await actor("llm-flag-operator", "operator");
+    const headers = { ...operator.headers, "x-correlation-id": randomUUID() };
+    const input = {
+      control_type: "feature_flag",
+      control_key: "feature.llm_generation",
+      scope_type: "global",
+      scope_id: "*",
+      active: true,
+      expected_version: 0,
+      idempotency_key: randomUUID(),
+      reason: "staged_rollout",
+    };
+
+    await expect(flags.evaluate("feature.llm_generation" as never, { type: "global", id: "*" }))
+      .resolves.toMatchObject({ enabled: false, reason: "missing_revision_fail_closed", version: 0 });
+
+    const created = await app.inject({
+      method: "POST", url: "/admin/safety-controls/actions", headers, payload: input,
+    });
+    expect(created.statusCode).toBe(200);
+    expect(created.json()).toMatchObject({
+      control_type: "feature_flag",
+      control_key: "feature.llm_generation",
+      scope_type: "global",
+      scope_id: "*",
+      active: true,
+      version: 1,
+    });
+    const replay = await app.inject({
+      method: "POST", url: "/admin/safety-controls/actions", headers, payload: input,
+    });
+    expect(replay.statusCode).toBe(200);
+    expect(replay.json()).toEqual(created.json());
+    expect(await database.safetyControlRevision.count({
+      where: { controlType: "feature_flag", controlKey: "feature.llm_generation" },
+    })).toBe(1);
+    expect(await database.safetyControlAuditConsumption.count()).toBe(1);
+    await expect(flags.evaluate("feature.llm_generation" as never, { type: "global", id: "*" }))
+      .resolves.toMatchObject({ enabled: true, reason: "enabled_revision", version: 1 });
+
+    const wrongType = await app.inject({
+      method: "POST", url: "/admin/safety-controls/actions",
+      headers: { ...operator.headers, "x-correlation-id": randomUUID() },
+      payload: { ...input, control_type: "kill_switch", idempotency_key: randomUUID() },
+    });
+    expect(wrongType.statusCode).toBe(400);
+    const wrongScope = await app.inject({
+      method: "POST", url: "/admin/safety-controls/actions",
+      headers: { ...operator.headers, "x-correlation-id": randomUUID() },
+      payload: {
+        ...input,
+        scope_type: "channel",
+        scope_id: "apns",
+        idempotency_key: randomUUID(),
+      },
+    });
+    expect(wrongScope.statusCode).toBe(400);
+
+    const next = { ...input, active: false, expected_version: 1 };
+    const attempts = await Promise.all([
+      app.inject({
+        method: "POST", url: "/admin/safety-controls/actions",
+        headers: { ...operator.headers, "x-correlation-id": randomUUID() },
+        payload: { ...next, idempotency_key: randomUUID() },
+      }),
+      app.inject({
+        method: "POST", url: "/admin/safety-controls/actions",
+        headers: { ...operator.headers, "x-correlation-id": randomUUID() },
+        payload: { ...next, idempotency_key: randomUUID() },
+      }),
+    ]);
+    expect(attempts.map((response) => response.statusCode).sort()).toEqual([200, 409]);
+    await expect(flags.evaluate("feature.llm_generation" as never, { type: "global", id: "*" }))
+      .resolves.toMatchObject({ enabled: false, reason: "disabled_revision", version: 2 });
+  });
+
   test("database rejects unaudited, invalid-scope, and mutable control evidence", async () => {
     const operator = await actor("db-operator", "operator");
     await expect(database.safetyControlRevision.create({ data: {

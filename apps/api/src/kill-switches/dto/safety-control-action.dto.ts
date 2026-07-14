@@ -26,6 +26,7 @@ export class SafetyControlActionDto {
     "feature.daily_recommendations",
     "feature.weekly_review_share",
     "feature.channel_delivery",
+    "feature.llm_generation",
   ])
   control_key!: string;
 

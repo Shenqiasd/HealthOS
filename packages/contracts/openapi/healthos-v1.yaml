@@ -131,6 +131,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /coach/threads:
+    post:
+      operationId: createCoachThread
+      summary: Create or replay one authenticated immutable Coach thread
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CoachThreadCreateRequest" }
+      responses:
+        "201":
+          description: The created thread or exact idempotent replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachThread" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /coach/threads/{thread_id}/messages:
+    parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: sendCoachMessage
+      summary: Classify and atomically persist one safe Coach turn
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CoachMessageSendRequest" }
+      responses:
+        "200":
+          description: A fully buffered validated result or fixed safe response.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachTurnResult" }
+        "400": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    get:
+      operationId: listCoachMessages
+      summary: Read immutable messages owned by the authenticated user
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Ordered immutable Coach messages.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachMessagePage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /map:
     get:
       operationId: getHealthSignalMap
@@ -920,6 +979,91 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
   schemas:
+    CoachThreadCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [client_thread_id, idempotency_key]
+      properties:
+        client_thread_id: { type: string, format: uuid }
+        idempotency_key: { type: string, format: uuid }
+    CoachThread:
+      type: object
+      additionalProperties: false
+      required: [id, client_thread_id, status, summary_version, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        client_thread_id: { type: string, format: uuid }
+        status: { const: active }
+        summary_version: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+    CoachMessageSendRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, expected_summary_version, user_text]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        expected_summary_version: { type: integer, minimum: 0 }
+        user_text: { type: string, minLength: 1, maxLength: 4000 }
+        ocr_text: { type: string, maxLength: 4000 }
+    CoachPendingCandidate:
+      type: object
+      additionalProperties: false
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { const: pending }
+    CoachTurnResult:
+      type: object
+      additionalProperties: false
+      required: [intent, short_answer, reason, action_code, safety_class, source_ids, needs_human_review, fixed_response, fixed_response_code, candidate]
+      properties:
+        intent:
+          type: string
+          enum: [emergency, diagnosis_request, medication_request, unsupported_monitoring, prompt_injection, prohibited_mutation, explain_action, lighter, swap, limitation_candidate, general_question]
+        short_answer: { type: string, minLength: 1, maxLength: 600 }
+        reason: { type: string, minLength: 1, maxLength: 1200 }
+        action_code: { type: [string, "null"], maxLength: 100 }
+        safety_class: { type: string, enum: [normal, caution, doctor, blocked] }
+        source_ids:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uuid }
+        needs_human_review: { type: boolean }
+        fixed_response: { type: boolean }
+        fixed_response_code: { type: [string, "null"], maxLength: 100 }
+        candidate:
+          oneOf:
+            - { $ref: "#/components/schemas/CoachPendingCandidate" }
+            - { type: "null" }
+    CoachMessage:
+      type: object
+      additionalProperties: false
+      required: [id, sequence, role, intent, content, sources, safety_class, action_code, fixed_response_code, needs_human_review, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        sequence: { type: integer, minimum: 1 }
+        role: { type: string, enum: [user, assistant] }
+        intent: { $ref: "#/components/schemas/CoachTurnResult/properties/intent" }
+        content: { type: string, minLength: 1, maxLength: 4000 }
+        sources:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uuid }
+        safety_class: { type: string, enum: [normal, caution, doctor, blocked] }
+        action_code: { type: [string, "null"] }
+        fixed_response_code: { type: [string, "null"] }
+        needs_human_review: { type: boolean }
+        created_at: { type: string, format: date-time }
+    CoachMessagePage:
+      type: object
+      additionalProperties: false
+      required: [thread, messages]
+      properties:
+        thread: { $ref: "#/components/schemas/CoachThread" }
+        messages:
+          type: array
+          maxItems: 500
+          items: { $ref: "#/components/schemas/CoachMessage" }
     AdminReviewTask:
       type: object
       additionalProperties: false
@@ -975,6 +1119,7 @@ components:
             - feature.daily_recommendations
             - feature.weekly_review_share
             - feature.channel_delivery
+            - feature.llm_generation
         scope_type: { type: string, enum: [global, channel, rule_bundle, user] }
         scope_id: { type: string, minLength: 1, maxLength: 100 }
         active: { type: boolean }
@@ -1009,6 +1154,7 @@ components:
             - feature.daily_recommendations
             - feature.weekly_review_share
             - feature.channel_delivery
+            - feature.llm_generation
         scope_type: { type: string, enum: [global, channel, rule_bundle, user] }
         scope_id: { type: string, minLength: 1, maxLength: 100 }
         active: { type: boolean }

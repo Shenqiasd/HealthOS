@@ -166,6 +166,8 @@ model User {
   weeklyReviews          WeeklyReviewSnapshot[]
   weeklyReviewShares     WeeklyReviewShare[]
   coachThreads           CoachThread[]
+  coachTurns             CoachTurn[]
+  coachMessages          CoachMessage[]
   channelOutbox          ChannelOutbox[]
   domainOutbox           DomainOutbox[]
   safetyIncidents        SafetyIncident[]
@@ -525,8 +527,10 @@ model ProfileCandidate {
   confirmedAt         DateTime?              @map("confirmed_at") @db.Timestamptz(6)
   user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   confirmedEvent      ProfileEvent?          @relation("CandidateConfirmation", fields: [confirmedEventId, userId], references: [id, userId], onDelete: Cascade, map: "profile_candidates_confirmed_event_id_fkey")
+  coachTurns          CoachTurn[]             @relation("CoachTurnCandidateOwnership")
 
   @@unique([userId, idempotencyKey])
+  @@unique([id, userId])
   @@unique([confirmedEventId, userId])
   @@index([userId, status, createdAt])
   @@map("profile_candidates")
@@ -847,31 +851,71 @@ model WeeklyReviewShare {
 model CoachThread {
   id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId         String         @map("user_id") @db.Uuid
+  clientThreadId String         @map("client_thread_id") @db.Uuid
+  idempotencyKey String         @map("idempotency_key") @db.Uuid
+  requestHash    String         @map("request_hash")
   status         RecordStatus   @default(active)
   summary        String?
   summaryVersion Int            @default(0) @map("summary_version")
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages       CoachMessage[]
+  messages       CoachMessage[] @relation("CoachMessageThreadOwnership")
+  turns          CoachTurn[]    @relation("CoachTurnThreadOwnership")
 
+  @@unique([id, userId])
+  @@unique([userId, clientThreadId])
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
   @@map("coach_threads")
 }
 
 model CoachMessage {
   id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
   threadId      String      @map("thread_id") @db.Uuid
+  turnId        String?     @map("turn_id") @db.Uuid
+  sequence      Int
   role          String
   intent        String
   content       String
+  contentHash   String      @map("content_hash")
   sourcesJson   Json        @map("sources_json") @db.JsonB
+  evidenceHash  String      @map("evidence_hash")
   safetyClass   String      @map("safety_class")
+  actionCode    String?     @map("action_code")
+  fixedResponseCode String? @map("fixed_response_code")
+  needsHumanReview Boolean  @default(false) @map("needs_human_review")
   modelMetadata Json?       @map("model_metadata") @db.JsonB
   createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  thread        CoachThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread        CoachThread @relation("CoachMessageThreadOwnership", fields: [threadId, userId], references: [id, userId], onDelete: Cascade)
+  turn          CoachTurn?  @relation("CoachMessageTurnOwnership", fields: [turnId, threadId, userId], references: [id, threadId, userId], onDelete: Cascade)
 
+  @@unique([threadId, sequence])
   @@index([threadId, createdAt])
   @@map("coach_messages")
+}
+
+model CoachTurn {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  threadId           String         @map("thread_id") @db.Uuid
+  idempotencyKey     String         @map("idempotency_key") @db.Uuid
+  requestHash        String         @map("request_hash")
+  intent             String
+  resultJson         Json           @map("result_json") @db.JsonB
+  gateEvidenceJson   Json           @map("gate_evidence_json") @db.JsonB
+  candidateId        String?        @map("candidate_id") @db.Uuid
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread             CoachThread       @relation("CoachTurnThreadOwnership", fields: [threadId, userId], references: [id, userId], onDelete: Cascade)
+  candidate          ProfileCandidate? @relation("CoachTurnCandidateOwnership", fields: [candidateId, userId], references: [id, userId], onDelete: Cascade)
+  messages           CoachMessage[]    @relation("CoachMessageTurnOwnership")
+
+  @@unique([userId, idempotencyKey])
+  @@unique([id, threadId, userId])
+  @@index([threadId, createdAt])
+  @@map("coach_turns")
 }
 
 model ChannelOutbox {

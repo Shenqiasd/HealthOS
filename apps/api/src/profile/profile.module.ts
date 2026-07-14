@@ -28,5 +28,6 @@ import { ProfileSnapshotService } from "./profile-snapshot.service";
       useFactory: (database: DatabaseService) => new ProfileSnapshotService(database),
     },
   ],
+  exports: [ProfileCandidateService],
 })
 export class ProfileModule {}
