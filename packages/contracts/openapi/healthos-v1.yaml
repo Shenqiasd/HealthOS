@@ -213,6 +213,103 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
+  /food/scans:
+    post:
+      operationId: createFoodScan
+      summary: Create one consent-bound bounded synthetic meal-image intake
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FoodScanIntakeRequest" }
+      responses:
+        "201":
+          description: Created scan intake or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodScan" }
+        "400": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
+  /food/scans/{scan_id}:
+    parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getFoodScan
+      summary: Read one owned scan with evidence-bound qualitative output
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Owned Food Risk Scan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodScan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /food/scans/{scan_id}/finalize:
+    parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: finalizeFoodScan
+      summary: Verify image metadata and enqueue one consent-bound synthetic analysis
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FoodScanFinalizeRequest" }
+      responses:
+        "200":
+          description: Verified active scan or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodScan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
+  /food/scans/{scan_id}/corrections:
+    parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: correctFoodScan
+      summary: Append one owned qualitative correction without automatic learning
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FoodCorrectionRequest" }
+      responses:
+        "200":
+          description: Corrected effective scan view or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodScan" }
+        "400": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
   /today:
     get:
       operationId: getToday
@@ -1177,6 +1274,132 @@ components:
         value: { type: number }
         unit: { type: string, minLength: 1, maxLength: 32 }
         reason: { type: string, minLength: 3, maxLength: 240 }
+    FoodScanIntakeRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, sha256, mime_type, size_bytes, captured_at]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        mime_type: { type: string, enum: [image/png, image/jpeg] }
+        size_bytes: { type: integer, minimum: 1, maximum: 10485760 }
+        captured_at: { type: string, format: date-time }
+    FoodScanFinalizeRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+    FoodEvidenceBox:
+      type: object
+      additionalProperties: false
+      required: [x, y, width, height]
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+        width: { type: number, exclusiveMinimum: 0, maximum: 1 }
+        height: { type: number, exclusiveMinimum: 0, maximum: 1 }
+    FoodDishCandidate:
+      type: object
+      additionalProperties: false
+      required: [id, code, confidence, evidence_box, disposition_code]
+      properties:
+        id: { type: string, format: uuid }
+        code:
+          type: string
+          enum: [red_braised_pork, white_rice, milk_tea, fried_dish, ambiguous_beverage, mixed_meat_dish, beer, soup, vegetables]
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence_box: { $ref: "#/components/schemas/FoodEvidenceBox" }
+        disposition_code: { type: string, enum: [visible, needs_confirmation, abstained] }
+    FoodRiskLabel:
+      type: object
+      additionalProperties: false
+      required: [id, label, level, confidence, evidence_box, disposition_code]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, enum: [sugary_drink, alcohol, high_oil, refined_carbohydrate, high_purine] }
+        level: { type: string, enum: [unknown, low, medium, high] }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence_box: { $ref: "#/components/schemas/FoodEvidenceBox" }
+        disposition_code: { type: string, enum: [visible, needs_confirmation, abstained] }
+    FoodLabelCorrection:
+      type: object
+      additionalProperties: false
+      required: [label, level]
+      properties:
+        label: { type: string, enum: [sugary_drink, alcohol, high_oil, refined_carbohydrate, high_purine] }
+        level: { type: string, enum: [unknown, low, medium, high] }
+    FoodCorrectionRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, expected_version, meal_presence, meal_completeness, dish_codes, labels, reason]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        expected_version: { type: integer, minimum: 1 }
+        meal_presence: { type: string, enum: [food, no_food, uncertain] }
+        meal_completeness: { type: string, enum: [complete, cropped, unknown] }
+        dish_codes:
+          type: array
+          uniqueItems: true
+          maxItems: 8
+          items:
+            type: string
+            enum: [red_braised_pork, white_rice, milk_tea, fried_dish, ambiguous_beverage, mixed_meat_dish, beer, soup, vegetables]
+        labels:
+          type: array
+          uniqueItems: true
+          maxItems: 5
+          items: { $ref: "#/components/schemas/FoodLabelCorrection" }
+        reason: { type: string, minLength: 3, maxLength: 240 }
+    FoodCorrection:
+      type: object
+      additionalProperties: false
+      required: [id, meal_presence, meal_completeness, dish_codes, labels, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        meal_presence: { type: string, enum: [food, no_food, uncertain] }
+        meal_completeness: { type: string, enum: [complete, cropped, unknown] }
+        dish_codes:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            enum: [red_braised_pork, white_rice, milk_tea, fried_dish, ambiguous_beverage, mixed_meat_dish, beer, soup, vegetables]
+        labels:
+          type: array
+          maxItems: 5
+          items: { $ref: "#/components/schemas/FoodLabelCorrection" }
+        created_at: { type: string, format: date-time }
+    FoodScan:
+      type: object
+      additionalProperties: false
+      required: [id, object_key, sha256, mime_type, size_bytes, captured_at, status, failure_code, meal_presence, meal_completeness, overall_confidence, disposition_code, version, dish_candidates, risk_labels, latest_correction]
+      properties:
+        id: { type: string, format: uuid }
+        object_key: { type: string, maxLength: 300 }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        mime_type: { type: string, enum: [image/png, image/jpeg] }
+        size_bytes: { type: integer, minimum: 1, maximum: 10485760 }
+        captured_at: { type: string, format: date-time }
+        status: { type: string, enum: [pending, active, completed, failed, suppressed, deleted] }
+        failure_code: { type: [string, "null"] }
+        meal_presence: { type: string, enum: [food, no_food, uncertain] }
+        meal_completeness: { type: string, enum: [complete, cropped, unknown, unsupported] }
+        overall_confidence: { type: number, minimum: 0, maximum: 1 }
+        disposition_code: { type: string, enum: [awaiting_processing, visible, needs_confirmation, no_food, unsupported, abstained, user_confirmed] }
+        version: { type: integer, minimum: 1 }
+        dish_candidates:
+          type: array
+          maxItems: 8
+          items: { $ref: "#/components/schemas/FoodDishCandidate" }
+        risk_labels:
+          type: array
+          maxItems: 5
+          items: { $ref: "#/components/schemas/FoodRiskLabel" }
+        latest_correction:
+          oneOf:
+            - { $ref: "#/components/schemas/FoodCorrection" }
+            - { type: "null" }
     CoachThreadCreateRequest:
       type: object
       additionalProperties: false

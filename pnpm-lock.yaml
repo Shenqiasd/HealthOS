@@ -184,6 +184,9 @@ importers:
 
   packages/evals:
     dependencies:
+      '@healthos/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@healthos/rules':
         specifier: workspace:*
         version: link:../rules

@@ -20,12 +20,22 @@ import {
   LabParserProvider,
   SyntheticFixtureLabParserProvider,
 } from "./jobs/labs/lab-parser-provider";
+import { FoodRiskDispatcher } from "./jobs/food/food-risk-dispatcher";
+import { FoodRiskWorker } from "./jobs/food/food-risk-worker";
+import {
+  FailClosedFoodVisionProvider,
+  FoodVisionProvider,
+  SyntheticFixtureFoodVisionProvider,
+} from "./jobs/food/food-vision-provider";
 
 const syntheticChannelDeliveryEnabled = () =>
   process.env.NODE_ENV !== "production" && process.env.HEALTHOS_CHANNEL_MODE === "synthetic";
 
 const syntheticLabsEnabled = () =>
   process.env.NODE_ENV !== "production" && process.env.HEALTHOS_LABS_MODE === "synthetic";
+
+const syntheticFoodEnabled = () =>
+  process.env.NODE_ENV !== "production" && process.env.HEALTHOS_FOOD_MODE === "synthetic";
 
 @Module({
   providers: [
@@ -51,6 +61,26 @@ const syntheticLabsEnabled = () =>
       inject: [PrismaClient, LabParsingWorker],
       useFactory: (database: PrismaClient, worker: LabParsingWorker) =>
         new LabParsingDispatcher(database, worker, { enabled: syntheticLabsEnabled(), pollMilliseconds: 5_000 }),
+    },
+    {
+      provide: FoodVisionProvider,
+      useFactory: () => syntheticFoodEnabled()
+        ? new SyntheticFixtureFoodVisionProvider(
+          process.env.HEALTHOS_FOOD_FIXTURE_DIR ?? path.resolve(process.cwd(), "../../packages/test-fixtures/food"),
+        )
+        : new FailClosedFoodVisionProvider(),
+    },
+    {
+      provide: FoodRiskWorker,
+      inject: [PrismaClient, FoodVisionProvider],
+      useFactory: (database: PrismaClient, provider: FoodVisionProvider) =>
+        new FoodRiskWorker(database, provider, { leaseSeconds: 300, timeoutMilliseconds: 30_000 }),
+    },
+    {
+      provide: FoodRiskDispatcher,
+      inject: [PrismaClient, FoodRiskWorker],
+      useFactory: (database: PrismaClient, worker: FoodRiskWorker) =>
+        new FoodRiskDispatcher(database, worker, { enabled: syntheticFoodEnabled(), pollMilliseconds: 5_000 }),
     },
     {
       provide: ChannelDeliveryWorker,
@@ -133,6 +163,8 @@ const syntheticLabsEnabled = () =>
     WorkerTelemetry,
     LabParsingWorker,
     LabParsingDispatcher,
+    FoodRiskWorker,
+    FoodRiskDispatcher,
   ],
 })
 export class WorkerModule {}

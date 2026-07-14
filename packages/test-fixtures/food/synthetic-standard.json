@@ -1,0 +1,56 @@
+{
+  "synthetic_only": true,
+  "object": {
+    "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "mime_type": "image/jpeg",
+    "size_bytes": 2048
+  },
+  "result": {
+    "meal_presence": "food",
+    "meal_completeness": "complete",
+    "overall_confidence": 0.96,
+    "dishes": [
+      {
+        "code": "red_braised_pork",
+        "confidence": 0.96,
+        "evidence_box": { "x": 0.05, "y": 0.1, "width": 0.35, "height": 0.4 }
+      },
+      {
+        "code": "white_rice",
+        "confidence": 0.98,
+        "evidence_box": { "x": 0.45, "y": 0.2, "width": 0.25, "height": 0.3 }
+      },
+      {
+        "code": "milk_tea",
+        "confidence": 0.99,
+        "evidence_box": { "x": 0.72, "y": 0.08, "width": 0.2, "height": 0.55 }
+      }
+    ],
+    "labels": [
+      {
+        "label": "sugary_drink",
+        "level": "high",
+        "confidence": 0.99,
+        "evidence_box": { "x": 0.72, "y": 0.08, "width": 0.2, "height": 0.55 }
+      },
+      {
+        "label": "high_oil",
+        "level": "medium",
+        "confidence": 0.94,
+        "evidence_box": { "x": 0.05, "y": 0.1, "width": 0.35, "height": 0.4 }
+      },
+      {
+        "label": "refined_carbohydrate",
+        "level": "medium",
+        "confidence": 0.95,
+        "evidence_box": { "x": 0.45, "y": 0.2, "width": 0.25, "height": 0.3 }
+      },
+      {
+        "label": "high_purine",
+        "level": "unknown",
+        "confidence": 0.55,
+        "evidence_box": { "x": 0.05, "y": 0.1, "width": 0.35, "height": 0.4 }
+      }
+    ]
+  }
+}

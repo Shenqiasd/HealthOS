@@ -1058,4 +1058,86 @@ describe("database invariants", () => {
       await app?.close();
     }
   });
+
+  test("enforces allowlisted Food output and rejects precision-nutrition payloads", async () => {
+    const user = await database.user.create({ data: { consentEpoch: 1 } });
+    const scan = await database.foodScan.create({ data: {
+      userId: user.id,
+      objectKey: `synthetic-food/${randomUUID()}`,
+      capturedAt: new Date("2026-07-14T04:00:00.000Z"),
+      modelVersion: "synthetic-food-v1",
+      overallConfidence: 0.95,
+      status: "completed",
+    } });
+    await expect(database.foodRiskLabel.create({ data: {
+      foodScanId: scan.id,
+      label: "invented_risk",
+      level: "high",
+      confidence: 0.99,
+      evidence: { x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+      labelHash: "a".repeat(64),
+      dispositionCode: "visible",
+    } })).rejects.toThrow(/allowlist|check constraint/i);
+    await expect(database.foodRiskLabel.create({ data: {
+      foodScanId: scan.id,
+      label: "high_oil",
+      level: "high",
+      confidence: 0.99,
+      evidence: { x: 0.1, y: 0.1, width: 0.2, height: 0.2, kcal: 500 },
+      labelHash: "b".repeat(64),
+      dispositionCode: "visible",
+    } })).rejects.toThrow(/precision|forbidden|check constraint/i);
+    await expect(database.$executeRaw`
+      INSERT INTO "food_dish_candidates" (
+        "food_scan_id", "code", "confidence", "evidence", "disposition_code", "candidate_hash"
+      ) VALUES (
+        ${scan.id}::uuid, 'invented_dish', 0.99,
+        '{"x":0.1,"y":0.1,"width":0.2,"height":0.2}'::jsonb,
+        'visible', ${"c".repeat(64)}
+      )
+    `).rejects.toThrow(/allowlist|check constraint/i);
+  });
+
+  test("keeps Food corrections append-only and forbids macro fields at rest", async () => {
+    const user = await database.user.create({ data: { consentEpoch: 1 } });
+    const scan = await database.foodScan.create({ data: {
+      userId: user.id,
+      objectKey: `synthetic-food/${randomUUID()}`,
+      capturedAt: new Date("2026-07-14T04:00:00.000Z"),
+      modelVersion: "synthetic-food-v1",
+      overallConfidence: 0.6,
+      status: "completed",
+    } });
+    const eventId = randomUUID();
+    await database.$executeRaw`
+      INSERT INTO "food_correction_events" (
+        "id", "user_id", "food_scan_id", "idempotency_key", "request_hash", "expected_version",
+        "meal_presence", "meal_completeness", "dish_codes", "labels_json", "reason_hash", "result_json"
+      ) VALUES (
+        ${eventId}::uuid, ${user.id}::uuid, ${scan.id}::uuid, ${randomUUID()}::uuid, ${"d".repeat(64)}, 1,
+        'food', 'cropped', ARRAY['white_rice'], '[{"label":"refined_carbohydrate","level":"medium"}]'::jsonb,
+        ${"e".repeat(64)}, '{"version":2,"disposition_code":"user_confirmed"}'::jsonb
+      )
+    `;
+    await expect(database.$executeRaw`
+      UPDATE "food_correction_events" SET "meal_completeness" = 'complete' WHERE "id" = ${eventId}::uuid
+    `).rejects.toThrow(/append-only/i);
+    await expect(database.$executeRaw`
+      INSERT INTO "food_correction_events" (
+        "user_id", "food_scan_id", "idempotency_key", "request_hash", "expected_version",
+        "meal_presence", "meal_completeness", "dish_codes", "labels_json", "reason_hash", "result_json"
+      ) VALUES (
+        ${user.id}::uuid, ${scan.id}::uuid, ${randomUUID()}::uuid, ${"f".repeat(64)}, 2,
+        'food', 'complete', ARRAY['white_rice'], '[]'::jsonb,
+        ${"1".repeat(64)}, '{"calories":500}'::jsonb
+      )
+    `).rejects.toThrow(/precision|forbidden|check constraint/i);
+
+    await database.user.update({
+      where: { id: user.id },
+      data: { status: "deleting", deletedAt: new Date() },
+    });
+    await database.$queryRaw`SELECT "healthos_delete_frozen_user"(${user.id}::uuid)`;
+    expect(await database.foodCorrectionEvent.count({ where: { id: eventId } })).toBe(0);
+  });
 });

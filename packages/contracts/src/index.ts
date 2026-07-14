@@ -274,6 +274,111 @@ export interface LabObservationReviewRequest extends LabObservationConfirmationR
   reason: string;
 }
 
+export const FOOD_MIME_TYPES = ["image/png", "image/jpeg"] as const;
+export type FoodMimeType = (typeof FOOD_MIME_TYPES)[number];
+export const FOOD_DISH_CODES = [
+  "red_braised_pork",
+  "white_rice",
+  "milk_tea",
+  "fried_dish",
+  "ambiguous_beverage",
+  "mixed_meat_dish",
+  "beer",
+  "soup",
+  "vegetables",
+] as const;
+export type FoodDishCode = (typeof FOOD_DISH_CODES)[number];
+export const FOOD_RISK_LABELS = [
+  "sugary_drink",
+  "alcohol",
+  "high_oil",
+  "refined_carbohydrate",
+  "high_purine",
+] as const;
+export type FoodRiskLabelCode = (typeof FOOD_RISK_LABELS)[number];
+export type FoodRiskLevel = "unknown" | "low" | "medium" | "high";
+export type FoodMealPresence = "food" | "no_food" | "uncertain";
+export type FoodMealCompleteness = "complete" | "cropped" | "unknown" | "unsupported";
+
+export interface FoodScanIntakeRequest {
+  idempotency_key: string;
+  sha256: string;
+  mime_type: FoodMimeType;
+  size_bytes: number;
+  captured_at: string;
+}
+
+export interface FoodScanFinalizeRequest {
+  idempotency_key: string;
+}
+
+export interface FoodEvidenceBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface FoodDishCandidateResponse {
+  id: string;
+  code: FoodDishCode;
+  confidence: number;
+  evidence_box: FoodEvidenceBox;
+  disposition_code: "visible" | "needs_confirmation" | "abstained";
+}
+
+export interface FoodRiskLabelResponse {
+  id: string;
+  label: FoodRiskLabelCode;
+  level: FoodRiskLevel;
+  confidence: number;
+  evidence_box: FoodEvidenceBox;
+  disposition_code: "visible" | "needs_confirmation" | "abstained";
+}
+
+export interface FoodLabelCorrection {
+  label: FoodRiskLabelCode;
+  level: FoodRiskLevel;
+}
+
+export interface FoodCorrectionRequest {
+  idempotency_key: string;
+  expected_version: number;
+  meal_presence: FoodMealPresence;
+  meal_completeness: Exclude<FoodMealCompleteness, "unsupported">;
+  dish_codes: FoodDishCode[];
+  labels: FoodLabelCorrection[];
+  reason: string;
+}
+
+export interface FoodCorrectionResponse {
+  id: string;
+  meal_presence: FoodMealPresence;
+  meal_completeness: Exclude<FoodMealCompleteness, "unsupported">;
+  dish_codes: FoodDishCode[];
+  labels: FoodLabelCorrection[];
+  created_at: string;
+}
+
+export interface FoodScanResponse {
+  id: string;
+  object_key: string;
+  sha256: string;
+  mime_type: FoodMimeType;
+  size_bytes: number;
+  captured_at: string;
+  status: "pending" | "active" | "completed" | "failed" | "suppressed" | "deleted";
+  failure_code: string | null;
+  meal_presence: FoodMealPresence;
+  meal_completeness: FoodMealCompleteness;
+  overall_confidence: number;
+  disposition_code: "awaiting_processing" | "visible" | "needs_confirmation" | "no_food" | "unsupported" | "abstained" | "user_confirmed";
+  version: number;
+  dish_candidates: FoodDishCandidateResponse[];
+  risk_labels: FoodRiskLabelResponse[];
+  latest_correction: FoodCorrectionResponse | null;
+}
+
 export interface NormalizedLabValue {
   code: LabCode;
   value: number;

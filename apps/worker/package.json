@@ -17,7 +17,8 @@
     "test:scheduling": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/scheduling/*.spec.ts",
     "test:channels": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/channels/*.spec.ts",
     "test:telemetry": "TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/telemetry/*.spec.ts",
-    "test:labs": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/labs/*.spec.ts"
+    "test:labs": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/labs/*.spec.ts",
+    "test:food": "pnpm --filter @healthos/api prisma:generate && TSX_TSCONFIG_PATH=../../tsconfig.base.json node --import tsx --test src/jobs/food/*.spec.ts"
   },
   "dependencies": {
     "@healthos/contracts": "workspace:*",
