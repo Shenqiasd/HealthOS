@@ -92,7 +92,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T050
+active_task: T051
 
 tasks:
   - id: T001
@@ -3475,7 +3475,7 @@ tasks:
   - id: T050
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the synthetic provider-neutral server foundation for implementation Task 9: authenticated lab-document intake and finalization, bounded object metadata verification, deterministic allowlisted parsing/normalization, evidence boxes, low-confidence abstention, user correction/confirmation, reviewer confirmation, privacy/deletion fencing, and profile-event publication only from usable observations. Use only generated fixtures and local adapters; do not complete native Labs or full T109."
     inputs:
@@ -3515,6 +3515,104 @@ tasks:
       - "Deterministic allowlisted normalization with evidence and explicit abstention/manual-confirmation states"
       - "Transactional privacy-safe publication into the existing profile pipeline only after usable confirmation"
       - "Contracts, migration, regression, and exact-scope evidence while native/provider/medical T109 remains incomplete"
+    receipt:
+      result: done
+      changed_files:
+        - .env.example
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/20260714120000_labs_server_foundation/migration.sql
+        - apps/api/src/app.module.ts
+        - "apps/api/src/labs/**"
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - apps/worker/package.json
+        - apps/worker/src/worker.module.ts
+        - "apps/worker/src/jobs/labs/**"
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - packages/test-fixtures/labs/synthetic-standard.json
+      commands:
+        - cmd: "pnpm --filter @healthos/api test:labs"
+          status: pass
+        - cmd: "pnpm --filter @healthos/worker test:labs"
+          status: pass
+        - cmd: "API identity, consent/privacy, profile, recommendations, and database-constraint regression"
+          status: pass
+        - cmd: "Worker profile and recommendation regression"
+          status: pass
+        - cmd: "fresh 16-migration deploy, 15-to-16 historical upgrade, restricted-owner deploy, and Prisma zero diff"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && pnpm test"
+          status: pass
+        - cmd: "API, worker, and admin production builds"
+          status: pass
+        - cmd: "pnpm audit --audit-level=high"
+          status: pass
+        - cmd: "docker compose config --quiet && git diff --check"
+          status: pass
+        - cmd: "T050 exact hash scope guard"
+          status: pass
+      summary: "Implemented and committed the synthetic provider-neutral Labs server/worker foundation. Authenticated intake is bounded to allowlisted MIME and size, object HEAD metadata must match SHA/MIME/size, parsing uses a leased fail-closed local provider boundary, output normalization is deterministic and allowlisted, evidence boxes are validated, low-confidence/unknown/conflicting fields abstain, and only an explicitly user- or reviewer-confirmed usable observation can atomically append a profile event. Ownership, current consent, privacy readiness, deletion races, idempotent replay, concurrent confirmation, audit hashes, provider timeout, and no-network modes are enforced and tested."
+      evidence:
+        - "Commit 57d804d contains exactly the T050-authorized product scope."
+        - "Labs API passes 6 cases including bounded intake, object mismatch, ownership, exact replay, user and scoped-reviewer confirmation, and concurrent 200/409 linearization."
+        - "Labs Worker passes 5 cases covering strict decimal parsing, allowlisted normalization, evidence, low-confidence and unsupported abstention, conflicting fields, deletion/consent races, timeout, malformed provider output, and unconfigured fail-closed mode."
+        - "Affected regressions pass: Identity 15, Consent/Privacy 12, Profile 9, Recommendations 15, database invariants 21, Worker Profile 8, and Worker Recommendations 17."
+        - "Final workspace gates pass: foundation 9, observability 19, rules 36, admin 5, worker boot 1, API no-database 335, lint, recursive typecheck, and all three builds."
+        - "All 16 migrations deploy on fresh and NOSUPERUSER/NOCREATEDB/NOCREATEROLE/NOREPLICATION owner databases; valid 15-to-16 legacy rows are preserved; all Labs checks are validated; Prisma reports no difference."
+        - "Dependency audit reports no known vulnerabilities; Docker config, diff check, and exact T050 scope guard pass."
+      risks_remaining:
+        - "No real report, object store, OCR/parser provider, medical field corpus, native confirmation UI, or 100-report precision evidence is authorized or implemented; T109 remains incomplete."
+        - "The dynamic labs.ingestion database kill-switch read boundary is reserved, while the official operations mutation catalog for that key remains part of later operations completion; HEALTHOS_LABS_MODE already fails closed when disabled or in production."
+        - "Raw real-world report encryption and provider-region approval remain mandatory before any real data crosses this synthetic boundary."
+        - "Full pre-Beta security/privacy hardening and release evidence remain in Tasks 24-27."
+      next: "Activate T051 and implement the generated-fixture, provider-neutral Food Risk Scan server/worker/eval foundation without calorie or macro estimates."
+  - id: T051
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Implement the synthetic provider-neutral server foundation for implementation Task 17: authenticated bounded meal-image intake/finalization, leased local parsing, allowlisted dish candidates and risk labels, explicit confidence/abstention states, correction events, privacy/deletion fencing, and an API contract that structurally forbids kcal or macro estimates. Use generated fixtures only; do not complete native FoodScan or full T117."
+    inputs:
+      - "T049 two-tier security sequencing decision"
+      - "T050 bounded object-intake, leased-worker, consent/deletion, idempotency, and provider-fail-closed patterns"
+      - "Existing FoodScan/FoodRiskLabel schema, identity, privacy, audit, outbox, and safety-control foundations"
+      - "Implementation plan Task 17, limited to a synthetic server/worker/eval vertical slice"
+    allowed_files:
+      - ".env.example"
+      - "apps/api/package.json"
+      - "apps/api/prisma/schema.prisma"
+      - "apps/api/prisma/migrations/20260714150000_food_server_foundation/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/food/**"
+      - "apps/api/test/database-constraints.e2e-spec.ts"
+      - "apps/worker/package.json"
+      - "apps/worker/src/worker.module.ts"
+      - "apps/worker/src/jobs/food/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "packages/evals/package.json"
+      - "packages/evals/src/**"
+      - "packages/evals/cases/food/**"
+      - "packages/test-fixtures/food/**"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+    verify:
+      - "Write RED API, worker, and eval cases for no-food, multiple dishes, crop/incomplete meal, sugary drink, ambiguous alcohol, high-oil/refined-carb/high-purine uncertainty, unsupported image, timeout, low confidence, abstention, correction, ownership, consent, and deletion races"
+      - "Implement object and vision-provider ports with generated local adapters only; production or unconfigured mode must fail closed and no external request may occur"
+      - "Prove response types, runtime validation, OpenAPI, persisted payloads, logs, and eval output cannot contain kcal, calories, protein, carbs, fat, macro totals, diagnosis, or automatic retraining claims"
+      - "Prove only allowlisted risk labels may become user-visible, low confidence abstains or asks for confirmation, corrections are immutable evaluation events, and deletion/consent changes suppress leased work"
+      - "Run Food API/worker/eval tests plus identity, privacy, database, observability, migration, lint, typecheck, build, no-database, audit, Docker, diff, and exact T051 scope gates"
+    stop_if:
+      - "Implementation requires real meal images, a real vision/object-storage credential, an external network call, or provider/data-region/medical approval."
+      - "Any API, contract, database result, log, or fixture would expose real personal data or return calorie/macro estimates in V1."
+      - "A low-confidence, unsupported, deleted, wrong-owner, stale-consent, or unconfirmed label can become a trusted profile/recommendation input."
+      - "Implementation requires native iOS/Xcode work, full Task 17/T117 completion, pre-Beta offensive review, or files outside allowed_files."
+    expected_output:
+      - "Runnable authenticated Food intake API and leased worker path using generated synthetic meal manifests only"
+      - "Allowlisted qualitative risk labels with evidence/confidence, explicit abstention, and immutable user corrections"
+      - "Machine-enforced absence of calories and macro estimates across contract, runtime, persistence, and eval output"
+      - "Migration, regression, and exact-scope evidence while native/provider/corpus T117 remains incomplete"
     receipt: null
   - id: T003
     type: worker
