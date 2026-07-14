@@ -140,47 +140,51 @@ enum RecommendationReviewEventType {
 }
 
 model User {
-  id                    String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  status                UserStatus                   @default(active)
-  timezone              String                       @default("Asia/Shanghai")
-  locale                String                       @default("zh-CN")
-  consentEpoch          Int                          @default(0) @map("consent_epoch")
-  createdAt             DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt             DateTime?                    @map("deleted_at") @db.Timestamptz(6)
-  identities            UserIdentity[]
-  devices               Device[]
-  consents              ConsentRecord[]
-  channelAccounts       ChannelAccount[]
-  healthSyncRuns        HealthSyncRun[]
-  dailyFacts            DailyHealthFactRevision[]
-  labDocuments          LabDocument[]
-  foodScans             FoodScan[]
-  profileEvents         ProfileEvent[]
-  profileSnapshots      ProfileSnapshot[]
-  profileCandidates     ProfileCandidate[]
-  recommendationRuns    RecommendationRun[]
-  actions               ActionAssignment[]
-  feedbackEvents        FeedbackEvent[]
-  signals               SignalSnapshot[]
-  weeklyReviews         WeeklyReviewSnapshot[]
-  weeklyReviewShares    WeeklyReviewShare[]
-  coachThreads          CoachThread[]
-  channelOutbox         ChannelOutbox[]
-  domainOutbox          DomainOutbox[]
-  safetyIncidents       SafetyIncident[]
-  refreshSessions       RefreshSession[]
-  securityEvents        SecurityEvent[]
-  exportJobs            ExportJob[]
-  operationsReviewTasks ReviewTask[]                 @relation("OperationsReviewSubject")
-  adminSubjectScopes    AdminActorSubjectScope[]
-  reminderPreference    ReminderPreference?
-  reminderRevisions     ReminderPreferenceRevision[]
-  reminderMutations     ReminderPreferenceMutation[]
-  schedulePlans         SchedulePlan[]
-  schedulerWatermark    SchedulerWatermark?
-  safetyControlRevisions SafetyControlRevision[]
-  safetyControlMutations SafetyControlMutation[]
+  id                      String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status                  UserStatus                   @default(active)
+  timezone                String                       @default("Asia/Shanghai")
+  locale                  String                       @default("zh-CN")
+  consentEpoch            Int                          @default(0) @map("consent_epoch")
+  createdAt               DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt               DateTime?                    @map("deleted_at") @db.Timestamptz(6)
+  identities              UserIdentity[]
+  devices                 Device[]
+  consents                ConsentRecord[]
+  channelAccounts         ChannelAccount[]
+  healthSyncRuns          HealthSyncRun[]
+  dailyFacts              DailyHealthFactRevision[]
+  labDocuments            LabDocument[]
+  labObservationMutations LabObservationMutation[]
+  foodScans               FoodScan[]
+  foodCorrectionEvents    FoodCorrectionEvent[]
+  profileEvents           ProfileEvent[]
+  profileSnapshots        ProfileSnapshot[]
+  profileCandidates       ProfileCandidate[]
+  recommendationRuns      RecommendationRun[]
+  actions                 ActionAssignment[]
+  feedbackEvents          FeedbackEvent[]
+  signals                 SignalSnapshot[]
+  weeklyReviews           WeeklyReviewSnapshot[]
+  weeklyReviewShares      WeeklyReviewShare[]
+  coachThreads            CoachThread[]
+  coachTurns              CoachTurn[]
+  coachMessages           CoachMessage[]
+  channelOutbox           ChannelOutbox[]
+  domainOutbox            DomainOutbox[]
+  safetyIncidents         SafetyIncident[]
+  refreshSessions         RefreshSession[]
+  securityEvents          SecurityEvent[]
+  exportJobs              ExportJob[]
+  operationsReviewTasks   ReviewTask[]                 @relation("OperationsReviewSubject")
+  adminSubjectScopes      AdminActorSubjectScope[]
+  reminderPreference      ReminderPreference?
+  reminderRevisions       ReminderPreferenceRevision[]
+  reminderMutations       ReminderPreferenceMutation[]
+  schedulePlans           SchedulePlan[]
+  schedulerWatermark      SchedulerWatermark?
+  safetyControlRevisions  SafetyControlRevision[]
+  safetyControlMutations  SafetyControlMutation[]
 
   @@map("users")
 }
@@ -203,7 +207,8 @@ model Device {
   userId                String    @map("user_id") @db.Uuid
   deviceId              String    @map("device_id")
   apnsTokenEncrypted    String?   @map("apns_token_encrypted")
-  apnsTokenFingerprint  String?   @map("apns_token_fingerprint")
+  apnsTokenFingerprint  String?   @unique(map: "devices_apns_token_fingerprint_key") @map("apns_token_fingerprint")
+  apnsTokenEpoch        Int       @default(0) @map("apns_token_epoch")
   lastSeenAt            DateTime? @map("last_seen_at") @db.Timestamptz(6)
   appVersion            String?   @map("app_version")
   platform              String    @default("ios")
@@ -213,7 +218,6 @@ model Device {
 
   @@unique([userId, deviceId])
   @@index([userId])
-  @@index([apnsTokenFingerprint])
   @@map("devices")
 }
 
@@ -402,18 +406,29 @@ model DailyHealthFactRevision {
 }
 
 model LabDocument {
-  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String           @map("user_id") @db.Uuid
-  objectKey    String           @map("object_key")
-  sha256       String
-  status       RecordStatus     @default(pending)
-  uploadedAt   DateTime         @default(now()) @map("uploaded_at") @db.Timestamptz(6)
-  deletedAt    DateTime?        @map("deleted_at") @db.Timestamptz(6)
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  observations LabObservation[]
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  objectKey      String           @map("object_key")
+  sha256         String
+  mimeType       String           @default("application/pdf") @map("mime_type")
+  sizeBytes      BigInt           @default(1) @map("size_bytes")
+  consentEpoch   Int              @default(0) @map("consent_epoch")
+  idempotencyKey String           @default(dbgenerated("(gen_random_uuid())::text")) @map("idempotency_key")
+  requestHash    String           @default("0000000000000000000000000000000000000000000000000000000000000000") @map("request_hash")
+  version        Int              @default(1)
+  status         RecordStatus     @default(pending)
+  failureCode    String?          @map("failure_code")
+  uploadedAt     DateTime         @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  finalizedAt    DateTime?        @map("finalized_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  observations   LabObservation[]
 
   @@unique([userId, sha256])
+  @@unique([userId, idempotencyKey])
   @@index([userId, uploadedAt])
+  @@index([status, updatedAt])
   @@map("lab_documents")
 }
 
@@ -424,45 +439,130 @@ model LabObservation {
   value                String
   unit                 String
   normalizedValue      Decimal?                    @map("normalized_value") @db.Decimal(18, 6)
+  normalizedUnit       String?                     @map("normalized_unit")
   referenceRange       String?                     @map("reference_range")
   page                 Int?
   evidenceBox          Json                        @map("evidence_box") @db.JsonB
   confidence           Decimal                     @db.Decimal(6, 5)
+  dispositionCode      String                      @default("awaiting_confirmation") @map("disposition_code")
+  observationHash      String                      @default("0000000000000000000000000000000000000000000000000000000000000000") @map("observation_hash")
+  version              Int                         @default(1)
+  createdAt            DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   confirmationStatus   ConfirmationStatus          @default(extracted) @map("confirmation_status")
   document             LabDocument                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
   recommendationInputs RecommendationRunLabInput[]
+  mutations            LabObservationMutation[]
 
   @@index([documentId, code])
   @@map("lab_observations")
 }
 
-model FoodScan {
-  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String          @map("user_id") @db.Uuid
-  objectKey         String          @map("object_key")
-  capturedAt        DateTime        @map("captured_at") @db.Timestamptz(6)
-  modelVersion      String          @map("model_version")
-  overallConfidence Decimal         @map("overall_confidence") @db.Decimal(6, 5)
-  status            RecordStatus    @default(pending)
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  labels            FoodRiskLabel[]
+model LabObservationMutation {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  observationId  String         @map("observation_id") @db.Uuid
+  idempotencyKey String         @map("idempotency_key")
+  requestHash    String         @map("request_hash")
+  resultJson     Json           @map("result_json") @db.JsonB
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  observation    LabObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, idempotencyKey])
+  @@index([observationId, createdAt])
+  @@map("lab_observation_mutations")
+}
+
+model FoodScan {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String                @map("user_id") @db.Uuid
+  objectKey         String                @map("object_key")
+  sha256            String                @default(dbgenerated("encode(digest((gen_random_uuid())::text, 'sha256'::text), 'hex'::text)"))
+  mimeType          String                @default("image/jpeg") @map("mime_type")
+  sizeBytes         BigInt                @default(1) @map("size_bytes")
+  capturedAt        DateTime              @map("captured_at") @db.Timestamptz(6)
+  consentEpoch      Int                   @default(0) @map("consent_epoch")
+  idempotencyKey    String                @default(dbgenerated("(gen_random_uuid())::text")) @map("idempotency_key")
+  requestHash       String                @default("0000000000000000000000000000000000000000000000000000000000000000") @map("request_hash")
+  modelVersion      String                @default("unparsed") @map("model_version")
+  overallConfidence Decimal               @default(0) @map("overall_confidence") @db.Decimal(6, 5)
+  mealPresence      String                @default("uncertain") @map("meal_presence")
+  mealCompleteness  String                @default("unknown") @map("meal_completeness")
+  dispositionCode   String                @default("awaiting_processing") @map("disposition_code")
+  resultHash        String                @default("0000000000000000000000000000000000000000000000000000000000000000") @map("result_hash")
+  version           Int                   @default(1)
+  status            RecordStatus          @default(pending)
+  failureCode       String?               @map("failure_code")
+  finalizedAt       DateTime?             @map("finalized_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?             @map("deleted_at") @db.Timestamptz(6)
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dishCandidates    FoodDishCandidate[]
+  labels            FoodRiskLabel[]
+  corrections       FoodCorrectionEvent[]
+
+  @@unique([userId, sha256])
+  @@unique([userId, idempotencyKey])
   @@index([userId, capturedAt])
+  @@index([status, updatedAt])
   @@map("food_scans")
 }
 
+model FoodDishCandidate {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  foodScanId      String   @map("food_scan_id") @db.Uuid
+  code            String
+  confidence      Decimal  @db.Decimal(6, 5)
+  evidence        Json     @db.JsonB
+  dispositionCode String   @map("disposition_code")
+  candidateHash   String   @map("candidate_hash")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  foodScan        FoodScan @relation(fields: [foodScanId], references: [id], onDelete: Cascade)
+
+  @@unique([foodScanId, code])
+  @@index([foodScanId, createdAt])
+  @@map("food_dish_candidates")
+}
+
 model FoodRiskLabel {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  foodScanId     String   @map("food_scan_id") @db.Uuid
-  label          String
-  level          String
-  confidence     Decimal  @db.Decimal(6, 5)
-  evidence       Json     @db.JsonB
-  userCorrection Json?    @map("user_correction") @db.JsonB
-  foodScan       FoodScan @relation(fields: [foodScanId], references: [id], onDelete: Cascade)
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  foodScanId      String   @map("food_scan_id") @db.Uuid
+  label           String
+  level           String
+  confidence      Decimal  @db.Decimal(6, 5)
+  evidence        Json     @db.JsonB
+  dispositionCode String   @default("abstained") @map("disposition_code")
+  labelHash       String   @default("0000000000000000000000000000000000000000000000000000000000000000") @map("label_hash")
+  userCorrection  Json?    @map("user_correction") @db.JsonB
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  foodScan        FoodScan @relation(fields: [foodScanId], references: [id], onDelete: Cascade)
 
   @@index([foodScanId])
+  @@index([foodScanId, createdAt])
   @@map("food_risk_labels")
+}
+
+model FoodCorrectionEvent {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  foodScanId       String   @map("food_scan_id") @db.Uuid
+  idempotencyKey   String   @map("idempotency_key") @db.Uuid
+  requestHash      String   @map("request_hash")
+  expectedVersion  Int      @map("expected_version")
+  mealPresence     String   @map("meal_presence")
+  mealCompleteness String   @map("meal_completeness")
+  dishCodes        String[] @map("dish_codes")
+  labelsJson       Json     @map("labels_json") @db.JsonB
+  reasonHash       String   @map("reason_hash")
+  resultJson       Json     @map("result_json") @db.JsonB
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodScan         FoodScan @relation(fields: [foodScanId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, idempotencyKey])
+  @@index([foodScanId, createdAt])
+  @@map("food_correction_events")
 }
 
 model ProfileEvent {
@@ -525,31 +625,33 @@ model ProfileCandidate {
   confirmedAt         DateTime?              @map("confirmed_at") @db.Timestamptz(6)
   user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   confirmedEvent      ProfileEvent?          @relation("CandidateConfirmation", fields: [confirmedEventId, userId], references: [id, userId], onDelete: Cascade, map: "profile_candidates_confirmed_event_id_fkey")
+  coachTurns          CoachTurn[]            @relation("CoachTurnCandidateOwnership")
 
   @@unique([userId, idempotencyKey])
+  @@unique([id, userId])
   @@unique([confirmedEventId, userId])
   @@index([userId, status, createdAt])
   @@map("profile_candidates")
 }
 
 model RuleBundle {
-  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  version             String                    @unique
-  status              RuleBundleStatus          @default(draft_unapproved)
-  contentHash         String                    @unique @map("content_hash")
-  contentJson         Json?                     @map("content_json") @db.JsonB
-  bundleDigest        String?                   @map("bundle_digest")
-  autoPublishEligible Boolean                   @default(false) @map("auto_publish_eligible")
-  publishedBy         String?                   @map("published_by")
-  publishedAt         DateTime?                 @map("published_at") @db.Timestamptz(6)
-  rolledBackAt        DateTime?                 @map("rolled_back_at") @db.Timestamptz(6)
-  lastRollbackEventId String?                   @map("last_rollback_event_id") @db.Uuid
-  createdAt           DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  approvals           RuleBundleApproval[]
-  rollbackSources     RuleBundleRollbackEvent[] @relation("RollbackSource")
-  rollbackTargets     RuleBundleRollbackEvent[] @relation("RollbackTarget")
-  lastRollbackEvent   RuleBundleRollbackEvent?  @relation("LastRollbackEvidence", fields: [lastRollbackEventId], references: [id], onDelete: Restrict)
-  recommendationRuns  RecommendationRun[]
+  id                     String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  version                String                    @unique
+  status                 RuleBundleStatus          @default(draft_unapproved)
+  contentHash            String                    @unique @map("content_hash")
+  contentJson            Json?                     @map("content_json") @db.JsonB
+  bundleDigest           String?                   @map("bundle_digest")
+  autoPublishEligible    Boolean                   @default(false) @map("auto_publish_eligible")
+  publishedBy            String?                   @map("published_by")
+  publishedAt            DateTime?                 @map("published_at") @db.Timestamptz(6)
+  rolledBackAt           DateTime?                 @map("rolled_back_at") @db.Timestamptz(6)
+  lastRollbackEventId    String?                   @map("last_rollback_event_id") @db.Uuid
+  createdAt              DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  approvals              RuleBundleApproval[]
+  rollbackSources        RuleBundleRollbackEvent[] @relation("RollbackSource")
+  rollbackTargets        RuleBundleRollbackEvent[] @relation("RollbackTarget")
+  lastRollbackEvent      RuleBundleRollbackEvent?  @relation("LastRollbackEvidence", fields: [lastRollbackEventId], references: [id], onDelete: Restrict)
+  recommendationRuns     RecommendationRun[]
   safetyControlRevisions SafetyControlRevision[]
 
   @@map("rule_bundles")
@@ -847,31 +949,71 @@ model WeeklyReviewShare {
 model CoachThread {
   id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId         String         @map("user_id") @db.Uuid
+  clientThreadId String         @map("client_thread_id") @db.Uuid
+  idempotencyKey String         @map("idempotency_key") @db.Uuid
+  requestHash    String         @map("request_hash")
   status         RecordStatus   @default(active)
   summary        String?
   summaryVersion Int            @default(0) @map("summary_version")
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages       CoachMessage[]
+  messages       CoachMessage[] @relation("CoachMessageThreadOwnership")
+  turns          CoachTurn[]    @relation("CoachTurnThreadOwnership")
 
+  @@unique([id, userId])
+  @@unique([userId, clientThreadId])
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
   @@map("coach_threads")
 }
 
 model CoachMessage {
-  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  threadId      String      @map("thread_id") @db.Uuid
-  role          String
-  intent        String
-  content       String
-  sourcesJson   Json        @map("sources_json") @db.JsonB
-  safetyClass   String      @map("safety_class")
-  modelMetadata Json?       @map("model_metadata") @db.JsonB
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  thread        CoachThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String      @map("user_id") @db.Uuid
+  threadId          String      @map("thread_id") @db.Uuid
+  turnId            String?     @map("turn_id") @db.Uuid
+  sequence          Int
+  role              String
+  intent            String
+  content           String
+  contentHash       String      @map("content_hash")
+  sourcesJson       Json        @map("sources_json") @db.JsonB
+  evidenceHash      String      @map("evidence_hash")
+  safetyClass       String      @map("safety_class")
+  actionCode        String?     @map("action_code")
+  fixedResponseCode String?     @map("fixed_response_code")
+  needsHumanReview  Boolean     @default(false) @map("needs_human_review")
+  modelMetadata     Json?       @map("model_metadata") @db.JsonB
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread            CoachThread @relation("CoachMessageThreadOwnership", fields: [threadId, userId], references: [id, userId], onDelete: Cascade)
+  turn              CoachTurn?  @relation("CoachMessageTurnOwnership", fields: [turnId, threadId, userId], references: [id, threadId, userId], onDelete: Cascade)
 
+  @@unique([threadId, sequence])
   @@index([threadId, createdAt])
   @@map("coach_messages")
+}
+
+model CoachTurn {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String            @map("user_id") @db.Uuid
+  threadId         String            @map("thread_id") @db.Uuid
+  idempotencyKey   String            @map("idempotency_key") @db.Uuid
+  requestHash      String            @map("request_hash")
+  intent           String
+  resultJson       Json              @map("result_json") @db.JsonB
+  gateEvidenceJson Json              @map("gate_evidence_json") @db.JsonB
+  candidateId      String?           @map("candidate_id") @db.Uuid
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread           CoachThread       @relation("CoachTurnThreadOwnership", fields: [threadId, userId], references: [id, userId], onDelete: Cascade)
+  candidate        ProfileCandidate? @relation("CoachTurnCandidateOwnership", fields: [candidateId, userId], references: [id, userId], onDelete: Cascade)
+  messages         CoachMessage[]    @relation("CoachMessageTurnOwnership")
+
+  @@unique([userId, idempotencyKey])
+  @@unique([id, threadId, userId])
+  @@index([threadId, createdAt])
+  @@map("coach_turns")
 }
 
 model ChannelOutbox {
@@ -881,15 +1023,22 @@ model ChannelOutbox {
   template                         String
   payload                          Json                              @db.JsonB
   idempotencyKey                   String                            @unique @map("idempotency_key")
+  destinationId                    String?                           @map("destination_id") @db.Uuid
+  destinationFingerprint           String?                           @map("destination_fingerprint")
+  destinationEpoch                 Int?                              @map("destination_epoch")
+  destinationTenantId              String?                           @map("destination_tenant_id")
+  schedulePlanId                   String?                           @map("schedule_plan_id") @db.Uuid
   availableAt                      DateTime                          @default(now()) @map("available_at") @db.Timestamptz(6)
   status                           OutboxStatus                      @default(pending)
   leaseToken                       String?                           @map("lease_token")
   leaseUntil                       DateTime?                         @map("lease_until") @db.Timestamptz(6)
   user                             User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedulePlan                     SchedulePlan?                     @relation(fields: [schedulePlanId], references: [id], onDelete: Cascade)
   attempts                         DeliveryAttempt[]
   consentRequirements              ChannelOutboxConsentRequirement[]
   recommendationPublicationChannel RecommendationPublicationChannel?
 
+  @@unique([schedulePlanId, channel])
   @@index([status, availableAt])
   @@map("channel_outbox")
 }
@@ -983,16 +1132,16 @@ model ReviewTask {
 }
 
 model AdminActor {
-  id             String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  lookupHash     String                   @unique @map("lookup_hash")
-  displayLabel   String                   @map("display_label")
-  status         String                   @default("active")
-  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime                 @default(now()) @map("updated_at") @db.Timestamptz(6)
-  roles          AdminActorRole[]
-  subjectScopes  AdminActorSubjectScope[]
-  auditLogs      AuditLog[]
-  queueSnapshots AdminQueueSnapshot[]
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lookupHash             String                   @unique @map("lookup_hash")
+  displayLabel           String                   @map("display_label")
+  status                 String                   @default("active")
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @map("updated_at") @db.Timestamptz(6)
+  roles                  AdminActorRole[]
+  subjectScopes          AdminActorSubjectScope[]
+  auditLogs              AuditLog[]
+  queueSnapshots         AdminQueueSnapshot[]
   safetyControlRevisions SafetyControlRevision[]
   safetyControlMutations SafetyControlMutation[]
 
@@ -1051,24 +1200,24 @@ model AdminQueueSnapshotItem {
 }
 
 model AuditLog {
-  id                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  actorId                   String?                    @map("actor_id") @db.Uuid
+  id                        String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId                   String?                        @map("actor_id") @db.Uuid
   action                    String
-  resourceType              String                     @map("resource_type")
-  resourceId                String                     @map("resource_id") @db.Uuid
-  beforeHash                String?                    @map("before_hash")
-  afterHash                 String?                    @map("after_hash")
-  adminActorId              String?                    @map("admin_actor_id") @db.Uuid
-  actorRole                 String?                    @map("actor_role")
+  resourceType              String                         @map("resource_type")
+  resourceId                String                         @map("resource_id") @db.Uuid
+  beforeHash                String?                        @map("before_hash")
+  afterHash                 String?                        @map("after_hash")
+  adminActorId              String?                        @map("admin_actor_id") @db.Uuid
+  actorRole                 String?                        @map("actor_role")
   reason                    String?
-  correlationId             String?                    @map("correlation_id") @db.Uuid
-  beforeJson                Json?                      @map("before_json") @db.JsonB
-  afterJson                 Json?                      @map("after_json") @db.JsonB
-  operationVersion          Int?                       @map("operation_version")
-  operationTxid             BigInt                     @default(dbgenerated("txid_current()")) @map("operation_txid")
-  createdAt                 DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  correlationId             String?                        @map("correlation_id") @db.Uuid
+  beforeJson                Json?                          @map("before_json") @db.JsonB
+  afterJson                 Json?                          @map("after_json") @db.JsonB
+  operationVersion          Int?                           @map("operation_version")
+  operationTxid             BigInt                         @default(dbgenerated("txid_current()")) @map("operation_txid")
+  createdAt                 DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
   recommendationPublication RecommendationPublication?
-  adminActor                AdminActor?                @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
+  adminActor                AdminActor?                    @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
   operationConsumption      OperationAuditConsumption?
   safetyControlConsumption  SafetyControlAuditConsumption?
 
@@ -1090,22 +1239,22 @@ model OperationAuditConsumption {
 }
 
 model SafetyControlRevision {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  controlType    String   @map("control_type")
-  controlKey     String   @map("control_key")
-  scopeType      String   @map("scope_type")
-  scopeId        String   @map("scope_id")
-  subjectUserId  String?  @map("subject_user_id") @db.Uuid
-  ruleBundleId   String?  @map("rule_bundle_id") @db.Uuid
-  active         Boolean
-  version        Int
-  reason         String
-  adminActorId   String   @map("admin_actor_id") @db.Uuid
-  correlationId  String   @map("correlation_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  adminActor     AdminActor @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
-  subjectUser    User? @relation(fields: [subjectUserId], references: [id], onDelete: Cascade)
-  ruleBundle     RuleBundle? @relation(fields: [ruleBundleId], references: [id], onDelete: Restrict)
+  id                String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  controlType       String                          @map("control_type")
+  controlKey        String                          @map("control_key")
+  scopeType         String                          @map("scope_type")
+  scopeId           String                          @map("scope_id")
+  subjectUserId     String?                         @map("subject_user_id") @db.Uuid
+  ruleBundleId      String?                         @map("rule_bundle_id") @db.Uuid
+  active            Boolean
+  version           Int
+  reason            String
+  adminActorId      String                          @map("admin_actor_id") @db.Uuid
+  correlationId     String                          @map("correlation_id") @db.Uuid
+  createdAt         DateTime                        @default(now()) @map("created_at") @db.Timestamptz(6)
+  adminActor        AdminActor                      @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
+  subjectUser       User?                           @relation(fields: [subjectUserId], references: [id], onDelete: Cascade)
+  ruleBundle        RuleBundle?                     @relation(fields: [ruleBundleId], references: [id], onDelete: Restrict)
   auditConsumptions SafetyControlAuditConsumption[]
 
   @@unique([controlType, controlKey, scopeType, scopeId, version], map: "safety_controls_logical_version_key")
@@ -1115,15 +1264,15 @@ model SafetyControlRevision {
 }
 
 model SafetyControlMutation {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  adminActorId   String   @map("admin_actor_id") @db.Uuid
-  subjectUserId  String?  @map("subject_user_id") @db.Uuid
-  idempotencyKey String   @map("idempotency_key") @db.Uuid
-  requestHash    String   @map("request_hash")
-  resultJson     Json     @map("result_json") @db.JsonB
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminActorId   String     @map("admin_actor_id") @db.Uuid
+  subjectUserId  String?    @map("subject_user_id") @db.Uuid
+  idempotencyKey String     @map("idempotency_key") @db.Uuid
+  requestHash    String     @map("request_hash")
+  resultJson     Json       @map("result_json") @db.JsonB
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   adminActor     AdminActor @relation(fields: [adminActorId], references: [id], onDelete: Restrict)
-  subjectUser    User? @relation(fields: [subjectUserId], references: [id], onDelete: Cascade)
+  subjectUser    User?      @relation(fields: [subjectUserId], references: [id], onDelete: Cascade)
 
   @@unique([idempotencyKey])
   @@map("safety_control_mutations")
@@ -1138,12 +1287,12 @@ model SafetyControlEpoch {
 }
 
 model SafetyControlAuditConsumption {
-  auditId          String   @map("audit_id") @db.Uuid
-  controlRevisionId String  @map("control_revision_id") @db.Uuid
-  operationVersion Int      @map("operation_version")
-  operationTxid    BigInt   @default(dbgenerated("txid_current()")) @map("operation_txid")
-  consumedAt       DateTime @default(now()) @map("consumed_at") @db.Timestamptz(6)
-  audit             AuditLog @relation(fields: [auditId], references: [id], onDelete: Restrict)
+  auditId           String                @map("audit_id") @db.Uuid
+  controlRevisionId String                @map("control_revision_id") @db.Uuid
+  operationVersion  Int                   @map("operation_version")
+  operationTxid     BigInt                @default(dbgenerated("txid_current()")) @map("operation_txid")
+  consumedAt        DateTime              @default(now()) @map("consumed_at") @db.Timestamptz(6)
+  audit             AuditLog              @relation(fields: [auditId], references: [id], onDelete: Restrict)
   controlRevision   SafetyControlRevision @relation(fields: [controlRevisionId], references: [id], onDelete: Cascade)
 
   @@id([auditId])
@@ -1183,22 +1332,22 @@ model ReminderPreferenceMutation {
 }
 
 model ReminderPreferenceRevision {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
-  version           Int
-  enabled           Boolean
-  intensity         String
-  timezone          String
-  quietStartMinute  Int      @map("quiet_start_minute")
-  quietEndMinute    Int      @map("quiet_end_minute")
-  advisorMinute     Int      @map("advisor_minute")
-  behaviorMinute    Int      @map("behavior_minute")
-  weeklyDay         Int      @map("weekly_day")
-  weeklyMinute      Int      @map("weekly_minute")
-  effectiveAt       DateTime @map("effective_at") @db.Timestamptz(6)
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  schedulePlans     SchedulePlan[]
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String         @map("user_id") @db.Uuid
+  version          Int
+  enabled          Boolean
+  intensity        String
+  timezone         String
+  quietStartMinute Int            @map("quiet_start_minute")
+  quietEndMinute   Int            @map("quiet_end_minute")
+  advisorMinute    Int            @map("advisor_minute")
+  behaviorMinute   Int            @map("behavior_minute")
+  weeklyDay        Int            @map("weekly_day")
+  weeklyMinute     Int            @map("weekly_minute")
+  effectiveAt      DateTime       @map("effective_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedulePlans    SchedulePlan[]
 
   @@unique([userId, version])
   @@index([userId, effectiveAt])
@@ -1206,25 +1355,26 @@ model ReminderPreferenceRevision {
 }
 
 model SchedulePlan {
-  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId                   String   @map("user_id") @db.Uuid
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String                     @map("user_id") @db.Uuid
   kind                     String
-  localDate                DateTime @map("local_date") @db.Date
-  periodStart              DateTime @map("period_start") @db.Date
+  localDate                DateTime                   @map("local_date") @db.Date
+  periodStart              DateTime                   @map("period_start") @db.Date
   timezone                 String
-  scheduledAt              DateTime @map("scheduled_at") @db.Timestamptz(6)
-  cutoffAt                 DateTime @map("cutoff_at") @db.Timestamptz(6)
-  evaluatedAt              DateTime @default(dbgenerated("statement_timestamp()")) @map("evaluated_at") @db.Timestamptz(6)
-  requestedMinute          Int      @map("requested_local_minute")
-  resolvedLocalMinute      Int      @map("resolved_local_minute")
-  utcOffsetMinutes         Int      @map("utc_offset_minutes")
-  preferenceVersion        Int      @map("preference_version")
-  notificationConsentEpoch Int?     @map("notification_consent_epoch")
+  scheduledAt              DateTime                   @map("scheduled_at") @db.Timestamptz(6)
+  cutoffAt                 DateTime                   @map("cutoff_at") @db.Timestamptz(6)
+  evaluatedAt              DateTime                   @default(dbgenerated("statement_timestamp()")) @map("evaluated_at") @db.Timestamptz(6)
+  requestedMinute          Int                        @map("requested_local_minute")
+  resolvedLocalMinute      Int                        @map("resolved_local_minute")
+  utcOffsetMinutes         Int                        @map("utc_offset_minutes")
+  preferenceVersion        Int                        @map("preference_version")
+  notificationConsentEpoch Int?                       @map("notification_consent_epoch")
   status                   String
-  suppressionReason        String?  @map("suppression_reason")
-  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suppressionReason        String?                    @map("suppression_reason")
+  createdAt                DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                     User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   preferenceRevision       ReminderPreferenceRevision @relation(fields: [userId, preferenceVersion], references: [userId, version], onDelete: Cascade)
+  channelOutboxes          ChannelOutbox[]
 
   @@unique([userId, kind, periodStart])
   @@index([status, scheduledAt, kind])

@@ -212,6 +212,7 @@ export class SafetyControlsService {
     ]);
     const featureFlagKeys = new Set([
       "feature.daily_recommendations", "feature.weekly_review_share", "feature.channel_delivery",
+      "feature.llm_generation",
     ]);
     if (
       (input.control_type === "kill_switch" && !killSwitchKeys.has(input.control_key)) ||
@@ -221,7 +222,7 @@ export class SafetyControlsService {
     }
     const globalKeys = new Set([
       "global.proactive_messages", "llm.generation", "review.share",
-      "feature.daily_recommendations", "feature.weekly_review_share",
+      "feature.daily_recommendations", "feature.weekly_review_share", "feature.llm_generation",
     ]);
     const channelKeys = new Set(["channel.delivery", "feature.channel_delivery"]);
     if (globalKeys.has(input.control_key) && (input.scope_type !== "global" || input.scope_id !== "*")) {

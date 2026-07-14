@@ -94,6 +94,222 @@ paths:
                 $ref: "#/components/schemas/HealthFreshnessResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /labs/documents:
+    post:
+      operationId: createLabDocument
+      summary: Create one consent-bound bounded lab document intake
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabDocumentIntakeRequest" }
+      responses:
+        "201":
+          description: Created document intake or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabDocument" }
+        "400": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /labs/documents/{document_id}:
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getLabDocument
+      summary: Read one owned document and its evidence-bound observations
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Owned lab document.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabDocument" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /labs/documents/{document_id}/finalize:
+    parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: finalizeLabDocument
+      summary: Verify object metadata and enqueue one consent-bound parse
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabDocumentFinalizeRequest" }
+      responses:
+        "200":
+          description: Verified active document or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabDocument" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
+  /labs/observations/{observation_id}/confirm:
+    parameters:
+      - name: observation_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: confirmLabObservation
+      summary: Correct or confirm one owned allowlisted observation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabObservationConfirmationRequest" }
+      responses:
+        "200":
+          description: Usable confirmed observation and exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabObservation" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /admin/labs/observations/{observation_id}/confirm:
+    parameters:
+      - name: observation_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: reviewLabObservation
+      summary: Confirm one scoped observation with reviewer authority and reason
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabObservationReviewRequest" }
+      responses:
+        "200":
+          description: Reviewer-confirmed usable observation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabObservation" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /food/scans:
+    post:
+      operationId: createFoodScan
+      summary: Create one consent-bound bounded synthetic meal-image intake
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FoodScanIntakeRequest" }
+      responses:
+        "201":
+          description: Created scan intake or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodScan" }
+        "400": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
+  /food/scans/{scan_id}:
+    parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getFoodScan
+      summary: Read one owned scan with evidence-bound qualitative output
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Owned Food Risk Scan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodScan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /food/scans/{scan_id}/finalize:
+    parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: finalizeFoodScan
+      summary: Verify image metadata and enqueue one consent-bound synthetic analysis
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FoodScanFinalizeRequest" }
+      responses:
+        "200":
+          description: Verified active scan or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodScan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
+  /food/scans/{scan_id}/corrections:
+    parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: correctFoodScan
+      summary: Append one owned qualitative correction without automatic learning
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FoodCorrectionRequest" }
+      responses:
+        "200":
+          description: Corrected effective scan view or exact replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodScan" }
+        "400": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/PrivacyUnavailable" }
   /today:
     get:
       operationId: getToday
@@ -131,6 +347,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /coach/threads:
+    post:
+      operationId: createCoachThread
+      summary: Create or replay one authenticated immutable Coach thread
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CoachThreadCreateRequest" }
+      responses:
+        "201":
+          description: The created thread or exact idempotent replay.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachThread" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /coach/threads/{thread_id}/messages:
+    parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: sendCoachMessage
+      summary: Classify and atomically persist one safe Coach turn
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CoachMessageSendRequest" }
+      responses:
+        "200":
+          description: A fully buffered validated result or fixed safe response.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachTurnResult" }
+        "400": { $ref: "#/components/responses/Conflict" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    get:
+      operationId: listCoachMessages
+      summary: Read immutable messages owned by the authenticated user
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Ordered immutable Coach messages.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachMessagePage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /map:
     get:
       operationId: getHealthSignalMap
@@ -920,6 +1195,296 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
   schemas:
+    LabDocumentIntakeRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, sha256, mime_type, size_bytes]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        mime_type: { type: string, enum: [application/pdf, image/png, image/jpeg] }
+        size_bytes: { type: integer, minimum: 1, maximum: 20971520 }
+    LabDocumentFinalizeRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+    LabEvidenceBox:
+      type: object
+      additionalProperties: false
+      required: [x, y, width, height]
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+        width: { type: number, exclusiveMinimum: 0, maximum: 1 }
+        height: { type: number, exclusiveMinimum: 0, maximum: 1 }
+    LabObservation:
+      type: object
+      additionalProperties: false
+      required: [id, code, value, unit, normalized_value, normalized_unit, reference_range, page, evidence_box, confidence, disposition_code, confirmation_status, version]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, maxLength: 64 }
+        value: { type: string, maxLength: 64 }
+        unit: { type: string, maxLength: 32 }
+        normalized_value: { type: [number, "null"] }
+        normalized_unit: { type: [string, "null"], maxLength: 32 }
+        reference_range: { type: [string, "null"], maxLength: 80 }
+        page: { type: [integer, "null"], minimum: 1, maximum: 500 }
+        evidence_box: { $ref: "#/components/schemas/LabEvidenceBox" }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        disposition_code: { type: string, enum: [awaiting_confirmation, low_confidence, unsupported_field_or_unit, conflicting_field, user_confirmed, reviewer_confirmed] }
+        confirmation_status: { type: string, enum: [needs_confirmation, usable, rejected] }
+        version: { type: integer, minimum: 1 }
+    LabDocument:
+      type: object
+      additionalProperties: false
+      required: [id, object_key, sha256, mime_type, size_bytes, status, failure_code, observations]
+      properties:
+        id: { type: string, format: uuid }
+        object_key: { type: string, maxLength: 300 }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        mime_type: { type: string, enum: [application/pdf, image/png, image/jpeg] }
+        size_bytes: { type: integer, minimum: 1, maximum: 20971520 }
+        status: { type: string, enum: [pending, active, completed, failed, suppressed, deleted] }
+        failure_code: { type: [string, "null"] }
+        observations:
+          type: array
+          maxItems: 64
+          items: { $ref: "#/components/schemas/LabObservation" }
+    LabObservationConfirmationRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, expected_version, code, value, unit]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        expected_version: { type: integer, minimum: 1 }
+        code: { type: string, enum: [ALT, AST, GGT, URIC_ACID, BMI, WEIGHT, WAIST] }
+        value: { type: number }
+        unit: { type: string, minLength: 1, maxLength: 32 }
+    LabObservationReviewRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, expected_version, code, value, unit, reason]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        expected_version: { type: integer, minimum: 1 }
+        code: { type: string, enum: [ALT, AST, GGT, URIC_ACID, BMI, WEIGHT, WAIST] }
+        value: { type: number }
+        unit: { type: string, minLength: 1, maxLength: 32 }
+        reason: { type: string, minLength: 3, maxLength: 240 }
+    FoodScanIntakeRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, sha256, mime_type, size_bytes, captured_at]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        mime_type: { type: string, enum: [image/png, image/jpeg] }
+        size_bytes: { type: integer, minimum: 1, maximum: 10485760 }
+        captured_at: { type: string, format: date-time }
+    FoodScanFinalizeRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+    FoodEvidenceBox:
+      type: object
+      additionalProperties: false
+      required: [x, y, width, height]
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+        width: { type: number, exclusiveMinimum: 0, maximum: 1 }
+        height: { type: number, exclusiveMinimum: 0, maximum: 1 }
+    FoodDishCandidate:
+      type: object
+      additionalProperties: false
+      required: [id, code, confidence, evidence_box, disposition_code]
+      properties:
+        id: { type: string, format: uuid }
+        code:
+          type: string
+          enum: [red_braised_pork, white_rice, milk_tea, fried_dish, ambiguous_beverage, mixed_meat_dish, beer, soup, vegetables]
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence_box: { $ref: "#/components/schemas/FoodEvidenceBox" }
+        disposition_code: { type: string, enum: [visible, needs_confirmation, abstained] }
+    FoodRiskLabel:
+      type: object
+      additionalProperties: false
+      required: [id, label, level, confidence, evidence_box, disposition_code]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, enum: [sugary_drink, alcohol, high_oil, refined_carbohydrate, high_purine] }
+        level: { type: string, enum: [unknown, low, medium, high] }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence_box: { $ref: "#/components/schemas/FoodEvidenceBox" }
+        disposition_code: { type: string, enum: [visible, needs_confirmation, abstained] }
+    FoodLabelCorrection:
+      type: object
+      additionalProperties: false
+      required: [label, level]
+      properties:
+        label: { type: string, enum: [sugary_drink, alcohol, high_oil, refined_carbohydrate, high_purine] }
+        level: { type: string, enum: [unknown, low, medium, high] }
+    FoodCorrectionRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, expected_version, meal_presence, meal_completeness, dish_codes, labels, reason]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        expected_version: { type: integer, minimum: 1 }
+        meal_presence: { type: string, enum: [food, no_food, uncertain] }
+        meal_completeness: { type: string, enum: [complete, cropped, unknown] }
+        dish_codes:
+          type: array
+          uniqueItems: true
+          maxItems: 8
+          items:
+            type: string
+            enum: [red_braised_pork, white_rice, milk_tea, fried_dish, ambiguous_beverage, mixed_meat_dish, beer, soup, vegetables]
+        labels:
+          type: array
+          uniqueItems: true
+          maxItems: 5
+          items: { $ref: "#/components/schemas/FoodLabelCorrection" }
+        reason: { type: string, minLength: 3, maxLength: 240 }
+    FoodCorrection:
+      type: object
+      additionalProperties: false
+      required: [id, meal_presence, meal_completeness, dish_codes, labels, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        meal_presence: { type: string, enum: [food, no_food, uncertain] }
+        meal_completeness: { type: string, enum: [complete, cropped, unknown] }
+        dish_codes:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            enum: [red_braised_pork, white_rice, milk_tea, fried_dish, ambiguous_beverage, mixed_meat_dish, beer, soup, vegetables]
+        labels:
+          type: array
+          maxItems: 5
+          items: { $ref: "#/components/schemas/FoodLabelCorrection" }
+        created_at: { type: string, format: date-time }
+    FoodScan:
+      type: object
+      additionalProperties: false
+      required: [id, object_key, sha256, mime_type, size_bytes, captured_at, status, failure_code, meal_presence, meal_completeness, overall_confidence, disposition_code, version, dish_candidates, risk_labels, latest_correction]
+      properties:
+        id: { type: string, format: uuid }
+        object_key: { type: string, maxLength: 300 }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        mime_type: { type: string, enum: [image/png, image/jpeg] }
+        size_bytes: { type: integer, minimum: 1, maximum: 10485760 }
+        captured_at: { type: string, format: date-time }
+        status: { type: string, enum: [pending, active, completed, failed, suppressed, deleted] }
+        failure_code: { type: [string, "null"] }
+        meal_presence: { type: string, enum: [food, no_food, uncertain] }
+        meal_completeness: { type: string, enum: [complete, cropped, unknown, unsupported] }
+        overall_confidence: { type: number, minimum: 0, maximum: 1 }
+        disposition_code: { type: string, enum: [awaiting_processing, visible, needs_confirmation, no_food, unsupported, abstained, user_confirmed] }
+        version: { type: integer, minimum: 1 }
+        dish_candidates:
+          type: array
+          maxItems: 8
+          items: { $ref: "#/components/schemas/FoodDishCandidate" }
+        risk_labels:
+          type: array
+          maxItems: 5
+          items: { $ref: "#/components/schemas/FoodRiskLabel" }
+        latest_correction:
+          oneOf:
+            - { $ref: "#/components/schemas/FoodCorrection" }
+            - { type: "null" }
+    CoachThreadCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [client_thread_id, idempotency_key]
+      properties:
+        client_thread_id: { type: string, format: uuid }
+        idempotency_key: { type: string, format: uuid }
+    CoachThread:
+      type: object
+      additionalProperties: false
+      required: [id, client_thread_id, status, summary_version, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        client_thread_id: { type: string, format: uuid }
+        status: { const: active }
+        summary_version: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+    CoachMessageSendRequest:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, expected_summary_version, user_text]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        expected_summary_version: { type: integer, minimum: 0 }
+        user_text: { type: string, minLength: 1, maxLength: 4000 }
+        ocr_text: { type: string, maxLength: 4000 }
+    CoachPendingCandidate:
+      type: object
+      additionalProperties: false
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { const: pending }
+    CoachTurnResult:
+      type: object
+      additionalProperties: false
+      required: [intent, short_answer, reason, action_code, safety_class, source_ids, needs_human_review, fixed_response, fixed_response_code, candidate]
+      properties:
+        intent:
+          type: string
+          enum: [emergency, diagnosis_request, medication_request, unsupported_monitoring, prompt_injection, prohibited_mutation, explain_action, lighter, swap, limitation_candidate, general_question]
+        short_answer: { type: string, minLength: 1, maxLength: 600 }
+        reason: { type: string, minLength: 1, maxLength: 1200 }
+        action_code: { type: [string, "null"], maxLength: 100 }
+        safety_class: { type: string, enum: [normal, caution, doctor, blocked] }
+        source_ids:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uuid }
+        needs_human_review: { type: boolean }
+        fixed_response: { type: boolean }
+        fixed_response_code: { type: [string, "null"], maxLength: 100 }
+        candidate:
+          oneOf:
+            - { $ref: "#/components/schemas/CoachPendingCandidate" }
+            - { type: "null" }
+    CoachMessage:
+      type: object
+      additionalProperties: false
+      required: [id, sequence, role, intent, content, sources, safety_class, action_code, fixed_response_code, needs_human_review, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        sequence: { type: integer, minimum: 1 }
+        role: { type: string, enum: [user, assistant] }
+        intent: { $ref: "#/components/schemas/CoachTurnResult/properties/intent" }
+        content: { type: string, minLength: 1, maxLength: 4000 }
+        sources:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uuid }
+        safety_class: { type: string, enum: [normal, caution, doctor, blocked] }
+        action_code: { type: [string, "null"] }
+        fixed_response_code: { type: [string, "null"] }
+        needs_human_review: { type: boolean }
+        created_at: { type: string, format: date-time }
+    CoachMessagePage:
+      type: object
+      additionalProperties: false
+      required: [thread, messages]
+      properties:
+        thread: { $ref: "#/components/schemas/CoachThread" }
+        messages:
+          type: array
+          maxItems: 500
+          items: { $ref: "#/components/schemas/CoachMessage" }
     AdminReviewTask:
       type: object
       additionalProperties: false
@@ -975,6 +1540,7 @@ components:
             - feature.daily_recommendations
             - feature.weekly_review_share
             - feature.channel_delivery
+            - feature.llm_generation
         scope_type: { type: string, enum: [global, channel, rule_bundle, user] }
         scope_id: { type: string, minLength: 1, maxLength: 100 }
         active: { type: boolean }
@@ -1009,6 +1575,7 @@ components:
             - feature.daily_recommendations
             - feature.weekly_review_share
             - feature.channel_delivery
+            - feature.llm_generation
         scope_type: { type: string, enum: [global, channel, rule_bundle, user] }
         scope_id: { type: string, minLength: 1, maxLength: 100 }
         active: { type: boolean }

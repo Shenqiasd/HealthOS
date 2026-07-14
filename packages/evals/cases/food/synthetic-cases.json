@@ -1,0 +1,114 @@
+{
+  "synthetic_only": true,
+  "cases": [
+    {
+      "id": "standard-multiple-dishes",
+      "result": {
+        "meal_presence": "food",
+        "meal_completeness": "complete",
+        "overall_confidence": 0.96,
+        "dishes": [
+          { "code": "red_braised_pork", "confidence": 0.96, "evidence_box": { "x": 0.05, "y": 0.1, "width": 0.35, "height": 0.4 } },
+          { "code": "white_rice", "confidence": 0.98, "evidence_box": { "x": 0.45, "y": 0.2, "width": 0.25, "height": 0.3 } },
+          { "code": "milk_tea", "confidence": 0.99, "evidence_box": { "x": 0.72, "y": 0.08, "width": 0.2, "height": 0.55 } }
+        ],
+        "labels": [
+          { "label": "sugary_drink", "level": "high", "confidence": 0.99, "evidence_box": { "x": 0.72, "y": 0.08, "width": 0.2, "height": 0.55 } },
+          { "label": "high_oil", "level": "medium", "confidence": 0.94, "evidence_box": { "x": 0.05, "y": 0.1, "width": 0.35, "height": 0.4 } },
+          { "label": "refined_carbohydrate", "level": "medium", "confidence": 0.95, "evidence_box": { "x": 0.45, "y": 0.2, "width": 0.25, "height": 0.3 } },
+          { "label": "high_purine", "level": "unknown", "confidence": 0.55, "evidence_box": { "x": 0.05, "y": 0.1, "width": 0.35, "height": 0.4 } }
+        ]
+      },
+      "expected_visible_labels": ["high_oil", "refined_carbohydrate", "sugary_drink"],
+      "expected_disposition": "visible"
+    },
+    {
+      "id": "no-food",
+      "result": {
+        "meal_presence": "no_food",
+        "meal_completeness": "complete",
+        "overall_confidence": 0.99,
+        "dishes": [],
+        "labels": []
+      },
+      "expected_visible_labels": [],
+      "expected_disposition": "no_food"
+    },
+    {
+      "id": "cropped-incomplete-meal",
+      "result": {
+        "meal_presence": "food",
+        "meal_completeness": "cropped",
+        "overall_confidence": 0.93,
+        "dishes": [
+          { "code": "fried_dish", "confidence": 0.91, "evidence_box": { "x": 0, "y": 0.2, "width": 0.45, "height": 0.6 } }
+        ],
+        "labels": [
+          { "label": "high_oil", "level": "high", "confidence": 0.93, "evidence_box": { "x": 0, "y": 0.2, "width": 0.45, "height": 0.6 } }
+        ]
+      },
+      "expected_visible_labels": [],
+      "expected_disposition": "needs_confirmation"
+    },
+    {
+      "id": "ambiguous-alcohol",
+      "result": {
+        "meal_presence": "food",
+        "meal_completeness": "complete",
+        "overall_confidence": 0.62,
+        "dishes": [
+          { "code": "ambiguous_beverage", "confidence": 0.62, "evidence_box": { "x": 0.3, "y": 0.1, "width": 0.25, "height": 0.7 } }
+        ],
+        "labels": [
+          { "label": "alcohol", "level": "unknown", "confidence": 0.55, "evidence_box": { "x": 0.3, "y": 0.1, "width": 0.25, "height": 0.7 } }
+        ]
+      },
+      "expected_visible_labels": [],
+      "expected_disposition": "needs_confirmation"
+    },
+    {
+      "id": "low-confidence-sugary-drink",
+      "result": {
+        "meal_presence": "food",
+        "meal_completeness": "complete",
+        "overall_confidence": 0.72,
+        "dishes": [
+          { "code": "ambiguous_beverage", "confidence": 0.72, "evidence_box": { "x": 0.2, "y": 0.1, "width": 0.3, "height": 0.7 } }
+        ],
+        "labels": [
+          { "label": "sugary_drink", "level": "medium", "confidence": 0.71, "evidence_box": { "x": 0.2, "y": 0.1, "width": 0.3, "height": 0.7 } }
+        ]
+      },
+      "expected_visible_labels": [],
+      "expected_disposition": "needs_confirmation"
+    },
+    {
+      "id": "high-purine-uncertainty",
+      "result": {
+        "meal_presence": "food",
+        "meal_completeness": "complete",
+        "overall_confidence": 0.94,
+        "dishes": [
+          { "code": "mixed_meat_dish", "confidence": 0.94, "evidence_box": { "x": 0.1, "y": 0.1, "width": 0.6, "height": 0.7 } }
+        ],
+        "labels": [
+          { "label": "high_purine", "level": "unknown", "confidence": 0.66, "evidence_box": { "x": 0.1, "y": 0.1, "width": 0.6, "height": 0.7 } }
+        ]
+      },
+      "expected_visible_labels": [],
+      "expected_disposition": "needs_confirmation"
+    },
+    {
+      "id": "unsupported-image",
+      "result": {
+        "meal_presence": "uncertain",
+        "meal_completeness": "unsupported",
+        "overall_confidence": 0,
+        "dishes": [],
+        "labels": []
+      },
+      "expected_visible_labels": [],
+      "expected_disposition": "unsupported"
+    }
+  ]
+}

@@ -19,6 +19,64 @@ export interface ErrorEnvelope {
   };
 }
 
+export type CoachIntent =
+  | "emergency" | "diagnosis_request" | "medication_request" | "unsupported_monitoring"
+  | "prompt_injection" | "prohibited_mutation" | "explain_action" | "lighter"
+  | "swap" | "limitation_candidate" | "general_question";
+export type CoachSafetyClass = "normal" | "caution" | "doctor" | "blocked";
+
+export interface CoachThreadCreateRequest {
+  client_thread_id: string;
+  idempotency_key: string;
+}
+
+export interface CoachThreadResponse {
+  id: string;
+  client_thread_id: string;
+  status: "active";
+  summary_version: number;
+  created_at: string;
+}
+
+export interface CoachMessageSendRequest {
+  idempotency_key: string;
+  expected_summary_version: number;
+  user_text: string;
+  ocr_text?: string;
+}
+
+export interface CoachTurnResult {
+  intent: CoachIntent;
+  short_answer: string;
+  reason: string;
+  action_code: string | null;
+  safety_class: CoachSafetyClass;
+  source_ids: string[];
+  needs_human_review: boolean;
+  fixed_response: boolean;
+  fixed_response_code: string | null;
+  candidate: { id: string; status: "pending" } | null;
+}
+
+export interface CoachMessageResponse {
+  id: string;
+  sequence: number;
+  role: "user" | "assistant";
+  intent: CoachIntent;
+  content: string;
+  sources: string[];
+  safety_class: CoachSafetyClass;
+  action_code: string | null;
+  fixed_response_code: string | null;
+  needs_human_review: boolean;
+  created_at: string;
+}
+
+export interface CoachMessagePage {
+  thread: CoachThreadResponse;
+  messages: CoachMessageResponse[];
+}
+
 export interface NonceResponse {
   nonce: string;
   expires_at: string;
@@ -153,6 +211,230 @@ export interface HealthSyncResponse {
 export interface HealthFreshnessResponse {
   status: "absent" | "partial" | "current" | "stale";
   latest_local_date: string | null;
+}
+
+export const LAB_CODES = ["ALT", "AST", "GGT", "URIC_ACID", "BMI", "WEIGHT", "WAIST"] as const;
+export type LabCode = (typeof LAB_CODES)[number];
+export type LabMimeType = "application/pdf" | "image/png" | "image/jpeg";
+
+export interface LabDocumentIntakeRequest {
+  idempotency_key: string;
+  sha256: string;
+  mime_type: LabMimeType;
+  size_bytes: number;
+}
+
+export interface LabDocumentFinalizeRequest {
+  idempotency_key: string;
+}
+
+export interface LabEvidenceBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface LabObservationResponse {
+  id: string;
+  code: string;
+  value: string;
+  unit: string;
+  normalized_value: number | null;
+  normalized_unit: string | null;
+  reference_range: string | null;
+  page: number | null;
+  evidence_box: LabEvidenceBox;
+  confidence: number;
+  disposition_code: string;
+  confirmation_status: "needs_confirmation" | "usable" | "rejected";
+  version: number;
+}
+
+export interface LabDocumentResponse {
+  id: string;
+  object_key: string;
+  sha256: string;
+  mime_type: LabMimeType;
+  size_bytes: number;
+  status: "pending" | "active" | "completed" | "failed" | "suppressed" | "deleted";
+  failure_code: string | null;
+  observations: LabObservationResponse[];
+}
+
+export interface LabObservationConfirmationRequest {
+  idempotency_key: string;
+  expected_version: number;
+  code: LabCode;
+  value: number;
+  unit: string;
+}
+
+export interface LabObservationReviewRequest extends LabObservationConfirmationRequest {
+  reason: string;
+}
+
+export const FOOD_MIME_TYPES = ["image/png", "image/jpeg"] as const;
+export type FoodMimeType = (typeof FOOD_MIME_TYPES)[number];
+export const FOOD_DISH_CODES = [
+  "red_braised_pork",
+  "white_rice",
+  "milk_tea",
+  "fried_dish",
+  "ambiguous_beverage",
+  "mixed_meat_dish",
+  "beer",
+  "soup",
+  "vegetables",
+] as const;
+export type FoodDishCode = (typeof FOOD_DISH_CODES)[number];
+export const FOOD_RISK_LABELS = [
+  "sugary_drink",
+  "alcohol",
+  "high_oil",
+  "refined_carbohydrate",
+  "high_purine",
+] as const;
+export type FoodRiskLabelCode = (typeof FOOD_RISK_LABELS)[number];
+export type FoodRiskLevel = "unknown" | "low" | "medium" | "high";
+export type FoodMealPresence = "food" | "no_food" | "uncertain";
+export type FoodMealCompleteness = "complete" | "cropped" | "unknown" | "unsupported";
+
+export interface FoodScanIntakeRequest {
+  idempotency_key: string;
+  sha256: string;
+  mime_type: FoodMimeType;
+  size_bytes: number;
+  captured_at: string;
+}
+
+export interface FoodScanFinalizeRequest {
+  idempotency_key: string;
+}
+
+export interface FoodEvidenceBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface FoodDishCandidateResponse {
+  id: string;
+  code: FoodDishCode;
+  confidence: number;
+  evidence_box: FoodEvidenceBox;
+  disposition_code: "visible" | "needs_confirmation" | "abstained";
+}
+
+export interface FoodRiskLabelResponse {
+  id: string;
+  label: FoodRiskLabelCode;
+  level: FoodRiskLevel;
+  confidence: number;
+  evidence_box: FoodEvidenceBox;
+  disposition_code: "visible" | "needs_confirmation" | "abstained";
+}
+
+export interface FoodLabelCorrection {
+  label: FoodRiskLabelCode;
+  level: FoodRiskLevel;
+}
+
+export interface FoodCorrectionRequest {
+  idempotency_key: string;
+  expected_version: number;
+  meal_presence: FoodMealPresence;
+  meal_completeness: Exclude<FoodMealCompleteness, "unsupported">;
+  dish_codes: FoodDishCode[];
+  labels: FoodLabelCorrection[];
+  reason: string;
+}
+
+export interface FoodCorrectionResponse {
+  id: string;
+  meal_presence: FoodMealPresence;
+  meal_completeness: Exclude<FoodMealCompleteness, "unsupported">;
+  dish_codes: FoodDishCode[];
+  labels: FoodLabelCorrection[];
+  created_at: string;
+}
+
+export interface FoodScanResponse {
+  id: string;
+  object_key: string;
+  sha256: string;
+  mime_type: FoodMimeType;
+  size_bytes: number;
+  captured_at: string;
+  status: "pending" | "active" | "completed" | "failed" | "suppressed" | "deleted";
+  failure_code: string | null;
+  meal_presence: FoodMealPresence;
+  meal_completeness: FoodMealCompleteness;
+  overall_confidence: number;
+  disposition_code: "awaiting_processing" | "visible" | "needs_confirmation" | "no_food" | "unsupported" | "abstained" | "user_confirmed";
+  version: number;
+  dish_candidates: FoodDishCandidateResponse[];
+  risk_labels: FoodRiskLabelResponse[];
+  latest_correction: FoodCorrectionResponse | null;
+}
+
+export interface NormalizedLabValue {
+  code: LabCode;
+  value: number;
+  unit: "U/L" | "umol/L" | "kg/m2" | "kg" | "cm";
+}
+
+const LAB_BOUNDS: Record<LabCode, readonly [number, number]> = {
+  ALT: [0, 10_000],
+  AST: [0, 10_000],
+  GGT: [0, 10_000],
+  URIC_ACID: [0, 5_000],
+  BMI: [5, 150],
+  WEIGHT: [1, 500],
+  WAIST: [20, 300],
+};
+
+function boundedLabValue(code: LabCode, value: number): number | null {
+  const [minimum, maximum] = LAB_BOUNDS[code];
+  if (!Number.isFinite(value) || value < minimum || value > maximum) return null;
+  return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+export function normalizeLabValue(
+  rawCode: string,
+  rawValue: string | number,
+  rawUnit: string,
+): NormalizedLabValue | null {
+  const code = rawCode.trim().toUpperCase();
+  if (!(LAB_CODES as readonly string[]).includes(code)) return null;
+  const typedCode = code as LabCode;
+  const rawNumeric = typeof rawValue === "string" ? rawValue.trim() : null;
+  if (rawNumeric !== null && !/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(rawNumeric)) return null;
+  const parsed = typeof rawValue === "number" ? rawValue : Number(rawNumeric);
+  const unit = rawUnit.trim().replace("μ", "u").replace("µ", "u");
+  let value = parsed;
+  let canonicalUnit: NormalizedLabValue["unit"];
+
+  if (["ALT", "AST", "GGT"].includes(typedCode) && unit.toLowerCase() === "u/l") {
+    canonicalUnit = "U/L";
+  } else if (typedCode === "URIC_ACID" && unit.toLowerCase() === "umol/l") {
+    canonicalUnit = "umol/L";
+  } else if (typedCode === "URIC_ACID" && unit.toLowerCase() === "mg/dl") {
+    value *= 59.48;
+    canonicalUnit = "umol/L";
+  } else if (typedCode === "BMI" && ["kg/m2", "kg/m^2", "kg/m²"].includes(unit.toLowerCase())) {
+    canonicalUnit = "kg/m2";
+  } else if (typedCode === "WEIGHT" && unit.toLowerCase() === "kg") {
+    canonicalUnit = "kg";
+  } else if (typedCode === "WAIST" && unit.toLowerCase() === "cm") {
+    canonicalUnit = "cm";
+  } else {
+    return null;
+  }
+
+  const bounded = boundedLabValue(typedCode, value);
+  return bounded === null ? null : { code: typedCode, value: bounded, unit: canonicalUnit };
 }
 
 export interface ProfileCandidateResponse {
@@ -515,7 +797,8 @@ export type SafetyControlKey =
   | "review.share"
   | "feature.daily_recommendations"
   | "feature.weekly_review_share"
-  | "feature.channel_delivery";
+  | "feature.channel_delivery"
+  | "feature.llm_generation";
 export type SafetyControlScopeType = "global" | "channel" | "rule_bundle" | "user";
 export type SafetyControlReasonCode =
   | "incident_containment"

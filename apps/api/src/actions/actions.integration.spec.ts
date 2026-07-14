@@ -31,6 +31,25 @@ const baseRuleInput: RuleInput = {
   rejected_action_codes: [],
 };
 
+function currentShanghaiDate(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+function atShanghaiNoon(localDate: string): Date {
+  return new Date(`${localDate}T04:00:00.000Z`);
+}
+
+function nextDate(localDate: string): string {
+  return new Date(Date.parse(`${localDate}T00:00:00.000Z`) + 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
 describe("action feedback", () => {
   const database = new DatabaseService();
   const bundles = new RuleBundleService(database);
@@ -164,7 +183,7 @@ describe("action feedback", () => {
     riskArea?: "sleep_recovery" | "fatty_liver" | "uric_acid" | "waist_weight";
     ruleInput?: RuleInput;
   } = {}) {
-    const localDate = "2026-07-11";
+    const localDate = currentShanghaiDate();
     const actionCode = input.actionCode ?? "SLEEP_WIND_DOWN";
     const riskArea = input.riskArea ?? "sleep_recovery";
     const ruleInput = input.ruleInput ?? baseRuleInput;
@@ -331,7 +350,11 @@ describe("action feedback", () => {
     const original = await database.actionAssignment.findUniqueOrThrow({ where: { id: fixture.action.id } });
     expect(original.replacedById).toBe(result.current_action?.id);
     await expect(database.actionAssignment.count({ where: { userId: fixture.user.id } })).resolves.toBe(2);
-    const view = await today.get(fixture.user.id, randomUUID(), new Date("2026-07-11T08:00:00.000Z"));
+    const view = await today.get(
+      fixture.user.id,
+      randomUUID(),
+      atShanghaiNoon(fixture.action.localDate.toISOString().slice(0, 10)),
+    );
     expect(view).toMatchObject({
       state: "active_action",
       action: { id: result.current_action?.id, code: "SLEEP_WIND_DOWN_LIGHT", difficulty: "light" },
@@ -351,7 +374,7 @@ describe("action feedback", () => {
     const before = await today.get(
       fixture.user.id,
       randomUUID(),
-      new Date("2026-07-11T08:00:00.000Z"),
+      atShanghaiNoon(fixture.action.localDate.toISOString().slice(0, 10)),
     );
     expect(before.action?.commands.lighter).toBe(false);
     const result = await feedback.apply(
@@ -497,7 +520,7 @@ describe("action feedback", () => {
     const identityMutations = [
       { userId: other.id },
       { recommendationSnapshotId: randomUUID() },
-      { localDate: new Date("2026-07-12T00:00:00.000Z") },
+      { localDate: new Date(`${nextDate(fixture.action.localDate.toISOString().slice(0, 10))}T00:00:00.000Z`) },
       { difficulty: "light" },
       { isPrimary: false },
       { actionCode: "SLEEP_WIND_DOWN_LIGHT" },
@@ -579,7 +602,7 @@ describe("action feedback", () => {
     const view = await today.get(
       fixture.user.id,
       randomUUID(),
-      new Date("2026-07-11T08:00:00.000Z"),
+      atShanghaiNoon(fixture.action.localDate.toISOString().slice(0, 10)),
     );
     expect(view).toMatchObject({
       state: "active_action",
@@ -742,7 +765,7 @@ describe("action feedback", () => {
       fixture.action.id,
       randomUUID(),
       command(1, "complete"),
-      new Date("2026-07-12T08:00:00.000Z"),
+      atShanghaiNoon(nextDate(fixture.action.localDate.toISOString().slice(0, 10))),
     )).rejects.toBeInstanceOf(ConflictException);
 
     await expect(database.actionAssignment.create({
@@ -770,7 +793,7 @@ describe("action feedback", () => {
       fixture.action.id,
       randomUUID(),
       command(1, "complete"),
-      new Date("2026-07-11T08:00:00.000Z"),
+      atShanghaiNoon(fixture.action.localDate.toISOString().slice(0, 10)),
     )).rejects.toBeInstanceOf(ConflictException);
   });
 });

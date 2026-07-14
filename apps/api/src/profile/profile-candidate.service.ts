@@ -22,7 +22,11 @@ export class ProfileCandidateService {
     private readonly events: ProfileEventService,
   ) {}
 
-  async propose(userId: string, input: ProposeProfileCandidateInput) {
+  async propose(
+    userId: string,
+    input: ProposeProfileCandidateInput,
+    transaction?: Prisma.TransactionClient,
+  ) {
     if (
       input.candidateType !== "mobility_limitation" ||
       !/^[a-z][a-z0-9_]{1,63}$/.test(input.structuredValue.code) ||
@@ -38,7 +42,7 @@ export class ProfileCandidateService {
       structured_value: input.structuredValue,
       source_text_hash: sourceTextHash,
     });
-    return this.database.$transaction(async (tx) => {
+    const operation = async (tx: Prisma.TransactionClient) => {
       await this.events.requireCurrentConsent(tx, userId);
       const existing = await tx.profileCandidate.findUnique({
         where: {
@@ -61,7 +65,8 @@ export class ProfileCandidateService {
           requestHash,
         },
       });
-    });
+    };
+    return transaction ? operation(transaction) : this.database.$transaction(operation);
   }
 
   async get(userId: string, candidateId: string) {

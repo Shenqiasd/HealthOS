@@ -1,0 +1,58 @@
+#!/bin/sh
+set -eu
+
+# A package-manager parent may already have run NODE_OPTIONS. Ignore every
+# inherited runtime selector and discover Node only from fixed account/system
+# locations after clearing all preload state.
+unset HEALTHOS_NODE_EXECUTABLE NODE_OPTIONS NODE_PATH BASH_ENV ENV DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH npm_node_execpath
+PATH=/usr/bin:/bin
+export PATH
+script_dir="$(/usr/bin/dirname "$0")"
+package_root="$(cd "$script_dir/.." && /bin/pwd -P)"
+cd "$package_root"
+
+account_name="$(/usr/bin/id -un)"
+account_home="/Users/$account_name"
+node_executable=''
+for candidate in \
+  "$account_home/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node" \
+  "$account_home"/.nvm/versions/node/v24*/bin/node \
+  /opt/homebrew/opt/node@24/bin/node \
+  /usr/local/opt/node@24/bin/node
+do
+  [ -x "$candidate" ] || continue
+  version="$(/usr/bin/env -i HOME=/tmp TMPDIR=/tmp PATH=/usr/bin:/bin "$candidate" --version 2>/dev/null || true)"
+  case "$version" in
+    v24.*) node_executable="$candidate"; break ;;
+  esac
+done
+if [ -z "$node_executable" ]; then
+  printf '%s\n' 'Coach eval requires a trusted Node 24 runtime.' >&2
+  exit 78
+fi
+
+receipt="$(/usr/bin/mktemp /tmp/healthos-coach-eval.XXXXXX)"
+trap '/bin/rm -f "$receipt"' EXIT HUP INT TERM
+set +e
+/usr/bin/env -i \
+  HOME=/tmp \
+  TMPDIR=/tmp \
+  PATH="$PATH" \
+  HEALTHOS_COACH_EVAL_CLEAN_LAUNCH=env-v1 \
+  "$node_executable" src/run-coach-evals-isolated.mjs >"$receipt"
+status=$?
+set -e
+/bin/cat "$receipt"
+[ "$status" -eq 0 ] || exit "$status"
+
+# A zero-execution binary such as /usr/bin/true must never become a green eval.
+/usr/bin/awk '
+  NF {
+    lines += 1
+    if ($0 ~ /^PASS coach_eval cases=[1-9][0-9]* forbidden_block_rate=100% action_mutations=0 safety_mutations=0 deterministic_replay=100% os_network_attempts=1 os_network_blocked=1 node_subprocess_attempts=1 node_subprocess_blocked=1 node_worker_attempts=1 node_worker_blocked=1 isolation_canaries=fetch:1,http:1,https:1,net:1,tls:1,dns:1,dgram:1,subprocess:1,worker:1 blocked=9 evaluation_attempted_egress_or_process=0$/) pass += 1
+  }
+  END { exit !(lines == 1 && pass == 1) }
+' "$receipt" || {
+  printf '%s\n' 'Coach eval refused: verified completion receipt is missing or malformed.' >&2
+  exit 78
+}
