@@ -64,6 +64,13 @@ Consequences:
 - A cyber-policy refusal from an optional attack-style subagent is recorded as deferred release evidence; it is not treated as a product-code failure when deterministic local tests and the affected functional acceptance gates pass.
 - This sequencing change does not authorize real health data, remove Tasks 24-27, weaken Tier A checks, or permit HealthOS V1 completion before the final release audit.
 
+### Functional-first activation order
+
+- While any dependency-safe local or synthetic package under Tasks 1-23 remains, the PM must not activate Tasks 24-27 merely because a security, production-network, recovery, external-provider, CI-billing, or named-approval artifact is unavailable.
+- Full Xcode absence blocks only work whose acceptance requires iOS frameworks, a simulator, signing, entitlements, TestFlight, or a real device. It does not block API, worker, contract, eval, admin-console, deterministic domain, or provider-neutral adapter work.
+- Current development excludes offensive or penetration testing, final threat-model/security-owner sign-off, production WAF/VPC/KMS validation, complete container/Terraform/supply-chain certification, incident tabletop exercises, backup/restore drills, real-provider onboarding, and real-data processing. These remain explicit release backlog, not deleted requirements.
+- Routine dependency audit, bounded-input checks, authentication, ownership, privacy fences, deterministic safety, output validation, audit evidence, idempotency, feature flags, and kill switches remain functional acceptance criteria where applicable.
+
 ## Stop Rule
 
 Stop only when a final audit proves the full original outcome is complete, or when an exact mandatory human decision is the only remaining blocker and no safe plan-permitted local work remains.

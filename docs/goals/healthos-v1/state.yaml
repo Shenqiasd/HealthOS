@@ -92,7 +92,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T051
+active_task: T053
 
 tasks:
   - id: T001
@@ -3570,7 +3570,7 @@ tasks:
   - id: T051
     type: worker
     assignee: Worker
-    status: active
+    status: done
     reasoning_hint: xhigh
     objective: "Implement the synthetic provider-neutral server foundation for implementation Task 17: authenticated bounded meal-image intake/finalization, leased local parsing, allowlisted dish candidates and risk labels, explicit confidence/abstention states, correction events, privacy/deletion fencing, and an API contract that structurally forbids kcal or macro estimates. Use generated fixtures only; do not complete native FoodScan or full T117."
     inputs:
@@ -3613,6 +3613,171 @@ tasks:
       - "Allowlisted qualitative risk labels with evidence/confidence, explicit abstention, and immutable user corrections"
       - "Machine-enforced absence of calories and macro estimates across contract, runtime, persistence, and eval output"
       - "Migration, regression, and exact-scope evidence while native/provider/corpus T117 remains incomplete"
+    receipt:
+      result: done
+      changed_files:
+        - .env.example
+        - apps/api/package.json
+        - apps/api/prisma/schema.prisma
+        - apps/api/prisma/migrations/20260714150000_food_server_foundation/migration.sql
+        - apps/api/src/app.module.ts
+        - "apps/api/src/food/**"
+        - apps/api/test/database-constraints.e2e-spec.ts
+        - apps/worker/package.json
+        - apps/worker/src/worker.module.ts
+        - "apps/worker/src/jobs/food/**"
+        - packages/contracts/openapi/healthos-v1.yaml
+        - packages/contracts/src/index.ts
+        - packages/evals/package.json
+        - packages/evals/src/run-food-evals.ts
+        - packages/evals/cases/food/synthetic-cases.json
+        - packages/test-fixtures/food/synthetic-standard.json
+        - pnpm-lock.yaml
+      commands:
+        - cmd: "pnpm --filter @healthos/api test:food"
+          status: pass
+        - cmd: "pnpm --filter @healthos/worker test:food"
+          status: pass
+        - cmd: "pnpm --filter @healthos/evals eval:food"
+          status: pass
+        - cmd: "API identity, consent/privacy, database, Labs, and Food regression on fresh 17-migration database"
+          status: pass
+        - cmd: "Worker privacy, Labs, and Food regression on fresh 17-migration database"
+          status: pass
+        - cmd: "fresh 17-migration deploy, 16-to-17 legacy upgrade, restricted-owner deploy, and Prisma zero diff"
+          status: pass
+        - cmd: "pnpm lint && pnpm typecheck && env -u DATABASE_URL pnpm test"
+          status: pass
+        - cmd: "API, worker, and admin production builds"
+          status: pass
+        - cmd: "pnpm audit --audit-level=high"
+          status: pass
+        - cmd: "docker compose config --quiet && git diff --check"
+          status: pass
+        - cmd: "T051 exact hash scope guard"
+          status: pass
+      summary: "Implemented and committed the synthetic provider-neutral Food Risk Scan server, worker, contract, and eval foundation. Authenticated image intake is bounded and object metadata is verified exactly; leased parsing uses a local fail-closed adapter; only allowlisted qualitative dish/risk candidates can become visible; uncertain, cropped, unsupported, no-food, malformed, unknown, or stale-consent work abstains. Corrections are immutable evaluation events and calories, macros, diagnosis, or automatic retraining claims are structurally forbidden across API, persistence, provider output, fixtures, and evals."
+      evidence:
+        - "Product commit fffdc39 contains exactly the 28 T051-authorized product files."
+        - "Food API and OpenAPI pass 6 cases covering intake bounds, exact replay, object mismatch, ownership, immutable correction, forbidden fields, concurrency, consent, and deletion."
+        - "Food Worker passes 7 cases covering allowlists, abstention states, independent label kill switches, privacy races, provider timeout/malformed/unknown/unconfigured output, and every forbidden key family."
+        - "Food eval passes 7 generated cases with visible_label_precision=1 and real_corpus_gate_satisfied=false."
+        - "Affected API and Worker regressions pass on a fresh 17-migration PostgreSQL database, including all 23 database invariants."
+        - "Fresh, valid legacy-upgrade, and restricted-owner migration paths pass; Prisma reports no schema difference."
+        - "Workspace lint, typecheck, no-database tests, builds, dependency audit, Docker config, diff check, and exact scope guard pass."
+      risks_remaining:
+        - "Native FoodScan UI, real object/vision providers, real meal images, the consented 300-image corpus, reviewer adjudication, and >=90% real precision are not implemented; T117 remains incomplete."
+        - "The official operations mutation catalog does not yet expose the new Food and Labs safety-control keys; the database recognizes them and Worker read behavior is tested, but operator mutation is follow-up operations scope."
+        - "Real data-region, provider, privacy, and medical approvals remain mandatory before any real meal image crosses this boundary."
+        - "Deferred offensive security, production-network, recovery, infrastructure, TestFlight, and release evidence remains in Tasks 24-27 and does not block the next synthetic functional task."
+      next: "Activate T052 to audit T051, reinforce the functional-first Goal activation guard, and define the next synthetic operations/reviewer feature package."
+  - id: T052
+    type: pm
+    assignee: PM
+    status: done
+    reasoning_hint: high
+    objective: "Audit T051, make the product owner's functional-first activation order explicit, and define the next largest local synthetic feature package without allowing deferred offensive-security, production-network, recovery, or external-approval work to pause Tasks 1-23."
+    inputs:
+      - "T049 two-tier security sequencing decision"
+      - "T051 product commit and verification receipt"
+      - "Current T100-T127 coverage and missing-full-Xcode evidence"
+      - "Implementation Tasks 20-23 and the remaining Labs, Food, channel, privacy, and operations workflows"
+    allowed_files:
+      - "docs/goals/healthos-v1/**"
+    verify:
+      - "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+      - "node scripts/check-preflight-gates.mjs --mode structure"
+      - "node .agents/skills/healthos-long-goal/scripts/check-plan-coverage.mjs (expected incomplete, never treated as a functional-development blocker)"
+      - "xcode-select -p and xcodebuild -version environment audit"
+      - "git diff --check"
+      - "T052 exact scope guard for docs/goals/healthos-v1/**"
+    stop_if:
+      - "The change would remove ownership/authorization, consent/deletion fences, deterministic health rules, fixed emergency handling, provider-output validation, privacy-safe logging, auditability, idempotency, bounded inputs, feature flags, or kill switches from affected functional slices."
+      - "The change would authorize real health data, external providers, production infrastructure, TestFlight, or release without named authority and evidence."
+      - "The change would mark T117, T120, Tasks 24-27, or the full V1 outcome complete from synthetic server evidence alone."
+      - "The next Worker package would require full Xcode, Apple entitlements, external network access, real provider credentials, real user data, or attack-style security review."
+    expected_output:
+      - "A durable activation-order guard that keeps deferred release hardening visible but outside the current functional critical path"
+      - "T051 audit preserving native/provider/corpus T117 residual scope"
+      - "One executable synthetic feature package advancing the operations and reviewer workflow"
+      - "Updated board, next-task scope baseline, and PM receipt"
+    receipt:
+      result: done
+      changed_files:
+        - docs/goals/healthos-v1/goal.md
+        - docs/goals/healthos-v1/state.yaml
+      commands:
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode structure"
+          status: pass
+        - cmd: "assert plan coverage remains incomplete with 44 missing completion items"
+          status: pass
+        - cmd: "xcode-select -p and expected-unavailable xcodebuild audit"
+          status: pass
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "T052 exact scope guard for docs/goals/healthos-v1/**"
+          status: pass
+      summary: "Audited T051 as complete for its synthetic server/worker/eval contract while preserving native, provider, corpus, and real-precision T117 gaps. Added an explicit functional-first activation guard: deferred offensive security, production network/KMS, complete supply-chain certification, incident/recovery exercises, external-provider onboarding, real-data processing, and CI billing may not preempt dependency-safe Tasks 1-23. Full Xcode absence is isolated to native acceptance work. Defined T053 as the next synthetic operations-console feature package."
+      evidence:
+        - "T051 commit fffdc39 and receipt contain API 6/6, Worker 7/7, generated Eval 7 cases, affected regressions, 17-migration evidence, builds, audit, and exact scope proof."
+        - "Goal charter now has a functional-first activation order and an explicit list of work excluded from the current development critical path."
+        - "Preflight structure passes; plan coverage remains intentionally incomplete with 44 missing items, so no release or full-V1 completion is implied."
+        - "The machine still selects /Library/Developer/CommandLineTools and lacks full Xcode; only native/simulator/signing evidence remains blocked by that fact."
+        - "T053 has exact files, tests, privacy boundaries, stop conditions, and no migration, external-network, real-data, or offensive-review dependency."
+      risks_remaining:
+        - "Full Xcode and simulator tooling are still needed for the native iOS critical path and cannot be replaced by server evidence."
+        - "Tasks 24-27 and named professional approvals remain mandatory before real-data Beta or production release."
+        - "T053 will not complete real administrator IdP/MFA issuance, staffing/SLA simulation, external providers, complete E2E, or full T120."
+        - "GitHub Actions remains externally unavailable because of the account billing lock; local evidence is not represented as remote CI."
+      next: "Activate T053 and implement the synthetic operations queues, official Labs/Food safety-control catalog, and dense typed admin views."
+  - id: T053
+    type: worker
+    assignee: Worker
+    status: active
+    reasoning_hint: xhigh
+    objective: "Expand the synthetic operations console with bounded, role-scoped visibility for pending Labs review, Food correction/abstention, channel-delivery exceptions, and privacy jobs; expose the already database-recognized Labs/Food safety-control keys through the official audited mutation catalog; and add dense typed admin views. Do not complete full T120 or perform deferred security hardening."
+    inputs:
+      - "T035 fail-closed administrator identity, MFA/RBAC, stable cursor, workflow audit, and dense admin foundation"
+      - "T039 audited feature-flag and kill-switch mutation path"
+      - "T042 provider-neutral channel outbox/delivery attempts"
+      - "T050 Labs intake, observation confirmation, and reviewer authority"
+      - "T051 Food scans, confidence/abstention, and immutable correction events"
+      - "T015 privacy export/deletion state machines"
+    allowed_files:
+      - "apps/api/package.json"
+      - "apps/api/src/admin/**"
+      - "apps/api/src/kill-switches/**"
+      - "apps/admin/package.json"
+      - "apps/admin/app/(authenticated)/**"
+      - "apps/admin/app/globals.css"
+      - "apps/admin/components/**"
+      - "apps/admin/lib/api/**"
+      - "apps/admin/tests/**"
+      - "packages/contracts/openapi/healthos-v1.yaml"
+      - "packages/contracts/src/index.ts"
+      - "pnpm-lock.yaml"
+      - "**/node_modules/**"
+      - "apps/admin/.next/**"
+    verify:
+      - "Write RED API/OpenAPI/admin tests before implementation for each queue, every role boundary, cursor tampering, scope revocation, empty/error states, and the Labs/Food safety-control catalog"
+      - "Prove reviewer/operator/admin/medical-approver visibility is least-privilege, MFA is mandatory, subject scopes are rechecked, and user access tokens remain invalid"
+      - "Prove queue payloads expose only operational metadata: no raw lab values/evidence text, object keys, device tokens, notification payloads, deletion tokens, meal images, calories, macros, or free-text correction reasons"
+      - "Prove Labs/Food control mutations use the existing audited, idempotent, optimistic-concurrency path and every supported key has the database-required global scope"
+      - "Prove stable bounded pagination for pending Labs, Food attention states, failed/unknown channel attempts, and export/deletion jobs without cross-user leakage or duplicate/skip inside a snapshot"
+      - "Run admin API/OpenAPI, safety-control, Labs, Food, channel, privacy, database, admin component/build, lint, typecheck, no-database, audit, diff, and exact T053 scope checks"
+    stop_if:
+      - "Implementation requires a real administrator IdP, production actor, real health data, external provider/channel, Xcode, or attack-style security review."
+      - "A queue or audit response would expose raw health content, object keys, credentials/tokens, precise nutrition estimates, unrestricted subject identifiers, or correction free text."
+      - "A new mutation path bypasses the existing MFA/RBAC, reason, idempotency, optimistic concurrency, same-transaction audit, feature-flag, or kill-switch controls."
+      - "The package would claim full T120, real operational staffing/SLA evidence, production security readiness, or release readiness."
+      - "Implementation requires a schema migration or files outside allowed_files; stop and return to PM for a separately bounded task."
+    expected_output:
+      - "Four bounded cursor-paginated synthetic operations queues with explicit unavailable, empty, error, and ready states"
+      - "Official audited mutation support for labs.ingestion, food.scan, and each allowlisted food.label.* global safety control"
+      - "Dense typed admin views that never expose raw health or provider payloads"
+      - "Regression, contract, build, and exact-scope evidence while real IdP, staffing, E2E, external providers, and full T120 remain incomplete"
     receipt: null
   - id: T003
     type: worker
