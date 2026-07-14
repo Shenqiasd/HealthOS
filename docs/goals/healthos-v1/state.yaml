@@ -92,7 +92,7 @@ visual_board:
     url: null
     command: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh board docs/goals/healthos-v1"
 
-active_task: T049
+active_task: T050
 
 tasks:
   - id: T001
@@ -3415,7 +3415,7 @@ tasks:
   - id: T049
     type: pm
     assignee: PM
-    status: active
+    status: done
     reasoning_hint: high
     objective: "Apply the product owner's 2026-07-14 security-scope decision: keep essential health, privacy, authorization, audit, and AI-output safety inside functional development; move offensive security review, full threat-model sign-off, penetration/supply-chain/production-network hardening, and disaster-recovery exercises to explicit pre-Beta release gates so synthetic feature development continues."
     inputs:
@@ -3441,11 +3441,41 @@ tasks:
       - "Durable two-tier security scope in the goal charter, implementation plan, board, and long-goal instructions"
       - "Synthetic/local functional work may proceed while external approvals and pre-Beta hardening remain truthfully deferred"
       - "A concrete next Worker package that advances a V1 user workflow without Xcode, real providers, real data, or offensive security review"
-    receipt: null
+    receipt:
+      result: done
+      changed_files:
+        - .agents/skills/healthos-long-goal/SKILL.md
+        - docs/goals/healthos-v1/goal.md
+        - docs/goals/healthos-v1/state.yaml
+        - docs/plans/2026-07-10-healthos-v1-implementation.md
+      commands:
+        - cmd: "bash .agents/skills/healthos-long-goal/scripts/goalbuddy.sh resume docs/goals/healthos-v1 --json"
+          status: pass
+        - cmd: "node scripts/check-preflight-gates.mjs --mode structure"
+          status: pass
+        - cmd: "node .agents/skills/healthos-long-goal/scripts/check-plan-coverage.mjs"
+          status: fail
+        - cmd: "git diff --check"
+          status: pass
+        - cmd: "T049 exact scope guard"
+          status: pass
+      summary: "Applied the product owner's two-tier security sequencing decision across the durable Goal charter, GoalBuddy board, implementation plan, and long-goal Skill. Development-essential safety remains mandatory per functional slice; attack-style review, complete threat-model/security sign-off, production network/KMS and supply-chain hardening, incident exercises, and recovery drills are now explicit Tasks 24-27 pre-Beta gates rather than prerequisites for synthetic Tasks 1-23. Defined T050 as the next provider-neutral synthetic Labs server/worker vertical slice."
+      evidence:
+        - "Commit 380c8a5 contains only the four T049-authorized durable planning files."
+        - "GoalBuddy resume reports T049 as the sole active PM task before transition."
+        - "Preflight structure remains valid while readiness decisions remain pending."
+        - "Plan coverage intentionally remains red for every incomplete T100-T127 item, proving the change does not permit premature V1 completion."
+        - "The T049 scope guard reports no violations."
+        - "T050 explicitly forbids real health files, real external providers, native completion claims, and pre-Beta attack review while retaining ownership, consent/privacy, confidence, evidence, confirmation, audit, and profile-publication invariants."
+      risks_remaining:
+        - "Full security, privacy, performance, recovery, infrastructure, and release evidence remains mandatory in Tasks 24-27."
+        - "Native iOS work remains blocked on this machine by missing full Xcode and simulator tooling, not by the revised security sequencing."
+        - "No real health data, OCR provider, object-storage provider, Apple entitlement, or production authority has been approved."
+      next: "Activate T050 and implement the generated-fixture, provider-neutral Labs server foundation with development-essential safety."
   - id: T050
     type: worker
     assignee: Worker
-    status: queued
+    status: active
     reasoning_hint: xhigh
     objective: "Implement the synthetic provider-neutral server foundation for implementation Task 9: authenticated lab-document intake and finalization, bounded object metadata verification, deterministic allowlisted parsing/normalization, evidence boxes, low-confidence abstention, user correction/confirmation, reviewer confirmation, privacy/deletion fencing, and profile-event publication only from usable observations. Use only generated fixtures and local adapters; do not complete native Labs or full T109."
     inputs:
